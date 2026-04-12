@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP Unified</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="app-title">ESP Unified</h1>
+            <div class="chip-info">
+                <span id="chip-id" class="badge"></span>
+                <span id="plugin-name" class="badge plugin-badge"></span>
+            </div>
+        </header>
+        
+        <div class="dashboard">
+            <!-- Plugin stats panel - dynamically populated -->
+            <div class="stats-panel">
+                <h2>Current Status</h2>
+                <div id="plugin-stats" class="primary-stats"></div>
+                
+                <div class="secondary-stats">
+                    <div class="system-info">
+                        <div class="stat-item small">
+                            <span class="stat-label">Sensor:</span>
+                            <span id="sensor-status" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item small">
+                            <span class="stat-label">MQTT:</span>
+                            <span id="mqtt-status" class="stat-value">--</span>
+                        </div>
+                    </div>
+                    
+                    <div class="network-info">
+                        <div class="stat-item small">
+                            <span class="stat-label">Network:</span>
+                            <span id="wifi-network" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item small">
+                            <span class="stat-label">Signal:</span>
+                            <span id="wifi-signal" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item small">
+                            <span class="stat-label">IP:</span>
+                            <span id="ip-address" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item small">
+                            <span class="stat-label">Uptime:</span>
+                            <span id="uptime" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item small">
+                            <span class="stat-label">Free heap:</span>
+                            <span id="free-heap" class="stat-value">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configuration panel -->
+            <div class="config-panel">
+                <div id="config-toggle" class="panel-header">
+                    <h2>Configuration</h2>
+                    <span class="toggle-icon">+</span>
+                </div>
+                <form id="config-form">
+                    <!-- Plugin selector -->
+                    <h3>Plugin</h3>
+                    <div class="form-group">
+                        <label for="active-plugin">Active Plugin:</label>
+                        <select id="active-plugin" name="active_plugin"></select>
+                        <small class="form-text">Changing plugin requires a restart</small>
+                    </div>
+
+                    <!-- Dynamic plugin parameters -->
+                    <div id="plugin-params-section">
+                        <h3 id="plugin-params-title">Plugin Settings</h3>
+                        <div id="plugin-params"></div>
+                    </div>
+                    
+                    <h3>MQTT Settings</h3>
+                    <div class="form-group">
+                        <label for="mqtt-host">Host:</label>
+                        <input type="text" id="mqtt-host" name="mqtt_host">
+                    </div>
+                    <div class="form-group">
+                        <label for="mqtt-port">Port:</label>
+                        <input type="number" id="mqtt-port" name="mqtt_port">
+                    </div>
+                    <div class="form-group">
+                        <label for="mqtt-user">Username:</label>
+                        <input type="text" id="mqtt-user" name="mqtt_user">
+                    </div>
+                    <div class="form-group">
+                        <label for="mqtt-pass">Password:</label>
+                        <input type="password" id="mqtt-pass" name="mqtt_pass">
+                    </div>
+                    <div class="form-group">
+                        <label for="mqtt-device">Device Name:</label>
+                        <input type="text" id="mqtt-device" name="mqtt_device">
+                    </div>
+                    <div class="form-group">
+                        <label for="mqtt-topic">Topic:</label>
+                        <input type="text" id="mqtt-topic" name="mqtt_topic">
+                    </div>
+                    
+                    <div class="button-group">
+                        <div class="left-buttons">
+                            <button type="submit" class="btn primary">Save Changes</button>
+                        </div>
+                        <div class="right-buttons">
+                            <button type="button" id="restart-btn" class="btn warning">Restart</button>
+                            <button type="button" id="reset-btn" class="btn danger">Reset</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Log panel -->
+            <div class="log-panel">
+                <h2>System Log</h2>
+                <div id="log-container" class="log-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

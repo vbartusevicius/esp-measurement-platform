@@ -1,0 +1,200 @@
+#include <Arduino.h>
+#include <ESP8266WiFi.h>
+#include <ArduinoOTA.h>
+#include <TaskManagerIO.h>
+
+#include "ChipId.h"
+#include "TimeHelper.h"
+#include "LedController.h"
+#include "Logger.h"
+#include "Storage.h"
+#include "Parameter.h"
+#include "WifiConnector.h"
+#include "MqttClient.h"
+#include "Display.h"
+#include "WebApi.h"
+#include "PluginRegistry.h"
+
+// Plugins
+#include "AnalogDistancePlugin.h"
+#include "UltrasonicDistancePlugin.h"
+#include "RadiationCounterPlugin.h"
+
+WiFiClient network;
+
+// Core components
+Logger logger;
+Storage storage;
+LedController ledController;
+Display display;
+PluginRegistry registry;
+
+// Plugins
+AnalogDistancePlugin analogDistancePlugin;
+UltrasonicDistancePlugin ultrasonicDistancePlugin;
+RadiationCounterPlugin radiationCounterPlugin;
+
+// Pointers to be initialized after plugin selection
+WifiConnector* wifi = nullptr;
+MqttClient* mqtt = nullptr;
+WebApi* webApi = nullptr;
+IPlugin* activePlugin = nullptr;
+
+// Interrupt handlers for radiation counter
+void IRAM_ATTR onRadiationISR()
+{
+    radiationCounterPlugin.onRadiationClick();
+}
+
+void IRAM_ATTR onButtonISR()
+{
+    radiationCounterPlugin.onButtonClick();
+}
+
+void resetDevice()
+{
+    storage.reset();
+    if (wifi) wifi->resetSettings();
+    delay(1000);
+    ESP.restart();
+}
+
+void setupOTA()
+{
+    ArduinoOTA.onStart([]() {
+        logger.info("OTA update starting...");
+    });
+    ArduinoOTA.onEnd([]() {
+        logger.info("OTA update complete.");
+    });
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        Serial.printf("OTA progress: %u%%\r", (progress / (total / 100)));
+    });
+    ArduinoOTA.onError([](ota_error_t error) {
+        logger.error("OTA error: " + String(error));
+    });
+    ArduinoOTA.begin();
+}
+
+void setup()
+{
+    Serial.begin(9600);
+    delay(500);
+
+    String chipId = ChipId::get();
+    logger.info("=== ESP Unified ===");
+    logger.info("Chip ID: " + chipId);
+
+    // Register all available plugins
+    registry.add(&analogDistancePlugin);
+    registry.add(&ultrasonicDistancePlugin);
+    registry.add(&radiationCounterPlugin);
+
+    // Initialize storage and determine active plugin
+    storage.begin();
+    String activePluginId = storage.getParameter(Parameter::ACTIVE_PLUGIN, "analog_distance");
+    activePlugin = registry.get(activePluginId.c_str());
+
+    if (!activePlugin) {
+        logger.warning("Plugin '" + activePluginId + "' not found, using first available");
+        activePlugin = registry.getFirst();
+    }
+    logger.info("Active plugin: " + String(activePlugin->getName()));
+
+    // Setup plugin
+    activePlugin->setup(&storage, &logger, &ledController);
+
+    // Setup radiation counter interrupts if that plugin is active
+    if (strcmp(activePlugin->getId(), "radiation_counter") == 0) {
+        attachInterrupt(digitalPinToInterrupt(RadiationCounterPlugin::CNT_PIN), onRadiationISR, CHANGE);
+        attachInterrupt(digitalPinToInterrupt(RadiationCounterPlugin::BTN_PIN), onButtonISR, CHANGE);
+        logger.info("Radiation counter interrupts attached");
+    }
+
+    // WiFi
+    wifi = new WifiConnector(&logger, chipId);
+    bool wifiConnected = wifi->begin();
+
+    if (!wifiConnected) {
+        display.configWizardFirstStep(wifi->getAppName());
+        return;
+    }
+
+    if (storage.isEmpty(activePlugin)) {
+        display.configWizardSecondStep(WiFi.localIP().toString().c_str());
+    }
+
+    // Web API
+    webApi = new WebApi(&storage, &logger, activePlugin, &registry, resetDevice);
+    webApi->begin();
+
+    // MQTT
+    String mqttDevice = storage.getParameter(Parameter::MQTT_DEVICE);
+    if (mqttDevice.length() > 0) {
+        mqtt = new MqttClient(&storage, &logger, activePlugin, chipId);
+        mqtt->begin();
+    } else {
+        logger.warning("MQTT device name not configured, skipping MQTT");
+    }
+
+    // OTA
+    setupOTA();
+
+    // Task scheduling
+    int samplingInterval = 10;
+    if (strcmp(activePlugin->getId(), "radiation_counter") == 0) {
+        samplingInterval = 1;
+    } else {
+        String interval = storage.getParameter("sampling_interval", "10");
+        samplingInterval = interval.toInt();
+        if (samplingInterval < 1) samplingInterval = 1;
+    }
+
+    // WiFi maintenance
+    taskManager.scheduleFixedRate(250, [] {
+        if (wifi) wifi->run();
+    });
+
+    // Web API updates
+    taskManager.scheduleFixedRate(2000, [] {
+        if (webApi) webApi->run();
+    });
+
+    // LED heartbeat
+    taskManager.scheduleFixedRate(1000, [] {
+        ledController.click();
+        ledController.run();
+    });
+
+    // MQTT maintenance
+    taskManager.scheduleFixedRate(5000, [] {
+        if (mqtt) mqtt->run();
+    });
+
+    // Plugin measurement loop
+    taskManager.scheduleFixedRate(samplingInterval * 1000, [] {
+        if (activePlugin) activePlugin->loop();
+    });
+
+    // MQTT publish
+    taskManager.scheduleFixedRate(samplingInterval * 1000, [] {
+        if (mqtt) mqtt->publish();
+    });
+
+    // Display update
+    taskManager.scheduleFixedRate(1000, [] {
+        int page = 0;
+        if (strcmp(activePlugin->getId(), "radiation_counter") == 0) {
+            page = radiationCounterPlugin.getButtonPage();
+        }
+        display.run(activePlugin, page);
+    });
+
+    logger.info("Setup complete. Scheduling with " + String(samplingInterval) + "s sampling interval.");
+}
+
+void loop()
+{
+    ArduinoOTA.handle();
+    taskManager.runLoop();
+}
