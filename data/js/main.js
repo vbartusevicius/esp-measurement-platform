@@ -33,56 +33,38 @@ function setupConfigToggle() {
 }
 
 function updateUI(data) {
-    // Network info
+    // System info
     setTextContent('wifi-network', data.wifi_network || 'Unknown');
     setTextContent('wifi-signal', data.wifi_signal ? data.wifi_signal + ' dBm' : 'N/A');
     setTextContent('ip-address', data.ip_address || 'Unknown');
     setTextContent('uptime', data.uptime || 'N/A');
     setTextContent('free-heap', data.free_heap ? Math.round(data.free_heap / 1024) + ' KB' : 'N/A');
     
-    // Sensor connected
-    const sensorEl = document.getElementById('sensor-status');
-    if (sensorEl && data.sensor_connected !== undefined) {
-        sensorEl.textContent = data.sensor_connected ? 'Connected' : 'Disconnected';
-        sensorEl.className = 'stat-value ' + (data.sensor_connected ? 'connected' : 'disconnected');
+    const mqttEl = document.getElementById('mqtt-status');
+    if (mqttEl && data.mqtt_connected !== undefined) {
+        mqttEl.textContent = data.mqtt_connected ? 'Connected' : 'Disconnected';
+        mqttEl.className = 'stat-value ' + (data.mqtt_connected ? 'connected' : 'disconnected');
     }
     
-    // Plugin-specific stats
+    // Plugin stats - rendered generically from stats array
     const statsContainer = document.getElementById('plugin-stats');
+    if (!data.stats || !Array.isArray(data.stats)) return;
     statsContainer.innerHTML = '';
     
-    // Distance meters
-    if (data.measured_distance !== undefined) {
-        addStatItem(statsContainer, 'Distance', formatNumber(data.measured_distance, 3) + ' m', true);
-    }
-    if (data.relative_distance !== undefined) {
-        const percent = (data.relative_distance * 100).toFixed(1) + '%';
-        addStatItem(statsContainer, 'Level', percent, true);
+    data.stats.forEach(stat => {
+        addStatItem(statsContainer, stat.label, stat.value, stat.primary);
         
-        // Water indicator
-        const indicator = document.createElement('div');
-        indicator.className = 'water-indicator';
-        const fill = document.createElement('div');
-        fill.className = 'water-fill';
-        fill.style.height = (data.relative_distance * 100) + '%';
-        
-        const val = data.relative_distance;
-        fill.classList.add(val < 0.25 ? 'low' : val < 0.75 ? 'medium' : 'high');
-        
-        indicator.appendChild(fill);
-        statsContainer.appendChild(indicator);
-    }
-    if (data.absolute_distance !== undefined) {
-        addStatItem(statsContainer, 'Depth', formatNumber(data.absolute_distance, 2) + ' m', false);
-    }
-    
-    // Radiation counter
-    if (data.cpm !== undefined) {
-        addStatItem(statsContainer, 'CPM', String(data.cpm), true);
-    }
-    if (data.dose !== undefined) {
-        addStatItem(statsContainer, 'Dose', formatNumber(data.dose, 2) + ' µSv/h', true);
-    }
+        if (stat.render === 'progress') {
+            const indicator = document.createElement('div');
+            indicator.className = 'water-indicator';
+            const fill = document.createElement('div');
+            fill.className = 'water-fill';
+            fill.style.height = (stat.numeric * 100) + '%';
+            fill.classList.add(stat.numeric < 0.25 ? 'low' : stat.numeric < 0.75 ? 'medium' : 'high');
+            indicator.appendChild(fill);
+            statsContainer.appendChild(indicator);
+        }
+    });
 }
 
 function addStatItem(container, label, value, primary) {

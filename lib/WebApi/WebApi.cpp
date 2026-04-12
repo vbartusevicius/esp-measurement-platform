@@ -142,11 +142,16 @@ void WebApi::setupApiEndpoints() {
         doc["uptime"] = uptimeBuf;
 
         // Plugin-specific stats
-        JsonObject pluginStats = doc["plugin"].to<JsonObject>();
-        JsonDocument pluginDoc;
-        this->activePlugin->getStats(pluginDoc);
-        for (JsonPair kv : pluginDoc.as<JsonObject>()) {
-            pluginStats[kv.key()] = kv.value();
+        std::vector<StatEntry> entries;
+        this->activePlugin->getStats(entries);
+        JsonArray statsArr = doc["stats"].to<JsonArray>();
+        for (auto& e : entries) {
+            JsonObject obj = statsArr.add<JsonObject>();
+            obj["label"] = e.label;
+            obj["value"] = e.value;
+            obj["numeric"] = e.numericValue;
+            obj["render"] = e.render == StatEntry::PROGRESS ? "progress" : "text";
+            obj["primary"] = e.primary;
         }
 
         serializeJson(doc, *response);
@@ -218,16 +223,24 @@ void WebApi::broadcastStats() {
     doc["wifi_network"] = WiFi.SSID();
     doc["wifi_signal"] = String(WiFi.RSSI());
     doc["ip_address"] = WiFi.localIP().toString();
+    doc["free_heap"] = ESP.getFreeHeap();
+    doc["mqtt_connected"] = this->mqttConnected;
 
     char uptimeBuf[32];
     TimeHelper::getUptime(uptimeBuf);
     doc["uptime"] = uptimeBuf;
 
-    // Plugin-specific stats
-    JsonDocument pluginDoc;
-    this->activePlugin->getStats(pluginDoc);
-    for (JsonPair kv : pluginDoc.as<JsonObject>()) {
-        doc[kv.key()] = kv.value();
+    // Plugin-specific stats as structured array
+    std::vector<StatEntry> entries;
+    this->activePlugin->getStats(entries);
+    JsonArray statsArr = doc["stats"].to<JsonArray>();
+    for (auto& e : entries) {
+        JsonObject obj = statsArr.add<JsonObject>();
+        obj["label"] = e.label;
+        obj["value"] = e.value;
+        obj["numeric"] = e.numericValue;
+        obj["render"] = e.render == StatEntry::PROGRESS ? "progress" : "text";
+        obj["primary"] = e.primary;
     }
 
     String message;
@@ -272,7 +285,8 @@ void WebApi::sendLogHistory(AsyncWebSocketClient* client) {
     client->text(response);
 }
 
-void WebApi::run() {
+void WebApi::run(bool mqttConnected) {
+    this->mqttConnected = mqttConnected;
     ws.cleanupClients();
     broadcastStats();
     broadcastLogs();

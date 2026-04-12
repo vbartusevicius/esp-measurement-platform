@@ -53,13 +53,13 @@ class RadiationCounterPlugin : public IPlugin
         void getParameterDefs(std::vector<ParameterDef>& defs) const override;
         std::vector<const char*> getRequiredParameters() const override;
 
-        void getStats(JsonDocument& doc) const override;
+        void getStats(std::vector<StatEntry>& entries) const override;
 
         void publishMqtt(MQTTClient& client, const String& baseTopic) override;
         void publishHomeAssistantAutoconfig(MQTTClient& client, const String& deviceId, const String& stateTopic) override;
 
         int getDisplayPageCount() const override;
-        void renderDisplayPage(U8G2& u8g2, int page, int width, int height) const override;
+        int renderDisplayPage(U8G2& u8g2, int page, int width, int height) const override;
 
         int getCurrentDisplayPage() const override;
         int getSamplingInterval() const override;
@@ -74,7 +74,6 @@ class RadiationCounterPlugin : public IPlugin
         static void IRAM_ATTR buttonISR();
 
         void renderGraphPage(U8G2& u8g2, int width, int height) const;
-        void renderInfoPage(U8G2& u8g2, int width, int height) const;
 };
 
 #endif

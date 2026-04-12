@@ -14,7 +14,7 @@ class Display
 
     public:
         Display();
-        void run(IPlugin* plugin, int page);
+        void run(IPlugin* plugin, int page, bool mqttConnected);
         void configWizardFirstStep(const char* appName);
         void configWizardSecondStep(const char* ipAddress);
 
@@ -24,6 +24,7 @@ class Display
 
     private:
         void configWizard(const char* header, const char* helpLineOne, const char* helpLineTwo);
+        void renderSystemInfo(int startY, bool mqttConnected);
 };
 
 #endif

@@ -131,7 +131,8 @@ void setup()
 
     // Web API updates
     taskManager.scheduleFixedRate(2000, [] {
-        if (webApi) webApi->run();
+        bool mqttOk = mqtt ? mqtt->isConnected() : false;
+        if (webApi) webApi->run(mqttOk);
     });
 
     // LED heartbeat
@@ -157,7 +158,8 @@ void setup()
 
     // Display update
     taskManager.scheduleFixedRate(1000, [] {
-        display.run(activePlugin, activePlugin->getCurrentDisplayPage());
+        bool mqttOk = mqtt ? mqtt->isConnected() : false;
+        display.run(activePlugin, activePlugin->getCurrentDisplayPage(), mqttOk);
     });
 
     logger.info("Setup complete. Scheduling with " + String(samplingInterval) + "s sampling interval.");

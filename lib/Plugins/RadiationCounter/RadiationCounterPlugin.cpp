@@ -1,6 +1,4 @@
 #include "RadiationCounterPlugin.h"
-#include <ESP8266WiFi.h>
-#include "TimeHelper.h"
 
 RadiationCounterPlugin* RadiationCounterPlugin::instance = nullptr;
 
@@ -133,11 +131,10 @@ std::vector<const char*> RadiationCounterPlugin::getRequiredParameters() const
 
 // --- Stats ---
 
-void RadiationCounterPlugin::getStats(JsonDocument& doc) const
+void RadiationCounterPlugin::getStats(std::vector<StatEntry>& entries) const
 {
-    doc["cpm"] = this->cpm;
-    doc["dose"] = this->dose;
-    doc["graph_points"] = (int)this->graphBuffer.size();
+    entries.push_back({"CPM", String(this->cpm), (float)this->cpm, StatEntry::TEXT, true});
+    entries.push_back({"Dose", String(this->dose, 2) + " \xC2\xB5Sv/h", this->dose, StatEntry::TEXT, true});
 }
 
 // --- MQTT ---
@@ -201,13 +198,13 @@ void RadiationCounterPlugin::publishHomeAssistantAutoconfig(MQTTClient& client, 
 
 int RadiationCounterPlugin::getDisplayPageCount() const { return 2; }
 
-void RadiationCounterPlugin::renderDisplayPage(U8G2& u8g2, int page, int width, int height) const
+int RadiationCounterPlugin::renderDisplayPage(U8G2& u8g2, int page, int width, int height) const
 {
     if (page == 0) {
         this->renderGraphPage(u8g2, width, height);
-    } else {
-        this->renderInfoPage(u8g2, width, height);
+        return height;
     }
+    return 0;
 }
 
 void RadiationCounterPlugin::renderGraphPage(U8G2& u8g2, int width, int height) const
@@ -308,46 +305,3 @@ void RadiationCounterPlugin::renderGraphPage(U8G2& u8g2, int width, int height) 
     u8g2.drawStr(1, height - abs(u8g2.getDescent()), textFull.c_str());
 }
 
-void RadiationCounterPlugin::renderInfoPage(U8G2& u8g2, int width, int height) const
-{
-    int yPos = 0;
-
-    // Network
-    int rssi = WiFi.RSSI();
-    unsigned int glyph = 57887;
-    if (rssi >= -95) glyph = 57888;
-    if (rssi >= -85) glyph = 57889;
-    if (rssi >= -75) glyph = 57890;
-    if (rssi == 0) glyph = 57887;
-
-    u8g2.setFont(u8g2_font_siji_t_6x10);
-    int glyphH = u8g2.getAscent() - u8g2.getDescent();
-    u8g2.drawGlyph(width - 10, yPos + glyphH, glyph);
-
-    char ipLine[32];
-    snprintf(ipLine, sizeof(ipLine), "IP: %s", WiFi.localIP().toString().c_str());
-    char ssidLine[32];
-    snprintf(ssidLine, sizeof(ssidLine), "SSID: %s", WiFi.SSID().c_str());
-
-    int lineH = u8g2.getAscent() - u8g2.getDescent() + 2;
-
-    yPos += lineH;
-    u8g2.setFont(u8g2_font_6x12_mf);
-    u8g2.drawStr(0, yPos, ipLine);
-
-    yPos += lineH;
-    u8g2.setFont(u8g2_font_5x7_tr);
-    u8g2.drawStr(0, yPos, ssidLine);
-
-    yPos += 2;
-    u8g2.drawHLine(0, yPos, width);
-
-    // Uptime
-    u8g2.setFont(u8g2_font_5x7_tr);
-    lineH = u8g2.getAscent() - u8g2.getDescent() + 2;
-    yPos += lineH;
-    char uptimeBuf[32];
-    TimeHelper::getUptime(uptimeBuf);
-    u8g2.drawStr(0, yPos, "Uptime:");
-    u8g2.drawStr(49, yPos, uptimeBuf);
-}

@@ -1,4 +1,6 @@
 #include "Display.h"
+#include <ESP8266WiFi.h>
+#include "TimeHelper.h"
 
 Display::Display()
     : u8g2(U8G2_R0, U8X8_PIN_NONE, D6, D5)
@@ -8,12 +10,51 @@ Display::Display()
     this->displayHeight = u8g2.getDisplayHeight();
 }
 
-void Display::run(IPlugin* plugin, int page)
+void Display::run(IPlugin* plugin, int page, bool mqttConnected)
 {
     u8g2.firstPage();
     do {
-        plugin->renderDisplayPage(u8g2, page, displayWidth, displayHeight);
+        int usedY = plugin->renderDisplayPage(u8g2, page, displayWidth, displayHeight);
+        if (usedY < displayHeight) {
+            renderSystemInfo(usedY, mqttConnected);
+        }
     } while (u8g2.nextPage());
+}
+
+void Display::renderSystemInfo(int startY, bool mqttConnected)
+{
+    int cursorY = startY;
+
+    // Network
+    int rssi = WiFi.RSSI();
+    unsigned int glyph = 57887;
+    if (rssi >= -95) glyph = 57888;
+    if (rssi >= -85) glyph = 57889;
+    if (rssi >= -75) glyph = 57890;
+    if (rssi == 0) glyph = 57887;
+
+    u8g2.setFont(u8g2_font_siji_t_6x10);
+    u8g2.drawGlyph(displayWidth - 10, cursorY + 14, glyph);
+
+    u8g2.setFont(u8g2_font_5x7_tr);
+    u8g2.drawStr(0, cursorY + 7, ("SSID: " + WiFi.SSID()).c_str());
+    u8g2.drawStr(0, cursorY + 15, ("IP: " + WiFi.localIP().toString()).c_str());
+    u8g2.drawHLine(0, cursorY + 16, displayWidth);
+    cursorY += 17;
+
+    // MQTT status
+    const char* mqttGlyph = mqttConnected ? "[+]" : "[ ]";
+    u8g2.setFont(u8g2_font_5x7_tr);
+    u8g2.drawStr(0, cursorY + 8, "MQTT:");
+    int gw = u8g2.getStrWidth(mqttGlyph);
+    u8g2.drawStr((displayWidth / 2) - gw, cursorY + 8, mqttGlyph);
+    cursorY += 8;
+
+    // Uptime
+    char uptimeBuf[32];
+    TimeHelper::getUptime(uptimeBuf);
+    u8g2.drawStr(0, cursorY + 8, "Uptime:");
+    u8g2.drawStr(49, cursorY + 8, uptimeBuf);
 }
 
 void Display::configWizardFirstStep(const char* appName)

@@ -130,6 +130,11 @@ bool MqttClient::run()
     return isConnected;
 }
 
+bool MqttClient::isConnected()
+{
+    return client.connected();
+}
+
 void MqttClient::publish()
 {
     if (!client.connected()) {

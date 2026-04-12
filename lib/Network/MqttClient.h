@@ -31,6 +31,7 @@ class MqttClient
         void begin();
         bool run();
         void publish();
+        bool isConnected();
 };
 
 #endif

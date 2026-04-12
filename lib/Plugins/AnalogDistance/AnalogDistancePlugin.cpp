@@ -1,6 +1,4 @@
 #include "AnalogDistancePlugin.h"
-#include <ESP8266WiFi.h>
-#include "TimeHelper.h"
 
 const char* AnalogDistancePlugin::getId() const { return "analog_distance"; }
 const char* AnalogDistancePlugin::getName() const { return "Analog Distance Meter"; }
@@ -133,12 +131,12 @@ std::vector<const char*> AnalogDistancePlugin::getRequiredParameters() const
 
 // --- Stats ---
 
-void AnalogDistancePlugin::getStats(JsonDocument& doc) const
+void AnalogDistancePlugin::getStats(std::vector<StatEntry>& entries) const
 {
-    doc["measured_distance"] = this->measuredDistance;
-    doc["relative_distance"] = this->relativeDistance;
-    doc["absolute_distance"] = this->absoluteDistance;
-    doc["sensor_connected"] = this->sensorConnected;
+    entries.push_back({"Level", String(this->relativeDistance * 100, 1) + "%", this->relativeDistance, StatEntry::PROGRESS, true});
+    entries.push_back({"Depth", String(this->absoluteDistance, 2) + " m", this->absoluteDistance, StatEntry::TEXT, true});
+    entries.push_back({"Distance", String(this->measuredDistance, 3) + " m", this->measuredDistance, StatEntry::TEXT, false});
+    entries.push_back({"Sensor", this->sensorConnected ? "Connected" : "Disconnected", this->sensorConnected ? 1.0f : 0.0f, StatEntry::TEXT, false});
 }
 
 // --- MQTT ---
@@ -215,10 +213,8 @@ int AnalogDistancePlugin::getSamplingInterval() const
     return val < 1 ? 1 : val;
 }
 
-void AnalogDistancePlugin::renderDisplayPage(U8G2& u8g2, int page, int width, int height) const
+int AnalogDistancePlugin::renderDisplayPage(U8G2& u8g2, int page, int width, int height) const
 {
-    int cursorY = 0;
-
     // Progress bar
     const int barHeight = 16;
     const char* label = "N/A";
@@ -239,28 +235,11 @@ void AnalogDistancePlugin::renderDisplayPage(U8G2& u8g2, int page, int width, in
     u8g2.setFont(u8g2_font_5x7_tr);
     int strW = u8g2.getStrWidth(label);
     u8g2.drawStr((width - strW) / 2, u8g2.getAscent() + (barHeight - u8g2.getAscent()) / 2 - 1, label);
-    cursorY = barHeight;
-
-    // Network info
-    u8g2.setDrawColor(1);
-    u8g2.setFontMode(0);
-
-    int rssi = WiFi.RSSI();
-    unsigned int glyph = 57887;
-    if (rssi >= -95) glyph = 57888;
-    if (rssi >= -85) glyph = 57889;
-    if (rssi >= -75) glyph = 57890;
-
-    u8g2.setFont(u8g2_font_siji_t_6x10);
-    u8g2.drawGlyph(width - 10, cursorY + 14, glyph);
-
-    u8g2.setFont(u8g2_font_5x7_tr);
-    u8g2.drawStr(0, cursorY + 7, ("SSID: " + WiFi.SSID()).c_str());
-    u8g2.drawStr(0, cursorY + 15, ("IP: " + WiFi.localIP().toString()).c_str());
-    u8g2.drawHLine(0, cursorY + 16, width);
-    cursorY += 17;
 
     // Sensor status
+    int cursorY = barHeight;
+    u8g2.setDrawColor(1);
+    u8g2.setFontMode(0);
     const char* sensorGlyph = this->sensorConnected ? "[+]" : "[ ]";
     u8g2.setFont(u8g2_font_5x7_tr);
     u8g2.drawStr(0, cursorY + 8, "Sensor:");
@@ -268,9 +247,5 @@ void AnalogDistancePlugin::renderDisplayPage(U8G2& u8g2, int page, int width, in
     u8g2.drawStr((width / 2) - gw, cursorY + 8, sensorGlyph);
     cursorY += 8;
 
-    // Uptime
-    char uptimeBuf[32];
-    TimeHelper::getUptime(uptimeBuf);
-    u8g2.drawStr(0, cursorY + 8, "Uptime:");
-    u8g2.drawStr(49, cursorY + 8, uptimeBuf);
+    return cursorY;
 }

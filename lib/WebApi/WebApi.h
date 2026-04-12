@@ -28,12 +28,13 @@ class WebApi {
         PluginRegistry* registry;
         ResetCallback resetCallback;
         size_t lastLogCount;
+        bool mqttConnected;
 
     public:
         WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback);
 
         void begin();
-        void run();
+        void run(bool mqttConnected);
 
     private:
         void setupStaticFiles();

@@ -19,6 +19,14 @@ struct ParameterDef {
     bool required;
 };
 
+struct StatEntry {
+    const char* label;
+    String value;
+    float numericValue;
+    enum Render { TEXT, PROGRESS } render;
+    bool primary;
+};
+
 class IPlugin
 {
     public:
@@ -33,14 +41,14 @@ class IPlugin
         virtual void getParameterDefs(std::vector<ParameterDef>& defs) const = 0;
         virtual std::vector<const char*> getRequiredParameters() const = 0;
 
-        virtual void getStats(JsonDocument& doc) const = 0;
+        virtual void getStats(std::vector<StatEntry>& entries) const = 0;
 
         virtual void publishMqtt(MQTTClient& client, const String& baseTopic) = 0;
         virtual void publishHomeAssistantAutoconfig(MQTTClient& client, const String& deviceId, const String& stateTopic) = 0;
 
         virtual int getDisplayPageCount() const = 0;
         virtual int getCurrentDisplayPage() const { return 0; }
-        virtual void renderDisplayPage(U8G2& u8g2, int page, int width, int height) const = 0;
+        virtual int renderDisplayPage(U8G2& u8g2, int page, int width, int height) const = 0;
 
         virtual int getSamplingInterval() const { return 10; }
 };
