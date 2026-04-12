@@ -55,6 +55,8 @@ class UltrasonicDistancePlugin : public IPlugin
 
         int getDisplayPageCount() const override;
         void renderDisplayPage(U8G2& u8g2, int page, int width, int height) const override;
+
+        int getSamplingInterval() const override;
 };
 
 #endif

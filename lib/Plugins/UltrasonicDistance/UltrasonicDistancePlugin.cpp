@@ -163,6 +163,13 @@ void UltrasonicDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client
 
 int UltrasonicDistancePlugin::getDisplayPageCount() const { return 1; }
 
+int UltrasonicDistancePlugin::getSamplingInterval() const
+{
+    String interval = this->storage->getParameter(PARAM_SAMPLING_INTERVAL, "10");
+    int val = interval.toInt();
+    return val < 1 ? 1 : val;
+}
+
 void UltrasonicDistancePlugin::renderDisplayPage(U8G2& u8g2, int page, int width, int height) const
 {
     int cursorY = 0;

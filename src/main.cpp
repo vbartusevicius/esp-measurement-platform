@@ -4,7 +4,6 @@
 #include <TaskManagerIO.h>
 
 #include "ChipId.h"
-#include "TimeHelper.h"
 #include "LedController.h"
 #include "Logger.h"
 #include "Storage.h"
@@ -39,17 +38,6 @@ WifiConnector* wifi = nullptr;
 MqttClient* mqtt = nullptr;
 WebApi* webApi = nullptr;
 IPlugin* activePlugin = nullptr;
-
-// Interrupt handlers for radiation counter
-void IRAM_ATTR onRadiationISR()
-{
-    radiationCounterPlugin.onRadiationClick();
-}
-
-void IRAM_ATTR onButtonISR()
-{
-    radiationCounterPlugin.onButtonClick();
-}
 
 void resetDevice()
 {
@@ -104,13 +92,6 @@ void setup()
     // Setup plugin
     activePlugin->setup(&storage, &logger, &ledController);
 
-    // Setup radiation counter interrupts if that plugin is active
-    if (strcmp(activePlugin->getId(), "radiation_counter") == 0) {
-        attachInterrupt(digitalPinToInterrupt(RadiationCounterPlugin::CNT_PIN), onRadiationISR, CHANGE);
-        attachInterrupt(digitalPinToInterrupt(RadiationCounterPlugin::BTN_PIN), onButtonISR, CHANGE);
-        logger.info("Radiation counter interrupts attached");
-    }
-
     // WiFi
     wifi = new WifiConnector(&logger, chipId);
     bool wifiConnected = wifi->begin();
@@ -141,14 +122,7 @@ void setup()
     setupOTA();
 
     // Task scheduling
-    int samplingInterval = 10;
-    if (strcmp(activePlugin->getId(), "radiation_counter") == 0) {
-        samplingInterval = 1;
-    } else {
-        String interval = storage.getParameter("sampling_interval", "10");
-        samplingInterval = interval.toInt();
-        if (samplingInterval < 1) samplingInterval = 1;
-    }
+    int samplingInterval = activePlugin->getSamplingInterval();
 
     // WiFi maintenance
     taskManager.scheduleFixedRate(250, [] {
@@ -183,11 +157,7 @@ void setup()
 
     // Display update
     taskManager.scheduleFixedRate(1000, [] {
-        int page = 0;
-        if (strcmp(activePlugin->getId(), "radiation_counter") == 0) {
-            page = radiationCounterPlugin.getButtonPage();
-        }
-        display.run(activePlugin, page);
+        display.run(activePlugin, activePlugin->getCurrentDisplayPage());
     });
 
     logger.info("Setup complete. Scheduling with " + String(samplingInterval) + "s sampling interval.");

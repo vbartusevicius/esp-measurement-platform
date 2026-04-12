@@ -1,8 +1,9 @@
 #ifndef WEB_API_H
 #define WEB_API_H
 
+#ifdef ESP8266WEBSERVER_H
 #define WEBSERVER_H
-#define ASYNCWEBSERVER_DONT_REDEFINE_ENUMS
+#endif
 
 #include <ESPAsyncWebServer.h>
 #include <AsyncWebSocket.h>

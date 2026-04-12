@@ -2,6 +2,18 @@
 #include <ESP8266WiFi.h>
 #include "TimeHelper.h"
 
+RadiationCounterPlugin* RadiationCounterPlugin::instance = nullptr;
+
+void IRAM_ATTR RadiationCounterPlugin::radiationISR()
+{
+    if (instance) instance->onRadiationClick();
+}
+
+void IRAM_ATTR RadiationCounterPlugin::buttonISR()
+{
+    if (instance) instance->onButtonClick();
+}
+
 const char* RadiationCounterPlugin::getId() const { return "radiation_counter"; }
 const char* RadiationCounterPlugin::getName() const { return "Radiation Counter Gateway"; }
 
@@ -19,6 +31,11 @@ void RadiationCounterPlugin::setup(Storage* storage, Logger* logger, LedControll
 
     pinMode(CNT_PIN, INPUT);
     pinMode(BTN_PIN, INPUT);
+
+    instance = this;
+    attachInterrupt(digitalPinToInterrupt(CNT_PIN), radiationISR, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(BTN_PIN), buttonISR, CHANGE);
+    logger->info("Radiation counter interrupts attached");
 }
 
 void RadiationCounterPlugin::onRadiationClick()
@@ -38,9 +55,14 @@ void RadiationCounterPlugin::onButtonClick()
     }
 }
 
-int RadiationCounterPlugin::getButtonPage() const
+int RadiationCounterPlugin::getCurrentDisplayPage() const
 {
     return this->buttonCounter % this->getDisplayPageCount();
+}
+
+int RadiationCounterPlugin::getSamplingInterval() const
+{
+    return 1;
 }
 
 void RadiationCounterPlugin::loop()

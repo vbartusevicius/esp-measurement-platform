@@ -67,6 +67,16 @@ The default state topic is `<device_name>/stat/<plugin_id>`. Payload examples:
 { "cpm": 42, "dose": 0.34 }
 ```
 
+## IDE Setup
+
+For clangd-based code intelligence (autocompletion, error checking), run the setup script after cloning:
+
+```bash
+./setup-ide.sh
+```
+
+This generates `compile_commands.json` and `.clangd` with the correct toolchain paths for your machine. Restart the clangd language server afterwards. Re-run after changing `platformio.ini` dependencies.
+
 ## Building & Flashing
 
 Requires [PlatformIO](https://platformio.org/).

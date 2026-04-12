@@ -39,7 +39,10 @@ class IPlugin
         virtual void publishHomeAssistantAutoconfig(MQTTClient& client, const String& deviceId, const String& stateTopic) = 0;
 
         virtual int getDisplayPageCount() const = 0;
+        virtual int getCurrentDisplayPage() const { return 0; }
         virtual void renderDisplayPage(U8G2& u8g2, int page, int width, int height) const = 0;
+
+        virtual int getSamplingInterval() const { return 10; }
 };
 
 #endif

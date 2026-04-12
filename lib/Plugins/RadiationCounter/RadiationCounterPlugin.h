@@ -61,12 +61,18 @@ class RadiationCounterPlugin : public IPlugin
         int getDisplayPageCount() const override;
         void renderDisplayPage(U8G2& u8g2, int page, int width, int height) const override;
 
+        int getCurrentDisplayPage() const override;
+        int getSamplingInterval() const override;
+
         // Interrupt handlers (called from ISR context)
         void onRadiationClick();
         void onButtonClick();
-        int getButtonPage() const;
 
     private:
+        static RadiationCounterPlugin* instance;
+        static void IRAM_ATTR radiationISR();
+        static void IRAM_ATTR buttonISR();
+
         void renderGraphPage(U8G2& u8g2, int width, int height) const;
         void renderInfoPage(U8G2& u8g2, int width, int height) const;
 };
