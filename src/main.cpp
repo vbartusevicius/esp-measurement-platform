@@ -84,17 +84,15 @@ void setup()
 
     // Initialize storage and determine active plugin
     storage.begin();
-    String activePluginId = storage.getParameter(Parameter::ACTIVE_PLUGIN, "analog_distance");
+    String activePluginId = storage.getParameter(Parameter::ACTIVE_PLUGIN, "");
     activePlugin = registry.get(activePluginId.c_str());
 
-    if (!activePlugin) {
-        logger.warning("Plugin '" + activePluginId + "' not found, using first available");
-        activePlugin = registry.getFirst();
+    if (activePlugin) {
+        logger.info("Active plugin: " + String(activePlugin->getName()));
+        activePlugin->setup(&hal, &storage, &logger, &ledController);
+    } else {
+        logger.warning("No plugin selected. Please configure one in the web interface.");
     }
-    logger.info("Active plugin: " + String(activePlugin->getName()));
-
-    // Setup plugin
-    activePlugin->setup(&hal, &storage, &logger, &ledController);
 
     // WiFi
     wifi = new WifiConnector(&logger, chipId);
@@ -128,7 +126,7 @@ void setup()
     setupOTA();
 
     // Task scheduling
-    int samplingInterval = activePlugin->getSamplingInterval();
+    int samplingInterval = activePlugin ? activePlugin->getSamplingInterval() : 10;
 
     // Web API updates
     taskManager.scheduleFixedRate(2000, [] {
@@ -160,7 +158,8 @@ void setup()
     // Display update
     taskManager.scheduleFixedRate(1000, [] {
         bool mqttOk = mqtt ? mqtt->isConnected() : false;
-        display.run(activePlugin, activePlugin->getCurrentDisplayPage(), mqttOk);
+        int page = activePlugin ? activePlugin->getCurrentDisplayPage() : 0;
+        display.run(activePlugin, page, mqttOk);
     });
 
     logger.info("Setup complete. Scheduling with " + String(samplingInterval) + "s sampling interval.");

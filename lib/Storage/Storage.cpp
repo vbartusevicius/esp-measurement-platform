@@ -23,17 +23,18 @@ String Storage::getParameter(const char* name, String defaultValue)
 
 bool Storage::isEmpty(IPlugin* activePlugin)
 {
+    // If no plugin is selected, we consider the storage empty (unconfigured)
+    if (!activePlugin) return true;
+
     // Core required parameters
     if (!prefs.isKey(Parameter::MQTT_HOST)) return true;
     if (!prefs.isKey(Parameter::MQTT_PORT)) return true;
     if (!prefs.isKey(Parameter::MQTT_DEVICE)) return true;
 
     // Plugin-specific required parameters
-    if (activePlugin) {
-        auto required = activePlugin->getRequiredParameters();
-        for (auto& param : required) {
-            if (!prefs.isKey(param)) return true;
-        }
+    auto required = activePlugin->getRequiredParameters();
+    for (auto& param : required) {
+        if (!prefs.isKey(param)) return true;
     }
 
     return false;

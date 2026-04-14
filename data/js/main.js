@@ -12,8 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('reset-btn').addEventListener('click', resetDevice);
     
     // Reload plugin params when plugin selection changes
-    document.getElementById('active-plugin').addEventListener('change', () => {
-        addLogMessage('Plugin changed - save and restart to apply');
+    document.getElementById('active-plugin').addEventListener('change', (e) => {
+        addLogMessage('Plugin changed - setting fields updated');
+        loadPluginParams(e.target.value);
     });
     
     setupConfigToggle();

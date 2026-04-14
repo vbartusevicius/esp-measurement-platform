@@ -7,15 +7,23 @@ async function loadPlugins() {
         
         const data = await response.json();
         const select = document.getElementById('active-plugin');
-        select.innerHTML = '';
+        select.innerHTML = '<option value="" disabled>Select a plugin...</option>';
         
+        let hasActive = false;
         data.plugins.forEach(p => {
             const option = document.createElement('option');
             option.value = p.id;
             option.textContent = p.name;
-            if (p.active) option.selected = true;
+            if (p.active) {
+                option.selected = true;
+                hasActive = true;
+            }
             select.appendChild(option);
         });
+        
+        if (!hasActive) {
+            select.selectedIndex = 0;
+        }
     } catch (error) {
         addLogMessage(`Error loading plugins: ${error.message}`);
     }
@@ -39,36 +47,58 @@ async function loadConfig() {
         document.getElementById('mqtt-topic').value = config.mqtt_topic || '';
         
         // Build dynamic plugin parameter fields
-        const container = document.getElementById('plugin-params');
-        container.innerHTML = '';
-        
-        if (config.plugin_params && config.plugin_params.length > 0) {
-            config.plugin_params.forEach(param => {
-                const group = document.createElement('div');
-                group.className = 'form-group';
-                
-                const label = document.createElement('label');
-                label.setAttribute('for', 'plugin-' + param.key);
-                label.textContent = param.label + (param.required ? ' *' : '') + ':';
-                
-                const input = document.createElement('input');
-                input.type = param.type || 'text';
-                input.id = 'plugin-' + param.key;
-                input.name = param.key;
-                input.value = param.value || param.default || '';
-                if (param.required) input.required = true;
-                
-                group.appendChild(label);
-                group.appendChild(input);
-                container.appendChild(group);
-            });
-        } else {
-            container.innerHTML = '<p class="form-text">No additional parameters for this plugin</p>';
-        }
+        renderPluginParams(config.plugin_params);
         
         addLogMessage('Configuration loaded');
     } catch (error) {
         addLogMessage(`Error loading configuration: ${error.message}`);
+    }
+}
+
+async function loadPluginParams(pluginId) {
+    if (!pluginId) {
+        const container = document.getElementById('plugin-params');
+        container.innerHTML = '<p class="form-text">No plugin selected</p>';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/config?plugin=${pluginId}`);
+        if (!response.ok) throw new Error('Failed to fetch plugin configuration');
+        
+        const config = await response.json();
+        renderPluginParams(config.plugin_params);
+    } catch (error) {
+        addLogMessage(`Error loading plugin parameters: ${error.message}`);
+    }
+}
+
+function renderPluginParams(plugin_params) {
+    const container = document.getElementById('plugin-params');
+    container.innerHTML = '';
+    
+    if (plugin_params && plugin_params.length > 0) {
+        plugin_params.forEach(param => {
+            const group = document.createElement('div');
+            group.className = 'form-group';
+            
+            const label = document.createElement('label');
+            label.setAttribute('for', 'plugin-' + param.key);
+            label.textContent = param.label + (param.required ? ' *' : '') + ':';
+            
+            const input = document.createElement('input');
+            input.type = param.type || 'text';
+            input.id = 'plugin-' + param.key;
+            input.name = param.key;
+            input.value = param.value || param.default || '';
+            if (param.required) input.required = true;
+            
+            group.appendChild(label);
+            group.appendChild(input);
+            container.appendChild(group);
+        });
+    } else {
+        container.innerHTML = '<p class="form-text">No additional parameters for this plugin</p>';
     }
 }
 

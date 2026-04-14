@@ -60,8 +60,16 @@ void WebApi::setupApiEndpoints() {
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
 
+        // Find which plugin to get parameters for
+        IPlugin* pluginToInspect = this->activePlugin;
+        if (request->hasParam("plugin")) {
+            String pId = request->getParam("plugin")->value();
+            IPlugin* reqP = this->registry->get(pId.c_str());
+            if (reqP) pluginToInspect = reqP;
+        }
+
         // Core values
-        doc["active_plugin"] = this->activePlugin->getId();
+        doc["active_plugin"] = this->activePlugin ? this->activePlugin->getId() : "";
         doc["chip_id"] = ChipId::get();
         doc["mqtt_host"] = this->storage->getParameter(Parameter::MQTT_HOST, "");
         doc["mqtt_port"] = this->storage->getParameter(Parameter::MQTT_PORT, "1883");
@@ -72,7 +80,10 @@ void WebApi::setupApiEndpoints() {
 
         // Plugin parameter values and definitions
         std::vector<ParameterDef> defs;
-        this->activePlugin->getParameterDefs(defs);
+        if (pluginToInspect) {
+            pluginToInspect->getParameterDefs(defs);
+        }
+        
         JsonArray paramDefs = doc["plugin_params"].to<JsonArray>();
 
         for (auto& def : defs) {
@@ -130,8 +141,8 @@ void WebApi::setupApiEndpoints() {
         JsonDocument doc;
 
         doc["chip_id"] = ChipId::get();
-        doc["active_plugin"] = this->activePlugin->getId();
-        doc["active_plugin_name"] = this->activePlugin->getName();
+        doc["active_plugin"] = this->activePlugin ? this->activePlugin->getId() : "";
+        doc["active_plugin_name"] = this->activePlugin ? this->activePlugin->getName() : "None";
         doc["wifi_network"] = WiFi.SSID();
         doc["wifi_signal"] = String(WiFi.RSSI());
         doc["ip_address"] = WiFi.localIP().toString();
@@ -143,7 +154,10 @@ void WebApi::setupApiEndpoints() {
 
         // Plugin-specific stats
         std::vector<StatEntry> entries;
-        this->activePlugin->getStats(entries);
+        if (this->activePlugin) {
+            this->activePlugin->getStats(entries);
+        }
+        
         JsonArray statsArr = doc["stats"].to<JsonArray>();
         for (auto& e : entries) {
             JsonObject obj = statsArr.add<JsonObject>();
@@ -232,7 +246,10 @@ void WebApi::broadcastStats() {
 
     // Plugin-specific stats as structured array
     std::vector<StatEntry> entries;
-    this->activePlugin->getStats(entries);
+    if (this->activePlugin) {
+        this->activePlugin->getStats(entries);
+    }
+    
     JsonArray statsArr = doc["stats"].to<JsonArray>();
     for (auto& e : entries) {
         JsonObject obj = statsArr.add<JsonObject>();
