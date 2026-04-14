@@ -23,4 +23,4 @@ jobs:
         run: pip install platformio
 
       - name: Build project
-        run: pio run
+        run: pio run -e nodemcu

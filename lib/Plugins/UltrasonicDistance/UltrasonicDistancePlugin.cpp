@@ -1,10 +1,12 @@
 #include "UltrasonicDistancePlugin.h"
+#include "HAL.h"
 
 const char* UltrasonicDistancePlugin::getId() const { return "ultrasonic_distance"; }
 const char* UltrasonicDistancePlugin::getName() const { return "Ultrasonic Distance Meter"; }
 
-void UltrasonicDistancePlugin::setup(Storage* storage, Logger* logger, LedController* led)
+void UltrasonicDistancePlugin::setup(HAL* hal, Storage* storage, Logger* logger, LedController* led)
 {
+    this->hal = hal;
     this->storage = storage;
     this->logger = logger;
     this->speedOfSound = 331.3 * sqrt(1 + (CURRENT_TEMP / ABSOLUTE_TEMP));
@@ -12,30 +14,37 @@ void UltrasonicDistancePlugin::setup(Storage* storage, Logger* logger, LedContro
     this->relativeDistance = 0.0;
     this->absoluteDistance = 0.0;
     this->sensorConnected = false;
+    this->distCalc.reset();
 
-    pinMode(TRIG_PIN, OUTPUT);
-    pinMode(ECHO_PIN, INPUT_PULLUP);
+    this->hal->pinMode(TRIG_PIN, OUTPUT);
+    this->hal->pinMode(ECHO_PIN, INPUT_PULLUP);
 }
 
 void UltrasonicDistancePlugin::loop()
 {
     float raw = this->readSensor();
-    this->measuredDistance = this->aggregate(raw);
-    this->relativeDistance = this->getRelative(this->measuredDistance);
-    this->absoluteDistance = this->getAbsolute(this->measuredDistance);
+
+    int window = atoi(this->storage->getParameter(PARAM_AVG_SAMPLE_COUNT, "10").c_str());
+    int maxDelta = atoi(this->storage->getParameter(PARAM_MAX_DELTA, "15").c_str());
+    this->measuredDistance = this->distCalc.aggregate(raw, window, maxDelta);
+
+    float emptyDist = atof(this->storage->getParameter(PARAM_DISTANCE_EMPTY).c_str()) / 100.0;
+    float fullDist = atof(this->storage->getParameter(PARAM_DISTANCE_FULL).c_str()) / 100.0;
+    this->relativeDistance = UltrasonicDistanceCalculator::getRelative(this->measuredDistance, emptyDist, fullDist);
+    this->absoluteDistance = UltrasonicDistanceCalculator::getAbsolute(this->measuredDistance, emptyDist);
 }
 
 // --- Sensor ---
 
 float UltrasonicDistancePlugin::readSensor()
 {
-    digitalWrite(TRIG_PIN, LOW);
-    delayMicroseconds(2);
-    digitalWrite(TRIG_PIN, HIGH);
-    delayMicroseconds(20);
-    digitalWrite(TRIG_PIN, LOW);
+    this->hal->digitalWrite(TRIG_PIN, LOW);
+    this->hal->delayMicroseconds(2);
+    this->hal->digitalWrite(TRIG_PIN, HIGH);
+    this->hal->delayMicroseconds(20);
+    this->hal->digitalWrite(TRIG_PIN, LOW);
 
-    unsigned long pulse = pulseIn(ECHO_PIN, HIGH, 100000);
+    unsigned long pulse = this->hal->pulseIn(ECHO_PIN, HIGH, 100000);
     double timeTook = (double)pulse / 1000000;
     float distance = this->speedOfSound * timeTook / 2;
 
@@ -45,55 +54,6 @@ float UltrasonicDistancePlugin::readSensor()
     return distance;
 }
 
-// --- Distance calculation ---
-
-float UltrasonicDistancePlugin::getAbsolute(float distance)
-{
-    float emptyDist = atof(this->storage->getParameter(PARAM_DISTANCE_EMPTY).c_str()) / 100.0;
-    float absolute = emptyDist - distance;
-    return (absolute < 0) ? 0.0 : absolute;
-}
-
-float UltrasonicDistancePlugin::getRelative(float distance)
-{
-    float emptyDist = atof(this->storage->getParameter(PARAM_DISTANCE_EMPTY).c_str()) / 100.0;
-    float fullDist = atof(this->storage->getParameter(PARAM_DISTANCE_FULL).c_str()) / 100.0;
-    float denominator = emptyDist - fullDist;
-    if (denominator == 0) return 0.0;
-    return this->getAbsolute(distance) / denominator;
-}
-
-// --- Aggregation (same logic as analog) ---
-
-float UltrasonicDistancePlugin::aggregate(float value)
-{
-    int window = atoi(this->storage->getParameter(PARAM_AVG_SAMPLE_COUNT, "10").c_str());
-    int maxDelta = atoi(this->storage->getParameter(PARAM_MAX_DELTA, "15").c_str());
-
-    float lastValue = this->avgBuffer.empty() ? 0.0 : this->avgBuffer.back();
-
-    if ((int)this->avgBuffer.size() >= window) {
-        this->avgBuffer.erase(this->avgBuffer.begin());
-    }
-
-    float diff = abs(lastValue - value);
-    bool deltaOK = value * (maxDelta / 100.0) > diff || this->avgBuffer.empty();
-    bool valueOK = round(value * 100.0) > 0;
-
-    if (deltaOK && valueOK) {
-        this->avgBuffer.push_back(value);
-    }
-
-    return this->calculateAverage();
-}
-
-float UltrasonicDistancePlugin::calculateAverage()
-{
-    if (this->avgBuffer.empty()) return 0.0;
-    float sum = 0.0;
-    for (auto& v : this->avgBuffer) sum += v;
-    return sum / this->avgBuffer.size();
-}
 
 // --- Parameters ---
 

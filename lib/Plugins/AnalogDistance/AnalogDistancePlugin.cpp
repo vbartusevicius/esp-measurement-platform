@@ -1,115 +1,57 @@
 #include "AnalogDistancePlugin.h"
+#include "HAL.h"
 
 const char* AnalogDistancePlugin::getId() const { return "analog_distance"; }
 const char* AnalogDistancePlugin::getName() const { return "Analog Distance Meter"; }
 
-void AnalogDistancePlugin::setup(Storage* storage, Logger* logger, LedController* led)
+void AnalogDistancePlugin::setup(HAL* hal, Storage* storage, Logger* logger, LedController* led)
 {
+    this->hal = hal;
     this->storage = storage;
     this->logger = logger;
     this->measuredDistance = 0.0;
     this->relativeDistance = 0.0;
     this->absoluteDistance = 0.0;
     this->sensorConnected = false;
+    this->distCalc.reset();
 
-    pinMode(ANALOG_PIN, INPUT);
+    this->hal->pinMode(ANALOG_PIN, INPUT);
 }
 
 void AnalogDistancePlugin::loop()
 {
     float raw = this->readSensor();
-    this->measuredDistance = this->aggregate(raw);
-    this->relativeDistance = this->getRelative(this->measuredDistance);
-    this->absoluteDistance = this->getAbsolute(this->measuredDistance);
+
+    int window = atoi(this->storage->getParameter(PARAM_AVG_SAMPLE_COUNT, "10").c_str());
+    int maxDelta = atoi(this->storage->getParameter(PARAM_MAX_DELTA, "15").c_str());
+    this->measuredDistance = this->distCalc.aggregate(raw, window, maxDelta);
+
+    float emptyDist = atof(this->storage->getParameter(PARAM_DISTANCE_EMPTY).c_str()) / 100.0;
+    float fullDist = atof(this->storage->getParameter(PARAM_DISTANCE_FULL).c_str()) / 100.0;
+    this->relativeDistance = AnalogDistanceCalculator::getRelative(this->measuredDistance, emptyDist, fullDist);
+    this->absoluteDistance = AnalogDistanceCalculator::getAbsolute(this->measuredDistance, emptyDist, fullDist);
 }
 
 // --- Sensor reading ---
 
 float AnalogDistancePlugin::readSensor()
 {
-    int rawValue = analogRead(ANALOG_PIN);
+    int rawValue = this->hal->analogRead(ANALOG_PIN);
     float voltage = (rawValue / 1023.0) * VOLTAGE_REF;
 
-    this->sensorConnected = isSensorConnected(voltage);
+    float current = AnalogSensorConverter::voltageToCurrentMA(voltage, VOLTAGE_REF, MIN_CURRENT_MA, MAX_CURRENT_MA);
+    this->sensorConnected = AnalogSensorConverter::isSensorConnected(current, FAULT_CURRENT_MA);
     float distance = 0.0;
 
     if (this->sensorConnected) {
-        distance = voltageToDistance(voltage);
+        float sensorRange = atof(this->storage->getParameter(PARAM_SENSOR_RANGE, "5").c_str());
+        distance = AnalogSensorConverter::currentToDistance(current, MIN_CURRENT_MA, MAX_CURRENT_MA, sensorRange);
     }
 
-    float current = voltageToCurrentMA(voltage);
     this->logger->info("Analog read: raw=" + String(rawValue) + " V=" + String(voltage, 2) +
                        " mA=" + String(current, 2) + " dist=" + String(distance, 3) + "m" +
                        " sensor=" + String(this->sensorConnected ? "ok" : "fault"));
     return distance;
-}
-
-float AnalogDistancePlugin::voltageToCurrentMA(float voltage)
-{
-    return MIN_CURRENT_MA + (voltage / VOLTAGE_REF) * (MAX_CURRENT_MA - MIN_CURRENT_MA);
-}
-
-float AnalogDistancePlugin::voltageToDistance(float voltage)
-{
-    float sensorRange = atof(this->storage->getParameter(PARAM_SENSOR_RANGE, "5").c_str());
-    float current = voltageToCurrentMA(voltage);
-    return ((current - MIN_CURRENT_MA) / (MAX_CURRENT_MA - MIN_CURRENT_MA)) * sensorRange;
-}
-
-bool AnalogDistancePlugin::isSensorConnected(float voltage)
-{
-    return voltageToCurrentMA(voltage) >= FAULT_CURRENT_MA;
-}
-
-// --- Distance calculation ---
-
-float AnalogDistancePlugin::getRelative(float sensorToWaterDistance)
-{
-    float emptyDist = atof(this->storage->getParameter(PARAM_DISTANCE_EMPTY).c_str()) / 100.0;
-    float fullDist = atof(this->storage->getParameter(PARAM_DISTANCE_FULL).c_str()) / 100.0;
-
-    if (sensorToWaterDistance <= emptyDist) return 0.0;
-    if (sensorToWaterDistance >= fullDist) return 1.0;
-    return (sensorToWaterDistance - emptyDist) / (fullDist - emptyDist);
-}
-
-float AnalogDistancePlugin::getAbsolute(float sensorToWaterDistance)
-{
-    float relative = this->getRelative(sensorToWaterDistance);
-    float maxDepth = atof(this->storage->getParameter(PARAM_DISTANCE_FULL).c_str()) / 100.0;
-    return relative * maxDepth;
-}
-
-// --- Aggregation ---
-
-float AnalogDistancePlugin::aggregate(float value)
-{
-    int window = atoi(this->storage->getParameter(PARAM_AVG_SAMPLE_COUNT, "10").c_str());
-    int maxDelta = atoi(this->storage->getParameter(PARAM_MAX_DELTA, "15").c_str());
-
-    float lastValue = this->avgBuffer.empty() ? 0.0 : this->avgBuffer.back();
-
-    if ((int)this->avgBuffer.size() >= window) {
-        this->avgBuffer.erase(this->avgBuffer.begin());
-    }
-
-    float diff = abs(lastValue - value);
-    bool deltaOK = value * (maxDelta / 100.0) > diff || this->avgBuffer.empty();
-    bool valueOK = round(value * 100.0) > 0;
-
-    if (deltaOK && valueOK) {
-        this->avgBuffer.push_back(value);
-    }
-
-    return this->calculateAverage();
-}
-
-float AnalogDistancePlugin::calculateAverage()
-{
-    if (this->avgBuffer.empty()) return 0.0;
-    float sum = 0.0;
-    for (auto& v : this->avgBuffer) sum += v;
-    return sum / this->avgBuffer.size();
 }
 
 // --- Parameters ---

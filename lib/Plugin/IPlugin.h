@@ -7,6 +7,7 @@
 #include <U8g2lib.h>
 #include <vector>
 
+class HAL;
 class Storage;
 class Logger;
 class LedController;
@@ -35,7 +36,7 @@ class IPlugin
         virtual const char* getId() const = 0;
         virtual const char* getName() const = 0;
 
-        virtual void setup(Storage* storage, Logger* logger, LedController* led) = 0;
+        virtual void setup(HAL* hal, Storage* storage, Logger* logger, LedController* led) = 0;
         virtual void loop() = 0;
 
         virtual void getParameterDefs(std::vector<ParameterDef>& defs) const = 0;

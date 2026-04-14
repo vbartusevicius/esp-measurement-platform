@@ -1,13 +1,19 @@
 #include "LedController.h"
+#include "HAL.h"
 
 LedController::LedController()
 {
+    this->hal = nullptr;
     this->lastState = false;
     this->lastBlink = 0;
     this->blinkDuration = 25;
     this->pendingClick = false;
+}
 
-    pinMode(LED_BUILTIN, OUTPUT);
+void LedController::begin(HAL* hal)
+{
+    this->hal = hal;
+    this->hal->pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void LedController::click()
@@ -17,17 +23,17 @@ void LedController::click()
 
 void LedController::run()
 {
-    unsigned long now = millis();
+    unsigned long now = this->hal->millis();
 
     if ((this->lastBlink + this->blinkDuration) > now) {
         return;
     }
 
-    digitalWrite(LED_BUILTIN, HIGH);
+    this->hal->digitalWrite(LED_BUILTIN, HIGH);
 
     if (this->pendingClick) {
         this->lastBlink = now;
-        digitalWrite(LED_BUILTIN, LOW);
+        this->hal->digitalWrite(LED_BUILTIN, LOW);
         this->pendingClick = false;
     }
 }

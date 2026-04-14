@@ -4,6 +4,7 @@
 #include <TaskManagerIO.h>
 
 #include "ChipId.h"
+#include "HAL.h"
 #include "LedController.h"
 #include "Logger.h"
 #include "Storage.h"
@@ -22,6 +23,7 @@
 WiFiClient network;
 
 // Core components
+HAL hal;
 Logger logger;
 Storage storage;
 LedController ledController;
@@ -69,6 +71,8 @@ void setup()
     Serial.begin(9600);
     delay(500);
 
+    ledController.begin(&hal);
+
     String chipId = ChipId::get();
     logger.info("=== ESP Unified ===");
     logger.info("Chip ID: " + chipId);
@@ -90,7 +94,7 @@ void setup()
     logger.info("Active plugin: " + String(activePlugin->getName()));
 
     // Setup plugin
-    activePlugin->setup(&storage, &logger, &ledController);
+    activePlugin->setup(&hal, &storage, &logger, &ledController);
 
     // WiFi
     wifi = new WifiConnector(&logger, chipId);

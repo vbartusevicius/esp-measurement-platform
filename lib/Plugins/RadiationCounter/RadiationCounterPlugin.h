@@ -5,6 +5,7 @@
 #include "Storage.h"
 #include "Logger.h"
 #include "LedController.h"
+#include "RadiationCalculator.h"
 #include <vector>
 
 class RadiationCounterPlugin : public IPlugin
@@ -17,9 +18,7 @@ class RadiationCounterPlugin : public IPlugin
         static constexpr int BTN_PIN = 0;
 
     private:
-        static const int CALCULATOR_BUFFER_SIZE = 60;
-        static const int GRAPH_BUFFER_SIZE = 128;
-
+        HAL* hal;
         Storage* storage;
         Logger* logger;
         LedController* led;
@@ -27,27 +26,17 @@ class RadiationCounterPlugin : public IPlugin
         // Click counter (interrupt-safe)
         volatile int clickCounter;
 
-        // Calculator state
-        std::vector<int> calcBuffer;
-        int cpm;
-        float dose;
-
-        // Aggregator state for graph
-        int spanPointer;
-        std::vector<float> spanBuffer;
-        std::vector<float> graphBuffer;
+        // Calculator
+        RadiationCalculator radCalc;
 
         // Button page counter
         volatile int buttonCounter;
-
-        void calculate(int clicks);
-        void aggregateGraph();
 
     public:
         const char* getId() const override;
         const char* getName() const override;
 
-        void setup(Storage* storage, Logger* logger, LedController* led) override;
+        void setup(HAL* hal, Storage* storage, Logger* logger, LedController* led) override;
         void loop() override;
 
         void getParameterDefs(std::vector<ParameterDef>& defs) const override;

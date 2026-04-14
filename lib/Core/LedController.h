@@ -3,9 +3,12 @@
 
 #include <Arduino.h>
 
+class HAL;
+
 class LedController
 {
     private:
+        HAL* hal;
         bool lastState;
         unsigned long lastBlink;
         unsigned long blinkDuration;
@@ -13,6 +16,7 @@ class LedController
 
     public:
         LedController();
+        void begin(HAL* hal);
         void run();
         void click();
 };

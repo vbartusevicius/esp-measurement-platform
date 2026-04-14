@@ -5,6 +5,8 @@
 #include "Storage.h"
 #include "Logger.h"
 #include "LedController.h"
+#include "AnalogDistanceCalculator.h"
+#include "AnalogSensorConverter.h"
 #include <vector>
 
 class AnalogDistancePlugin : public IPlugin
@@ -24,29 +26,23 @@ class AnalogDistancePlugin : public IPlugin
         static constexpr float MAX_CURRENT_MA = 20.0;
         static constexpr float FAULT_CURRENT_MA = 4.17;
 
+        HAL* hal;
         Storage* storage;
         Logger* logger;
 
-        std::vector<float> avgBuffer;
+        AnalogDistanceCalculator distCalc;
         float measuredDistance;
         float relativeDistance;
         float absoluteDistance;
         bool sensorConnected;
 
         float readSensor();
-        bool isSensorConnected(float voltage);
-        float voltageToDistance(float voltage);
-        float voltageToCurrentMA(float voltage);
-        float getRelative(float distance);
-        float getAbsolute(float distance);
-        float aggregate(float value);
-        float calculateAverage();
 
     public:
         const char* getId() const override;
         const char* getName() const override;
 
-        void setup(Storage* storage, Logger* logger, LedController* led) override;
+        void setup(HAL* hal, Storage* storage, Logger* logger, LedController* led) override;
         void loop() override;
 
         void getParameterDefs(std::vector<ParameterDef>& defs) const override;

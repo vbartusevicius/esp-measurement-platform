@@ -5,6 +5,7 @@
 #include "Storage.h"
 #include "Logger.h"
 #include "LedController.h"
+#include "UltrasonicDistanceCalculator.h"
 #include <vector>
 
 class UltrasonicDistancePlugin : public IPlugin
@@ -22,27 +23,24 @@ class UltrasonicDistancePlugin : public IPlugin
         static constexpr float ABSOLUTE_TEMP = 273.16;
         static constexpr float CURRENT_TEMP = 15.0;
 
+        HAL* hal;
         Storage* storage;
         Logger* logger;
         double speedOfSound;
 
-        std::vector<float> avgBuffer;
+        UltrasonicDistanceCalculator distCalc;
         float measuredDistance;
         float relativeDistance;
         float absoluteDistance;
         bool sensorConnected;
 
         float readSensor();
-        float getRelative(float distance);
-        float getAbsolute(float distance);
-        float aggregate(float value);
-        float calculateAverage();
 
     public:
         const char* getId() const override;
         const char* getName() const override;
 
-        void setup(Storage* storage, Logger* logger, LedController* led) override;
+        void setup(HAL* hal, Storage* storage, Logger* logger, LedController* led) override;
         void loop() override;
 
         void getParameterDefs(std::vector<ParameterDef>& defs) const override;
