@@ -79,6 +79,12 @@ public:
             _buf = buf;
         } else { _buf = std::to_string(val); }
     }
+    String(unsigned int val, int base) {
+        if (base == 16) {
+            char buf[32]; snprintf(buf, sizeof(buf), "%x", val);
+            _buf = buf;
+        } else { _buf = std::to_string(val); }
+    }
     String(float val, int dec = 2) {
         char buf[64];
         snprintf(buf, sizeof(buf), "%.*f", dec, (double)val);

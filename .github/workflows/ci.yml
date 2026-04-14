@@ -24,3 +24,15 @@ jobs:
 
       - name: Build project
         run: pio run -e nodemcu
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run native tests
+        run: |
+          docker build -f Dockerfile.test -t esp-tests .
+          docker run --rm esp-tests

@@ -91,8 +91,8 @@ TEST_F(AnalogDistCalcAggregateTest, SingleValueReturnsItself)
 
 TEST_F(AnalogDistCalcAggregateTest, AveragesMultipleValues)
 {
-    calc.aggregate(1.0, 10, 15);
-    float avg = calc.aggregate(2.0, 10, 15);
+    calc.aggregate(1.0, 10, 100);
+    float avg = calc.aggregate(2.0, 10, 100);
     EXPECT_NEAR(avg, 1.5f, 0.01f);
 }
 

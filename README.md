@@ -77,6 +77,29 @@ For clangd-based code intelligence (autocompletion, error checking), run the set
 
 This generates `compile_commands.json` and `.clangd` with the correct toolchain paths for your machine. Restart the clangd language server afterwards. Re-run after changing `platformio.ini` dependencies.
 
+## Testing
+
+Native unit tests run on the host machine using GoogleTest. They cover calculators, logger, and plugin registry — no hardware required.
+
+### Via Docker (recommended)
+
+```bash
+docker build -f Dockerfile.test -t esp-tests .
+docker run --rm esp-tests
+```
+
+### Via PlatformIO CLI
+
+Requires `g++` on PATH:
+
+```bash
+pio test -e native -v
+```
+
+### CI
+
+Tests run automatically on every push/PR via GitHub Actions (see `.github/workflows/ci.yml`).
+
 ## Building & Flashing
 
 Requires [PlatformIO](https://platformio.org/).
