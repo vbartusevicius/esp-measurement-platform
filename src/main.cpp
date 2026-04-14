@@ -100,6 +100,8 @@ void setup()
     wifi = new WifiConnector(&logger, chipId);
     bool wifiConnected = wifi->begin();
 
+    taskManager.schedule(repeatMillis(250), [] { wifi->run(); });
+
     if (!wifiConnected) {
         display.configWizardFirstStep(wifi->getAppName());
         return;
@@ -127,11 +129,6 @@ void setup()
 
     // Task scheduling
     int samplingInterval = activePlugin->getSamplingInterval();
-
-    // WiFi maintenance
-    taskManager.scheduleFixedRate(250, [] {
-        if (wifi) wifi->run();
-    });
 
     // Web API updates
     taskManager.scheduleFixedRate(2000, [] {
