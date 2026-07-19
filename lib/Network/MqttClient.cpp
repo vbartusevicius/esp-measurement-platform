@@ -20,6 +20,42 @@ MqttClient::MqttClient(Storage* storage, Logger* logger, IPlugin* plugin, const 
     this->previouslyConnected = false;
 }
 
+String MqttClient::getMqttErrorMessage(int errorCode)
+{
+    switch (errorCode) {
+        case 0:
+            return "Success";
+        case -1:
+            return "Buffer too short";
+        case -2:
+            return "Variable number overflow";
+        case -3:
+            return "Network failed to connect";
+        case -4:
+            return "Network timeout";
+        case -5:
+            return "Network failed to read";
+        case -6:
+            return "Network failed to write";
+        case -7:
+            return "Remaining length overflow";
+        case -8:
+            return "Remaining length mismatch";
+        case -9:
+            return "Missing or wrong packet";
+        case -10:
+            return "Connection denied";
+        case -11:
+            return "Failed subscription";
+        case -12:
+            return "Suback array overflow";
+        case -13:
+            return "Pong timeout";
+        default:
+            return "Unknown error (" + String(errorCode) + ")";
+    }
+}
+
 String MqttClient::getBaseTopic()
 {
     String topic = this->storage->getParameter(Parameter::MQTT_TOPIC);
@@ -72,7 +108,7 @@ bool MqttClient::connectMqtt()
         }
         this->previouslyConnected = true;
     } else {
-        this->logger->warning("Failed to connect to MQTT broker, error: " + String(client.lastError()));
+        this->logger->warning("Failed to connect to MQTT broker, error: " + this->getMqttErrorMessage(client.lastError()));
         this->reconnectInterval = (unsigned long)std::min((double)this->reconnectInterval * 1.5, 30000.0);
     }
 

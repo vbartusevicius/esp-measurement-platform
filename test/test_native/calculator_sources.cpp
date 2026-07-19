@@ -4,3 +4,4 @@
 #include "../../lib/Plugins/AnalogDistance/AnalogSensorConverter.cpp"
 #include "../../lib/Plugins/UltrasonicDistance/UltrasonicDistanceCalculator.cpp"
 #include "../../lib/Plugins/RadiationCounter/RadiationCalculator.cpp"
+#include "../../lib/Plugin/FlowRateCalculator.cpp"

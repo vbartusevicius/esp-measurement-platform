@@ -2,6 +2,7 @@
 #define ULTRASONIC_DISTANCE_PLUGIN_H
 
 #include "IPlugin.h"
+#include "FlowRateCalculator.h"
 #include "Storage.h"
 #include "Logger.h"
 #include "LedController.h"
@@ -16,6 +17,7 @@ class UltrasonicDistancePlugin : public IPlugin
         static constexpr const char* PARAM_AVG_SAMPLE_COUNT = "avg_sample_count";
         static constexpr const char* PARAM_SAMPLING_INTERVAL = "sampling_interval";
         static constexpr const char* PARAM_MAX_DELTA = "max_distance_delta";
+        static constexpr const char* PARAM_TOTAL_VOLUME = "total_volume";
 
     private:
         static constexpr int TRIG_PIN = D1;
@@ -33,6 +35,8 @@ class UltrasonicDistancePlugin : public IPlugin
         float relativeDistance;
         float absoluteDistance;
         bool sensorConnected;
+        float totalVolume;
+        FlowRateCalculator flowCalc;
 
         float readSensor();
 

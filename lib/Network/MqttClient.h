@@ -25,6 +25,7 @@ class MqttClient
         void updateActivityTimestamp();
         void publishHomeAssistantAutoconfig();
         String getBaseTopic();
+        String getMqttErrorMessage(int errorCode);
 
     public:
         MqttClient(Storage* storage, Logger* logger, IPlugin* plugin, const String& deviceId);

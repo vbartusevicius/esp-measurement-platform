@@ -14,7 +14,9 @@ void UltrasonicDistancePlugin::setup(HAL* hal, Storage* storage, Logger* logger,
     this->relativeDistance = 0.0;
     this->absoluteDistance = 0.0;
     this->sensorConnected = false;
+    this->totalVolume = atof(this->storage->getParameter(PARAM_TOTAL_VOLUME, "0").c_str());
     this->distCalc.reset();
+    this->flowCalc.reset();
 
     this->hal->pinMode(TRIG_PIN, OUTPUT);
     this->hal->pinMode(ECHO_PIN, INPUT_PULLUP);
@@ -32,6 +34,13 @@ void UltrasonicDistancePlugin::loop()
     float fullDist = atof(this->storage->getParameter(PARAM_DISTANCE_FULL).c_str()) / 100.0;
     this->relativeDistance = UltrasonicDistanceCalculator::getRelative(this->measuredDistance, emptyDist, fullDist);
     this->absoluteDistance = UltrasonicDistanceCalculator::getAbsolute(this->measuredDistance, emptyDist);
+
+    // Flow rate calculation (uses raw float precision, no rounding)
+    this->totalVolume = atof(this->storage->getParameter(PARAM_TOTAL_VOLUME, "0").c_str());
+    if (this->totalVolume > 0) {
+        float currentVolume = this->relativeDistance * this->totalVolume;
+        this->flowCalc.update(currentVolume, millis());
+    }
 }
 
 // --- Sensor ---
@@ -64,6 +73,7 @@ void UltrasonicDistancePlugin::getParameterDefs(std::vector<ParameterDef>& defs)
     defs.push_back({PARAM_AVG_SAMPLE_COUNT, "AVG Window Samples", "10", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_SAMPLING_INTERVAL, "Sampling Interval (s)", "10", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_MAX_DELTA, "Max Measurement Delta (%)", "15", ParameterDef::NUMBER, false});
+    defs.push_back({PARAM_TOTAL_VOLUME, "Total Water Volume (L)", "", ParameterDef::NUMBER, false});
 }
 
 std::vector<const char*> UltrasonicDistancePlugin::getRequiredParameters() const
@@ -79,6 +89,11 @@ void UltrasonicDistancePlugin::getStats(std::vector<StatEntry>& entries) const
     entries.push_back({"Depth", String(this->absoluteDistance, 2) + " m", this->absoluteDistance, StatEntry::TEXT, true});
     entries.push_back({"Distance", String(this->measuredDistance, 3) + " m", this->measuredDistance, StatEntry::TEXT, false});
     entries.push_back({"Sensor", this->sensorConnected ? "Connected" : "Disconnected", this->sensorConnected ? 1.0f : 0.0f, StatEntry::TEXT, false});
+    if (this->totalVolume > 0) {
+        float rate = this->flowCalc.getRate();
+        String rateStr = (rate >= 0 ? "+" : "") + String(rate, 2) + " L/min";
+        entries.push_back({"Flow Rate", rateStr, rate, StatEntry::TEXT, true});
+    }
 }
 
 // --- MQTT ---
@@ -91,6 +106,9 @@ void UltrasonicDistancePlugin::publishMqtt(MQTTClient& client, const String& bas
     doc["relative"] = this->relativeDistance;
     doc["absolute"] = this->absoluteDistance;
     doc["measured"] = this->measuredDistance;
+    if (this->totalVolume > 0) {
+        doc["flow_rate"] = this->flowCalc.getRate();
+    }
     serializeJson(doc, json);
 
     client.publish(baseTopic.c_str(), json.c_str(), false, 0);
@@ -115,6 +133,29 @@ void UltrasonicDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client
     String json;
     serializeJson(doc, json);
     client.publish(("homeassistant/sensor/" + deviceId + "/config").c_str(), json.c_str(), true, 1);
+
+    // Flow rate sensor (L/min)
+    float totalVol = atof(this->storage->getParameter(PARAM_TOTAL_VOLUME, "0").c_str());
+    if (totalVol > 0) {
+        JsonDocument doc;
+        doc["state_topic"] = stateTopic;
+        doc["value_template"] = "{{ value_json.flow_rate | round(2) }}";
+        doc["unit_of_measurement"] = "L/min";
+        doc["name"] = "Water Flow Rate";
+        doc["unique_id"] = deviceId + "_flow_rate";
+        doc["icon"] = "mdi:water-pump";
+        doc["state_class"] = "measurement";
+
+        JsonObject device = doc["device"].to<JsonObject>();
+        device["identifiers"][0] = deviceId;
+        device["name"] = "ESP Ultrasonic Distance Meter";
+        device["model"] = "ESP8266";
+        device["manufacturer"] = "ESP";
+
+        String json;
+        serializeJson(doc, json);
+        client.publish(("homeassistant/sensor/" + deviceId + "/flow_rate/config").c_str(), json.c_str(), true, 1);
+    }
 }
 
 // --- Display (same layout as analog) ---

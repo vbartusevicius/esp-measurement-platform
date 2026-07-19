@@ -17,6 +17,17 @@ document.addEventListener('DOMContentLoaded', () => {
         loadPluginParams(e.target.value);
     });
     
+    // Auto-generate topic when device name changes
+    document.getElementById('mqtt-device').addEventListener('input', (e) => {
+        const deviceName = e.target.value.trim();
+        const pluginId = document.getElementById('active-plugin').value;
+        const topicField = document.getElementById('mqtt-topic');
+        
+        if (deviceName && pluginId) {
+            topicField.value = deviceName + '/stat/' + pluginId;
+        }
+    });
+    
     setupConfigToggle();
 });
 

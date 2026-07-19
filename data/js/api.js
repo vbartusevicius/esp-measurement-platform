@@ -56,11 +56,15 @@ async function loadConfig() {
 }
 
 async function loadPluginParams(pluginId) {
+    const container = document.getElementById('plugin-params');
+    
     if (!pluginId) {
-        const container = document.getElementById('plugin-params');
         container.innerHTML = '<p class="form-text">No plugin selected</p>';
         return;
     }
+    
+    // Show spinner while loading
+    container.innerHTML = '<div class="loading-container"><div class="spinner"></div><span>Loading...</span></div>';
     
     try {
         const response = await fetch(`${API_BASE}/config?plugin=${pluginId}`);
@@ -69,6 +73,7 @@ async function loadPluginParams(pluginId) {
         const config = await response.json();
         renderPluginParams(config.plugin_params);
     } catch (error) {
+        container.innerHTML = '<p class="form-text">Error loading plugin parameters</p>';
         addLogMessage(`Error loading plugin parameters: ${error.message}`);
     }
 }
