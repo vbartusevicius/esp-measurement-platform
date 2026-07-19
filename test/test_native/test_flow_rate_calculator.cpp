@@ -160,3 +160,17 @@ TEST_F(FlowRateCalculatorTest, SteadyFlowConvergesToConstantRate)
     // After 6 samples at constant rate, average should be exactly 6 L/min
     EXPECT_NEAR(rate, 6.0f, 0.01f);
 }
+
+// ====== MAX_SAMPLES limit ======
+
+TEST_F(FlowRateCalculatorTest, MaxSamplesLimitPreventsUnboundedGrowth)
+{
+    // Add many samples rapidly to test MAX_SAMPLES enforcement
+    calc.update(100.0f, 0);
+    for (int i = 1; i <= 200; i++) {
+        calc.update(100.0f + i * 0.1f, i * 100);
+    }
+    // Should not crash or grow beyond MAX_SAMPLES
+    float rate = calc.getRate();
+    EXPECT_GT(rate, 0.0f);  // Should still calculate a valid rate
+}

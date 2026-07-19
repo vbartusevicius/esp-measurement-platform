@@ -30,6 +30,11 @@ float FlowRateCalculator::update(float volumeLiters, unsigned long now)
         this->samples.push_back({instantRate, now});
     }
 
+    // Enforce maximum sample limit to prevent memory issues
+    if (this->samples.size() > MAX_SAMPLES) {
+        this->samples.erase(this->samples.begin());
+    }
+
     this->previousVolume = volumeLiters;
     this->previousTime = now;
 

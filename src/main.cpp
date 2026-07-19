@@ -134,12 +134,6 @@ void setup()
         if (webApi) webApi->run(mqttOk);
     });
 
-    // LED heartbeat
-    taskManager.scheduleFixedRate(1000, [] {
-        ledController.click();
-        ledController.run();
-    });
-
     // MQTT maintenance
     taskManager.scheduleFixedRate(5000, [] {
         if (mqtt) mqtt->run();
@@ -148,6 +142,7 @@ void setup()
     // Plugin measurement loop
     taskManager.scheduleFixedRate(samplingInterval * 1000, [] {
         if (activePlugin) activePlugin->loop();
+        ledController.click();
     });
 
     // MQTT publish
@@ -168,5 +163,6 @@ void setup()
 void loop()
 {
     ArduinoOTA.handle();
+    ledController.run();
     taskManager.runLoop();
 }

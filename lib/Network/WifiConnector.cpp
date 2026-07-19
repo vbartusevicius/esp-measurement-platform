@@ -18,14 +18,6 @@ bool WifiConnector::begin()
 {
     wm.setConfigPortalBlocking(false);
     wm.setConfigPortalTimeout(300);
-    wm.setSaveConfigCallback([] {
-        delay(1000);
-        ESP.restart();
-    });
-    wm.setConfigPortalTimeoutCallback([] {
-        delay(1000);
-        ESP.restart();
-    });
 
     bool connected = wm.autoConnect(this->appName.c_str());
 

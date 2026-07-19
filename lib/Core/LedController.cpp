@@ -25,15 +25,11 @@ void LedController::run()
 {
     unsigned long now = this->hal->millis();
 
-    if ((this->lastBlink + this->blinkDuration) > now) {
-        return;
-    }
-
-    this->hal->digitalWrite(LED_BUILTIN, HIGH);
-
     if (this->pendingClick) {
         this->lastBlink = now;
-        this->hal->digitalWrite(LED_BUILTIN, LOW);
+        this->hal->digitalWrite(LED_BUILTIN, LOW);  // Turn LED on (active low)
         this->pendingClick = false;
+    } else if ((this->lastBlink + this->blinkDuration) <= now) {
+        this->hal->digitalWrite(LED_BUILTIN, HIGH);  // Turn LED off (active low)
     }
 }

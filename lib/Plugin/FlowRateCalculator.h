@@ -7,6 +7,7 @@ class FlowRateCalculator
 {
     private:
         static const unsigned long WINDOW_MS = 60000;
+        static const size_t MAX_SAMPLES = 120;
 
         struct Sample {
             float rate = 0.0;
