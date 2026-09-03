@@ -45,6 +45,7 @@ async function loadConfig() {
         document.getElementById('mqtt-pass').value = config.mqtt_pass || '';
         document.getElementById('mqtt-device').value = config.mqtt_device || '';
         document.getElementById('mqtt-topic').value = config.mqtt_topic || '';
+        document.getElementById('update-interval').value = config.update_interval_min || '10';
         
         // Build dynamic plugin parameter fields
         renderPluginParams(config.plugin_params);
@@ -132,6 +133,16 @@ async function saveConfig() {
         }
     } catch (error) {
         addLogMessage(`Error saving configuration: ${error.message}`);
+    }
+}
+
+async function checkForUpdates() {
+    try {
+        const response = await fetch(`${API_BASE}/update-check`, { method: 'POST' });
+        if (!response.ok) throw new Error('Failed to schedule update check');
+        addLogMessage('Update check scheduled - firmware checks within a minute and reboots if an update is found');
+    } catch (error) {
+        addLogMessage(`Error scheduling update check: ${error.message}`);
     }
 }
 

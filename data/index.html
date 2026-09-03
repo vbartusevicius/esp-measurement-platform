@@ -51,6 +51,10 @@
                             <span class="stat-label">Free heap:</span>
                             <span id="free-heap" class="stat-value">--</span>
                         </div>
+                        <div class="stat-item small">
+                            <span class="stat-label">Firmware:</span>
+                            <span id="firmware-version" class="stat-value">--</span>
+                        </div>
                     </div>
                 </div>
                 <div id="chart-panel" class="chart-panel" style="display:none">
@@ -106,6 +110,16 @@
                         <input type="text" id="mqtt-topic" name="mqtt_topic">
                     </div>
                     
+                    <h3>Over-The-Air Updates</h3>
+                    <div class="form-group">
+                        <label for="update-interval">Release check interval (minutes):</label>
+                        <input type="number" id="update-interval" name="update_interval_min" min="1" max="1440">
+                        <small class="form-text">First check runs 2 min after boot</small>
+                    </div>
+                    <div class="form-group">
+                        <button type="button" id="check-updates-btn" class="btn">Check for updates now</button>
+                    </div>
+
                     <div class="button-group">
                         <div class="left-buttons">
                             <button type="submit" class="btn primary">Save Changes</button>

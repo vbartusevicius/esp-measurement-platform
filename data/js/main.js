@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('restart-btn').addEventListener('click', restartDevice);
     document.getElementById('reset-btn').addEventListener('click', resetDevice);
+    document.getElementById('check-updates-btn').addEventListener('click', checkForUpdates);
     
     // Reload plugin params when plugin selection changes
     document.getElementById('active-plugin').addEventListener('change', (e) => {
@@ -51,6 +52,7 @@ function updateUI(data) {
     setTextContent('wifi-signal', data.wifi_signal ? data.wifi_signal + ' dBm' : 'N/A');
     setTextContent('ip-address', data.ip_address || 'Unknown');
     setTextContent('uptime', data.uptime || 'N/A');
+    setTextContent('firmware-version', data.firmware_version || 'N/A');
     setTextContent('free-heap', data.free_heap ? Math.round(data.free_heap / 1024) + ' KB' : 'N/A');
     
     const mqttEl = document.getElementById('mqtt-status');

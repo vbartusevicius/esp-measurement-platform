@@ -8,18 +8,25 @@
 #include <ArduinoJson.h>
 
 #include "Logger.h"
+#include "Storage.h"
+#include "Parameter.h"
 #include "Version.h"
 
-ReleaseUpdater::ReleaseUpdater(Logger* logger)
+ReleaseUpdater::ReleaseUpdater(Logger* logger, Storage* storage)
     : logger(logger)
 {
+    // Interval in minutes; changes require restart
+    int minutes = storage->getParameter(Parameter::UPDATE_INTERVAL_MIN, "10").toInt();
+    if (minutes < 1) minutes = 1;
+    if (minutes > 1440) minutes = 1440;
+    this->checkIntervalMs = (unsigned long)minutes * 60000UL;
 }
 
 void ReleaseUpdater::run()
 {
     long untilDue = (long)(this->nextCheckAt - millis());
     if (untilDue > 0) return;
-    this->nextCheckAt = millis() + CHECK_INTERVAL_MS;
+    this->nextCheckAt = millis() + this->checkIntervalMs;
 
     if (WiFi.status() != WL_CONNECTED) return;
     this->checkForUpdates();

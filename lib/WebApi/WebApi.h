@@ -17,6 +17,8 @@
 
 typedef void (*ResetCallback)();
 
+class ReleaseUpdater;
+
 class WebApi {
     private:
         AsyncWebServer server;
@@ -26,12 +28,13 @@ class WebApi {
         IPlugin* activePlugin;
         PluginRegistry* registry;
         ResetCallback resetCallback;
+        ReleaseUpdater* releaseUpdater = nullptr;
         unsigned long lastLogSequence;
         bool mqttConnected;
         static constexpr size_t MAX_CONFIG_BODY_SIZE = 2048;
 
     public:
-        WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback);
+        WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback, ReleaseUpdater* releaseUpdater = nullptr);
 
         void begin();
         void run(bool mqttConnected);

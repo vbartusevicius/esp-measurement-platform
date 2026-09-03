@@ -2,17 +2,20 @@
 #include "Parameter.h"
 #include "ChipId.h"
 #include "TimeHelper.h"
+#include "Version.h"
+#include "ReleaseUpdater.h"
 #include <ESP8266WiFi.h>
 
 static float rounded(float v) { return (float)(int)(v * 100 + 0.5f) / 100.0f; }
 
-WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback)
+WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback, ReleaseUpdater* releaseUpdater)
     : server(80), ws("/ws") {
     this->storage = storage;
     this->logger = logger;
     this->activePlugin = plugin;
     this->registry = registry;
     this->resetCallback = resetCallback;
+    this->releaseUpdater = releaseUpdater;
     this->lastLogSequence = 0;
 }
 
@@ -79,6 +82,8 @@ void WebApi::setupApiEndpoints() {
         doc["mqtt_pass"] = this->storage->getParameter(Parameter::MQTT_PASS, "");
         doc["mqtt_device"] = this->storage->getParameter(Parameter::MQTT_DEVICE, "");
         doc["mqtt_topic"] = this->storage->getParameter(Parameter::MQTT_TOPIC, "");
+        doc["update_interval_min"] = this->storage->getParameter(Parameter::UPDATE_INTERVAL_MIN, "10");
+        doc["firmware_version"] = FW_VERSION;
 
         // Plugin parameter values and definitions
         std::vector<ParameterDef> defs;
@@ -162,6 +167,7 @@ void WebApi::setupApiEndpoints() {
         doc["wifi_signal"] = String(WiFi.RSSI());
         doc["ip_address"] = WiFi.localIP().toString();
         doc["free_heap"] = ESP.getFreeHeap();
+        doc["firmware_version"] = FW_VERSION;
 
         char uptimeBuf[32];
         TimeHelper::getUptime(uptimeBuf);
@@ -203,6 +209,17 @@ void WebApi::setupApiEndpoints() {
 
         serializeJson(doc, *response);
         request->send(response);
+    });
+
+    // POST /api/v1/update-check - schedule an immediate GitHub release check
+    server.on("/api/v1/update-check", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        if (this->releaseUpdater) {
+            this->releaseUpdater->requestCheck();
+            this->logger->info("Manual update check requested");
+            request->send(200, "application/json", "{\"status\":\"scheduled\"}");
+        } else {
+            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Update checker not available\"}");
+        }
     });
 
     // POST /api/v1/restart
@@ -272,6 +289,7 @@ void WebApi::broadcastStats() {
     doc["ip_address"] = WiFi.localIP().toString();
     doc["free_heap"] = ESP.getFreeHeap();
     doc["mqtt_connected"] = this->mqttConnected;
+    doc["firmware_version"] = FW_VERSION;
 
     char uptimeBuf[32];
     TimeHelper::getUptime(uptimeBuf);

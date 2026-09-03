@@ -122,8 +122,12 @@ void setup()
         display.configWizardSecondStep(WiFi.localIP().toString().c_str());
     }
 
+    // GitHub release OTA: first check 2 min after boot, then at configured interval
+    releaseUpdater = new ReleaseUpdater(&logger, &storage);
+    taskManager.scheduleFixedRate(60000, [] { releaseUpdater->run(); });
+
     // Web API
-    webApi = new WebApi(&storage, &logger, activePlugin, &registry, resetDevice);
+    webApi = new WebApi(&storage, &logger, activePlugin, &registry, resetDevice, releaseUpdater);
     webApi->begin();
 
     // MQTT (requires an active plugin with MQTT support to publish)
@@ -138,10 +142,6 @@ void setup()
 
     // OTA (Arduino IDE uploads)
     setupOTA();
-
-    // GitHub release OTA: first check 2 min after boot, then every 10 min
-    releaseUpdater = new ReleaseUpdater(&logger);
-    taskManager.scheduleFixedRate(60000, [] { releaseUpdater->run(); });
 
     // Task scheduling
     int samplingInterval = activePlugin ? activePlugin->getSamplingInterval() : 10;

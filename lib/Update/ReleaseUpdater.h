@@ -4,6 +4,7 @@
 #include <Arduino.h>
 
 class Logger;
+class Storage;
 
 // Periodically checks the GitHub repository's latest release and OTA-updates
 // the LittleFS image and firmware from the release assets.
@@ -14,18 +15,21 @@ class Logger;
 class ReleaseUpdater
 {
     public:
-        // Seconds after boot before the first check; interval between checks.
+        // Seconds after boot before the first check.
         static constexpr unsigned long FIRST_CHECK_DELAY_MS = 120000;
-        static constexpr unsigned long CHECK_INTERVAL_MS = 10UL * 60 * 1000;
 
-        ReleaseUpdater(Logger* logger);
+        ReleaseUpdater(Logger* logger, Storage* storage);
 
         // Call frequently; runs the actual check only when due.
         void run();
 
+        // Schedule a check as soon as possible (web UI "check now" button).
+        void requestCheck() { this->nextCheckAt = 0; }
+
     private:
         Logger* logger;
         unsigned long nextCheckAt = FIRST_CHECK_DELAY_MS;
+        unsigned long checkIntervalMs = 600000;
 
         // Repo that publishes release binaries ("owner/name").
         static constexpr const char* GITHUB_REPO = "vbartusevicius/esp-measurement-platform";
