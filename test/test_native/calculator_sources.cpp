@@ -6,6 +6,8 @@
 #include "../../lib/Plugins/RadiationCounter/RadiationCalculator.cpp"
 #include "../../lib/Plugin/FlowRateCalculator.cpp"
 #include "../../lib/Plugin/MovingAverageFilter.cpp"
+#include "../../lib/Plugin/DailyUsageTracker.cpp"
+#include "../../lib/Plugins/HaDiscovery.cpp"
 
 // Plugin implementations under test
 #include "../../lib/Plugins/DistanceBase/DistancePluginBase.cpp"

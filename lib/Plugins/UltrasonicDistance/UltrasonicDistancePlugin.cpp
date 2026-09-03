@@ -1,5 +1,6 @@
 #include "UltrasonicDistancePlugin.h"
 #include <ArduinoJson.h>
+#include "HaDiscovery.h"
 #include "UltrasonicDistanceCalculator.h"
 #include "HAL.h"
 
@@ -69,7 +70,8 @@ void UltrasonicDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client
         doc["object_id"] = "esp_ultrasonic_distance";
 
         JsonObject device = doc["device"].to<JsonObject>();
-        this->addHaDevice(device, deviceId);
+        HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+        HaDiscovery::addAvailability(doc, deviceId);
 
         String json;
         serializeJson(doc, json);
@@ -77,5 +79,5 @@ void UltrasonicDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client
     }
 
     // Flow rate sensor (L/min)
-    this->publishFlowRateHaConfig(client, deviceId, stateTopic);
+    this->publishCommonHaSensors(client, deviceId, stateTopic);
 }

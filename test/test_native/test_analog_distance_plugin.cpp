@@ -67,8 +67,14 @@ TEST_F(AnalogDistancePluginTest, SensorDisconnectedBelowFaultCurrent)
 
     std::vector<StatEntry> stats;
     plugin.getStats(stats);
-    ASSERT_GE(stats.size(), 4u);
-    EXPECT_STREQ(stats[3].value.c_str(), "Disconnected");
+
+    bool foundDisconnected = false;
+    for (auto& e : stats) {
+        if (strcmp(e.label, "Sensor") == 0) {
+            foundDisconnected = strcmp(e.value.c_str(), "Disconnected") == 0;
+        }
+    }
+    EXPECT_TRUE(foundDisconnected);
 }
 
 TEST_F(AnalogDistancePluginTest, FlowRateReportedWhenVolumeConfigured)
@@ -101,8 +107,10 @@ TEST_F(AnalogDistancePluginTest, FlowRateHiddenWithoutVolume)
     plugin.getStats(stats);
     for (auto& e : stats) {
         EXPECT_STRNE(e.label, "Flow Rate");
+        EXPECT_STRNE(e.label, "Volume");
+        EXPECT_STRNE(e.label, "Usage 24h");
     }
-    EXPECT_EQ(stats.size(), 4u);
+    EXPECT_EQ(stats.size(), 5u);  // Level, Depth, Distance, Raw, Sensor
 }
 
 TEST_F(AnalogDistancePluginTest, ExposesCapabilities)

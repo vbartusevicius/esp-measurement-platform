@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     initWebSocket();
+    initChart();
     loadPlugins();
     loadConfig();
     

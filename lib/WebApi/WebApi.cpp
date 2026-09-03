@@ -4,6 +4,8 @@
 #include "TimeHelper.h"
 #include <ESP8266WiFi.h>
 
+static float rounded(float v) { return (float)(int)(v * 100 + 0.5f) / 100.0f; }
+
 WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback)
     : server(80), ws("/ws") {
     this->storage = storage;
@@ -179,6 +181,24 @@ void WebApi::setupApiEndpoints() {
             obj["numeric"] = e.numericValue;
             obj["render"] = e.render == StatEntry::PROGRESS ? "progress" : "text";
             obj["primary"] = e.primary;
+        }
+
+        serializeJson(doc, *response);
+        request->send(response);
+    });
+
+    // GET /api/v1/chart - history chart data (plugins that support it)
+    server.on("/api/v1/chart", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        AsyncResponseStream *response = request->beginResponseStream("application/json");
+        JsonDocument doc;
+
+        std::vector<float> points;
+        int spanSeconds = 0;
+        if (this->activePlugin && this->activePlugin->getChartData(points, spanSeconds) && !points.empty()) {
+            JsonArray arr = doc["points"].to<JsonArray>();
+            for (float v : points) arr.add(rounded(v));
+            doc["span_seconds"] = spanSeconds;
+            doc["unit"] = "\xC2\xB5Sv/h";  // only the radiation plugin supports charts today
         }
 
         serializeJson(doc, *response);

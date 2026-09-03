@@ -15,6 +15,8 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
     public:
         static constexpr const char* PARAM_TUBE_FACTOR = "tube_conversion_factor";
         static constexpr const char* PARAM_GRAPH_RESOLUTION = "display_graph_resolution";
+        static constexpr const char* PARAM_DEAD_TIME_US = "tube_dead_time_us";
+        static constexpr const char* PARAM_ALERT_THRESHOLD = "alert_dose_usv_h";
 
         static constexpr int CNT_PIN = D2;
         static constexpr int BTN_PIN = 0;
@@ -34,6 +36,16 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
         // Configuration parsed once in setup() (changes require restart)
         float tubeFactor = 120.0f;
         int graphSpanSeconds = 600;
+        float deadTimeUs = 0.0f;
+        float alertThresholdUsvH = 0.3f;
+
+        unsigned long totalCounts = 0;
+
+    public:
+        // Chart capability for the web UI
+        bool getChartData(std::vector<float>& points, int& spanSeconds) const override;
+
+    private:
 
         // Button page counter
         volatile int buttonCounter;

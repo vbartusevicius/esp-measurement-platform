@@ -11,6 +11,7 @@
 -I../lib/Plugins/AnalogDistance
 -I../lib/Plugins/UltrasonicDistance
 -I../lib/Plugins/RadiationCounter
+-I../lib/Plugins
 -I../lib/Plugins/DistanceBase
 -isystem
 ../.pio/libdeps/native/googletest/googletest/include

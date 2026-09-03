@@ -1,5 +1,6 @@
 #include "DistancePluginBase.h"
 #include <ArduinoJson.h>
+#include "HaDiscovery.h"
 
 void DistancePluginBase::setup(HAL* hal, Storage* storage, Logger* logger, LedController* led)
 {
@@ -10,9 +11,12 @@ void DistancePluginBase::setup(HAL* hal, Storage* storage, Logger* logger, LedCo
     this->relativeDistance = 0.0f;
     this->absoluteDistance = 0.0f;
     this->sensorConnected = false;
+    this->currentVolume = 0.0f;
+    this->lastRawDistance = 0.0f;
     this->totalVolume = atof(this->storage->getParameter(PARAM_TOTAL_VOLUME, "0").c_str());
     this->distFilter.reset();
     this->flowCalc.reset();
+    this->usageTracker.reset();
 
     this->avgSampleCount = atoi(this->storage->getParameter(PARAM_AVG_SAMPLE_COUNT, "10").c_str());
     this->maxDeltaPercent = atoi(this->storage->getParameter(PARAM_MAX_DELTA, "15").c_str());
@@ -29,15 +33,17 @@ void DistancePluginBase::setup(HAL* hal, Storage* storage, Logger* logger, LedCo
 void DistancePluginBase::loop()
 {
     float raw = this->readSensor();
+    this->lastRawDistance = raw;
 
     this->measuredDistance = this->distFilter.aggregate(raw, this->avgSampleCount, this->maxDeltaPercent);
     this->relativeDistance = this->computeRelative(this->measuredDistance, this->emptyDistM, this->fullDistM);
     this->absoluteDistance = this->computeAbsolute(this->measuredDistance, this->emptyDistM, this->fullDistM);
 
-    // Flow rate calculation (uses raw float precision, no rounding)
+    // Volume-derived metrics (uses raw float precision, no rounding)
     if (this->totalVolume > 0) {
-        float currentVolume = this->relativeDistance * this->totalVolume;
-        this->flowCalc.update(currentVolume, millis());
+        this->currentVolume = this->relativeDistance * this->totalVolume;
+        this->flowCalc.update(this->currentVolume, millis());
+        this->usageTracker.update(this->currentVolume, millis());
     }
 }
 
@@ -58,12 +64,19 @@ void DistancePluginBase::getStats(std::vector<StatEntry>& entries) const
 {
     entries.push_back({"Level", String(this->relativeDistance * 100, 1) + "%", this->relativeDistance, StatEntry::PROGRESS, true});
     entries.push_back({"Depth", String(this->absoluteDistance, 2) + " m", this->absoluteDistance, StatEntry::TEXT, true});
+    if (this->totalVolume > 0) {
+        entries.push_back({"Volume", String(this->currentVolume, 0) + " L", this->currentVolume, StatEntry::TEXT, true});
+    }
     entries.push_back({"Distance", String(this->measuredDistance, 3) + " m", this->measuredDistance, StatEntry::TEXT, false});
+    entries.push_back({"Raw", String(this->lastRawDistance, 3) + " m", this->lastRawDistance, StatEntry::TEXT, false});
     entries.push_back({"Sensor", this->sensorConnected ? "Connected" : "Disconnected", this->sensorConnected ? 1.0f : 0.0f, StatEntry::TEXT, false});
     if (this->totalVolume > 0) {
         float rate = this->flowCalc.getRate();
         String rateStr = (rate >= 0 ? "+" : "") + String(rate, 2) + " L/min";
         entries.push_back({"Flow Rate", rateStr, rate, StatEntry::TEXT, true});
+
+        float usage = this->usageTracker.getUsageLiters();
+        entries.push_back({"Usage 24h", String(usage, 1) + " L", usage, StatEntry::TEXT, false});
     }
 }
 
@@ -77,41 +90,103 @@ void DistancePluginBase::publishMqtt(MQTTClient& client, const String& baseTopic
     doc["relative"] = this->relativeDistance;
     doc["absolute"] = this->absoluteDistance;
     doc["measured"] = this->measuredDistance;
+    doc["raw"] = this->lastRawDistance;
+    doc["connected"] = this->sensorConnected;
     if (this->totalVolume > 0) {
+        doc["volume"] = this->currentVolume;
         doc["flow_rate"] = this->flowCalc.getRate();
+        doc["usage_24h"] = this->usageTracker.getUsageLiters();
     }
     serializeJson(doc, json);
 
     client.publish(baseTopic.c_str(), json.c_str(), false, 0);
 }
 
-void DistancePluginBase::addHaDevice(JsonObject& device, const String& deviceId) const
+void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const String& deviceId, const String& stateTopic)
 {
-    device["identifiers"][0] = deviceId;
-    device["name"] = this->getDeviceName();
-    device["model"] = "ESP8266";
-    device["manufacturer"] = "ESP";
-}
+    if (this->totalVolume > 0) {
+        // Volume sensor (L)
+        {
+            JsonDocument doc;
+            doc["state_topic"] = stateTopic;
+            doc["value_template"] = "{{ value_json.volume | round(0) }}";
+            doc["unit_of_measurement"] = "L";
+            doc["device_class"] = "volume";
+            doc["name"] = "Water Volume";
+            doc["unique_id"] = deviceId + "_volume";
+            doc["icon"] = "mdi:water";
+            doc["state_class"] = "measurement";
 
-void DistancePluginBase::publishFlowRateHaConfig(MQTTClient& client, const String& deviceId, const String& stateTopic)
-{
-    if (this->totalVolume <= 0) return;
+            JsonObject device = doc["device"].to<JsonObject>();
+            HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+            HaDiscovery::addAvailability(doc, deviceId);
 
-    JsonDocument doc;
-    doc["state_topic"] = stateTopic;
-    doc["value_template"] = "{{ value_json.flow_rate | round(2) }}";
-    doc["unit_of_measurement"] = "L/min";
-    doc["name"] = "Water Flow Rate";
-    doc["unique_id"] = deviceId + "_flow_rate";
-    doc["icon"] = "mdi:water-pump";
-    doc["state_class"] = "measurement";
+            String json;
+            serializeJson(doc, json);
+            client.publish(("homeassistant/sensor/" + deviceId + "/volume/config").c_str(), json.c_str(), true, 1);
+        }
 
-    JsonObject device = doc["device"].to<JsonObject>();
-    this->addHaDevice(device, deviceId);
+        // Water usage over the last 24 h (L)
+        {
+            JsonDocument doc;
+            doc["state_topic"] = stateTopic;
+            doc["value_template"] = "{{ value_json.usage_24h | round(1) }}";
+            doc["unit_of_measurement"] = "L";
+            doc["device_class"] = "volume";
+            doc["name"] = "Water Usage 24h";
+            doc["unique_id"] = deviceId + "_usage_24h";
+            doc["icon"] = "mdi:water-sync";
+            doc["state_class"] = "measurement";
 
-    String json;
-    serializeJson(doc, json);
-    client.publish(("homeassistant/sensor/" + deviceId + "/flow_rate/config").c_str(), json.c_str(), true, 1);
+            JsonObject device = doc["device"].to<JsonObject>();
+            HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+            HaDiscovery::addAvailability(doc, deviceId);
+
+            String json;
+            serializeJson(doc, json);
+            client.publish(("homeassistant/sensor/" + deviceId + "/usage_24h/config").c_str(), json.c_str(), true, 1);
+        }
+
+        // Flow rate sensor (L/min)
+        {
+            JsonDocument doc;
+            doc["state_topic"] = stateTopic;
+            doc["value_template"] = "{{ value_json.flow_rate | round(2) }}";
+            doc["unit_of_measurement"] = "L/min";
+            doc["device_class"] = "volume_flow_rate";
+            doc["name"] = "Water Flow Rate";
+            doc["unique_id"] = deviceId + "_flow_rate";
+            doc["icon"] = "mdi:water-pump";
+            doc["state_class"] = "measurement";
+
+            JsonObject device = doc["device"].to<JsonObject>();
+            HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+            HaDiscovery::addAvailability(doc, deviceId);
+
+            String json;
+            serializeJson(doc, json);
+            client.publish(("homeassistant/sensor/" + deviceId + "/flow_rate/config").c_str(), json.c_str(), true, 1);
+        }
+    }
+
+    // Sensor connectivity (binary sensor, diagnostics)
+    {
+        JsonDocument doc;
+        doc["state_topic"] = stateTopic;
+        doc["value_template"] = "{{ 'ON' if value_json.connected else 'OFF' }}";
+        doc["device_class"] = "connectivity";
+        doc["name"] = "Sensor";
+        doc["unique_id"] = deviceId + "_sensor_connected";
+        doc["entity_category"] = "diagnostic";
+
+        JsonObject device = doc["device"].to<JsonObject>();
+        HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+        HaDiscovery::addAvailability(doc, deviceId);
+
+        String json;
+        serializeJson(doc, json);
+        client.publish(("homeassistant/binary_sensor/" + deviceId + "/connected/config").c_str(), json.c_str(), true, 1);
+    }
 }
 
 // --- Display ---

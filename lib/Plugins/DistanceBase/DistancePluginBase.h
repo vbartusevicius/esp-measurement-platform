@@ -9,6 +9,7 @@
 #include "Logger.h"
 #include "MovingAverageFilter.h"
 #include "FlowRateCalculator.h"
+#include "DailyUsageTracker.h"
 #include <vector>
 
 // Shared implementation for distance-based level plugins (analog / ultrasonic).
@@ -35,7 +36,10 @@ class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisp
         float absoluteDistance = 0.0f;
         bool sensorConnected = false;
         float totalVolume = 0.0f;
+        float currentVolume = 0.0f;
+        float lastRawDistance = 0.0f;
         FlowRateCalculator flowCalc;
+        DailyUsageTracker usageTracker;
 
         // Configuration parsed once in setup() (changes require restart)
         int avgSampleCount = 10;
@@ -53,9 +57,8 @@ class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisp
         virtual void addPluginParameterDefs(std::vector<ParameterDef>& defs) const = 0;
         virtual const char* getDeviceName() const = 0;
 
-        // Home Assistant discovery helpers (shared device metadata + flow rate sensor)
-        void addHaDevice(JsonObject& device, const String& deviceId) const;
-        void publishFlowRateHaConfig(MQTTClient& client, const String& deviceId, const String& stateTopic);
+        // Home Assistant discovery helpers (flow rate + volume + usage + connectivity)
+        void publishCommonHaSensors(MQTTClient& client, const String& deviceId, const String& stateTopic);
 
     public:
         void setup(HAL* hal, Storage* storage, Logger* logger, LedController* led) override;

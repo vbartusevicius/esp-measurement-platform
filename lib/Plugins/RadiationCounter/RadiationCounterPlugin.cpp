@@ -1,5 +1,6 @@
 #include "RadiationCounterPlugin.h"
 #include <ArduinoJson.h>
+#include "HaDiscovery.h"
 #include "HAL.h"
 
 RadiationCounterPlugin* RadiationCounterPlugin::instance = nullptr;
@@ -30,6 +31,9 @@ void RadiationCounterPlugin::setup(HAL* hal, Storage* storage, Logger* logger, L
 
     this->tubeFactor = this->storage->getParameter(PARAM_TUBE_FACTOR, "120").toFloat();
     this->graphSpanSeconds = this->storage->getParameter(PARAM_GRAPH_RESOLUTION, "600").toInt();
+    this->deadTimeUs = this->storage->getParameter(PARAM_DEAD_TIME_US, "0").toFloat();
+    this->alertThresholdUsvH = this->storage->getParameter(PARAM_ALERT_THRESHOLD, "0.3").toFloat();
+    this->totalCounts = 0;
 
     this->hal->pinMode(CNT_PIN, INPUT);
     this->hal->pinMode(BTN_PIN, INPUT);
@@ -69,7 +73,8 @@ void RadiationCounterPlugin::loop()
     this->clickCounter = 0;
     interrupts();
 
-    this->radCalc.calculate(clicks, this->tubeFactor);
+    this->totalCounts += (unsigned long)clicks;
+    this->radCalc.calculate(clicks, this->tubeFactor, this->deadTimeUs);
     this->radCalc.aggregateGraph(this->graphSpanSeconds);
 }
 
@@ -78,6 +83,8 @@ void RadiationCounterPlugin::loop()
 void RadiationCounterPlugin::getParameterDefs(std::vector<ParameterDef>& defs) const
 {
     defs.push_back({PARAM_TUBE_FACTOR, "Tube Factor (CPM/uSv/h)", "120", ParameterDef::NUMBER, false});
+    defs.push_back({PARAM_DEAD_TIME_US, "Tube Dead Time (us, 0=off)", "0", ParameterDef::NUMBER, false});
+    defs.push_back({PARAM_ALERT_THRESHOLD, "Alert Threshold (uSv/h avg)", "0.3", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_GRAPH_RESOLUTION, "Graph Bar Seconds", "600", ParameterDef::NUMBER, false});
 }
 
@@ -87,8 +94,14 @@ void RadiationCounterPlugin::getStats(std::vector<StatEntry>& entries) const
 {
     int cpm = this->radCalc.getCPM();
     float dose = this->radCalc.getDose();
+    float avg = this->radCalc.getDoseAvg5m();
     entries.push_back({"CPM", String(cpm), (float)cpm, StatEntry::TEXT, true});
     entries.push_back({"Dose", String(dose, 2) + " \xC2\xB5Sv/h", dose, StatEntry::TEXT, true});
+    entries.push_back({"Dose 5m avg", String(avg, 2) + " \xC2\xB5Sv/h", avg, StatEntry::TEXT, true});
+    if (avg >= this->alertThresholdUsvH) {
+        entries.push_back({"Alert", "ELEVATED", 1.0f, StatEntry::TEXT, true});
+    }
+    entries.push_back({"Total Counts", String(this->totalCounts), (float)this->totalCounts, StatEntry::TEXT, false});
 }
 
 // --- MQTT ---
@@ -100,6 +113,9 @@ void RadiationCounterPlugin::publishMqtt(MQTTClient& client, const String& baseT
 
     doc["cpm"] = this->radCalc.getCPM();
     doc["dose"] = this->radCalc.getDose();
+    doc["dose_avg_5m"] = this->radCalc.getDoseAvg5m();
+    doc["counts_total"] = this->totalCounts;
+    doc["alert"] = this->radCalc.getDoseAvg5m() >= this->alertThresholdUsvH;
     serializeJson(doc, json);
 
     client.publish(baseTopic.c_str(), json.c_str(), false, 0);
@@ -107,45 +123,54 @@ void RadiationCounterPlugin::publishMqtt(MQTTClient& client, const String& baseT
 
 void RadiationCounterPlugin::publishHomeAssistantAutoconfig(MQTTClient& client, const String& deviceId, const String& stateTopic)
 {
-    // CPM sensor
-    {
+    auto publishSensor = [&](const char* objectId, const char* name, const char* valueTemplate,
+                             const char* unit, const char* icon) {
         JsonDocument doc;
-        doc["name"] = "CPM sensor";
         doc["state_topic"] = stateTopic;
-        doc["value_template"] = "{{ value_json.cpm | int }}";
-        doc["unit_of_measurement"] = "CPM";
-        doc["unique_id"] = deviceId + "_cpm_sensor";
+        doc["value_template"] = valueTemplate;
+        doc["name"] = name;
+        doc["unique_id"] = deviceId + "_" + objectId;
+        if (unit) doc["unit_of_measurement"] = unit;
+        if (icon) doc["icon"] = icon;
+        doc["state_class"] = "measurement";
 
         JsonObject device = doc["device"].to<JsonObject>();
-        device["name"] = "ESP Radiation Counter";
-        device["identifiers"][0] = deviceId;
-        device["manufacturer"] = "VB";
-        device["model"] = "ESP radiation counter v1";
+        HaDiscovery::addDeviceInfo(device, deviceId, "ESP Radiation Counter");
+        HaDiscovery::addAvailability(doc, deviceId);
 
         String json;
         serializeJson(doc, json);
-        client.publish(("homeassistant/sensor/" + deviceId + "_cpm_sensor/config").c_str(), json.c_str(), true, 1);
-    }
+        client.publish(("homeassistant/sensor/" + deviceId + "/" + objectId + "/config").c_str(), json.c_str(), true, 1);
+    };
 
-    // Dose sensor
+    publishSensor("cpm", "CPM", "{{ value_json.cpm | int }}", "CPM", "mdi:counter");
+    publishSensor("dose", "Dose Rate", "{{ (value_json.dose | float) | round(2) }}", "\xC2\xB5Sv/h", "mdi:radioactive");
+    publishSensor("dose_avg", "Dose Rate 5m Average", "{{ (value_json.dose_avg_5m | float) | round(2) }}", "\xC2\xB5Sv/h", "mdi:radioactive");
+
+    // Elevated radiation alert (binary sensor)
     {
         JsonDocument doc;
-        doc["name"] = "Dose sensor";
         doc["state_topic"] = stateTopic;
-        doc["value_template"] = "{{ (value_json.dose | float) | round(2) }}";
-        doc["unit_of_measurement"] = "\xC2\xB5Sv/h";
-        doc["unique_id"] = deviceId + "_dose_sensor";
+        doc["value_template"] = "{{ 'ON' if value_json.alert else 'OFF' }}";
+        doc["name"] = "Elevated Radiation";
+        doc["unique_id"] = deviceId + "_radiation_alert";
+        doc["icon"] = "mdi:alert";
 
         JsonObject device = doc["device"].to<JsonObject>();
-        device["name"] = "ESP Radiation Counter";
-        device["identifiers"][0] = deviceId;
-        device["manufacturer"] = "VB";
-        device["model"] = "ESP radiation counter v1";
+        HaDiscovery::addDeviceInfo(device, deviceId, "ESP Radiation Counter");
+        HaDiscovery::addAvailability(doc, deviceId);
 
         String json;
         serializeJson(doc, json);
-        client.publish(("homeassistant/sensor/" + deviceId + "_dose_sensor/config").c_str(), json.c_str(), true, 1);
+        client.publish(("homeassistant/binary_sensor/" + deviceId + "/alert/config").c_str(), json.c_str(), true, 1);
     }
+}
+
+bool RadiationCounterPlugin::getChartData(std::vector<float>& points, int& spanSeconds) const
+{
+    points = this->radCalc.getGraphData();
+    spanSeconds = this->graphSpanSeconds;
+    return true;
 }
 
 // --- Display ---

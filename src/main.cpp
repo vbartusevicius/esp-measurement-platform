@@ -15,6 +15,7 @@
 #include "WebApi.h"
 #include "PluginRegistry.h"
 #include "PluginConfig.h"
+#include "ReleaseUpdater.h"
 
 // Plugins
 #include "AnalogDistancePlugin.h"
@@ -41,6 +42,7 @@ WifiConnector* wifi = nullptr;
 MqttClient* mqtt = nullptr;
 WebApi* webApi = nullptr;
 IPlugin* activePlugin = nullptr;
+ReleaseUpdater* releaseUpdater = nullptr;
 
 void resetDevice()
 {
@@ -134,8 +136,12 @@ void setup()
         logger.warning("MQTT device name not configured, skipping MQTT");
     }
 
-    // OTA
+    // OTA (Arduino IDE uploads)
     setupOTA();
+
+    // GitHub release OTA: first check 2 min after boot, then every 10 min
+    releaseUpdater = new ReleaseUpdater(&logger);
+    taskManager.scheduleFixedRate(60000, [] { releaseUpdater->run(); });
 
     // Task scheduling
     int samplingInterval = activePlugin ? activePlugin->getSamplingInterval() : 10;

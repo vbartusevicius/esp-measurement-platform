@@ -1,5 +1,6 @@
 #include "AnalogDistancePlugin.h"
 #include <ArduinoJson.h>
+#include "HaDiscovery.h"
 #include "AnalogDistanceCalculator.h"
 #include "AnalogSensorConverter.h"
 #include "HAL.h"
@@ -72,7 +73,8 @@ void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, co
         doc["state_class"] = "measurement";
 
         JsonObject device = doc["device"].to<JsonObject>();
-        this->addHaDevice(device, deviceId);
+        HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+        HaDiscovery::addAvailability(doc, deviceId);
 
         String json;
         serializeJson(doc, json);
@@ -92,7 +94,8 @@ void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, co
         doc["state_class"] = "measurement";
 
         JsonObject device = doc["device"].to<JsonObject>();
-        this->addHaDevice(device, deviceId);
+        HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+        HaDiscovery::addAvailability(doc, deviceId);
 
         String json;
         serializeJson(doc, json);
@@ -100,5 +103,5 @@ void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, co
     }
 
     // Flow rate sensor (L/min)
-    this->publishFlowRateHaConfig(client, deviceId, stateTopic);
+    this->publishCommonHaSensors(client, deviceId, stateTopic);
 }

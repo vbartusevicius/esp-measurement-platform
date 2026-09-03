@@ -47,6 +47,9 @@ class IPlugin
 
         virtual int getSamplingInterval() const { return 10; }
 
+        // Optional history chart capability for the web UI. Default: unsupported.
+        virtual bool getChartData(std::vector<float>& points, int& spanSeconds) const { return false; }
+
         // Optional capabilities — return nullptr if not supported.
         virtual IMqttContributor* mqtt() { return nullptr; }
         virtual IDisplayContributor* display() { return nullptr; }
