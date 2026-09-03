@@ -6,11 +6,12 @@
 
 extern WiFiClient network;
 
-MqttClient::MqttClient(Storage* storage, Logger* logger, IPlugin* plugin, const String& deviceId)
+MqttClient::MqttClient(Storage* storage, Logger* logger, IMqttContributor* plugin, const char* pluginId, const String& deviceId)
 {
     this->storage = storage;
     this->logger = logger;
     this->plugin = plugin;
+    this->pluginId = pluginId;
     this->deviceId = deviceId;
 
     this->lastReconnectAttempt = 0;
@@ -61,7 +62,7 @@ String MqttClient::getBaseTopic()
     String topic = this->storage->getParameter(Parameter::MQTT_TOPIC);
     if (topic.isEmpty()) {
         String device = this->storage->getParameter(Parameter::MQTT_DEVICE);
-        topic = device + "/stat/" + String(this->plugin->getId());
+        topic = device + "/stat/" + this->pluginId;
         String mutableTopic = topic;
         this->storage->saveParameter(Parameter::MQTT_TOPIC, mutableTopic);
     }

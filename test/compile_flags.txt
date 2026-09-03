@@ -1,0 +1,16 @@
+# Host-side flags for clangd on native test files (see setup-ide.sh).
+# Paths are relative to this file's directory.
+-xc++
+-std=gnu++17
+-fno-exceptions
+-Itest_native/fakes
+-I../lib/Core
+-I../lib/Logger
+-I../lib/Storage
+-I../lib/Plugin
+-I../lib/Plugins/AnalogDistance
+-I../lib/Plugins/UltrasonicDistance
+-I../lib/Plugins/RadiationCounter
+-I../lib/Plugins/DistanceBase
+-isystem
+../.pio/libdeps/native/googletest/googletest/include

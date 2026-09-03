@@ -5,16 +5,20 @@
 Display::Display()
     : u8g2(U8G2_R0, U8X8_PIN_NONE, D6, D5)
 {
+}
+
+void Display::begin()
+{
     u8g2.begin();
     this->displayWidth = u8g2.getDisplayWidth();
     this->displayHeight = u8g2.getDisplayHeight();
 }
 
-void Display::run(IPlugin* plugin, int page, bool mqttConnected)
+void Display::run(IDisplayContributor* plugin, int page, bool mqttConnected)
 {
     u8g2.firstPage();
     do {
-        int usedY = plugin->renderDisplayPage(u8g2, page, displayWidth, displayHeight);
+        int usedY = plugin ? plugin->renderDisplayPage(u8g2, page, displayWidth, displayHeight) : 0;
         if (usedY < displayHeight) {
             renderSystemInfo(usedY, mqttConnected);
         }
@@ -88,36 +92,4 @@ void Display::configWizard(const char* header, const char* helpLineOne, const ch
     } while (u8g2.nextPage());
 }
 
-void Display::renderNetwork(const char* ssid, const char* ip, int rssi, int startY)
-{
-    unsigned int signalGlyph = 57887;
-    if (rssi >= -95) signalGlyph = 57888;
-    if (rssi >= -85) signalGlyph = 57889;
-    if (rssi >= -75) signalGlyph = 57890;
-    if (rssi == 0) signalGlyph = 57887;
 
-    u8g2.setFont(u8g2_font_siji_t_6x10);
-    u8g2.drawGlyph(displayWidth - 10, startY + 14, signalGlyph);
-
-    u8g2.setFont(u8g2_font_5x7_tr);
-    u8g2.drawStr(0, startY + 7, (String("SSID: ") + ssid).c_str());
-    u8g2.drawStr(0, startY + 15, (String("IP: ") + ip).c_str());
-    u8g2.drawHLine(0, startY + 16, displayWidth);
-}
-
-void Display::renderBoolStatus(const char* name, bool status, int startY)
-{
-    u8g2.setFont(u8g2_font_5x7_tr);
-    u8g2.drawStr(0, startY + 8, (String(name) + ":").c_str());
-
-    const char* glyph = status ? "[+]" : "[ ]";
-    int glyphWidth = u8g2.getStrWidth(glyph);
-    u8g2.drawStr((displayWidth / 2) - glyphWidth, startY + 8, glyph);
-}
-
-void Display::renderUptime(const char* uptime, int startY)
-{
-    u8g2.setFont(u8g2_font_5x7_tr);
-    u8g2.drawStr(0, startY + 8, "Uptime:");
-    u8g2.drawStr(49, startY + 8, uptime);
-}

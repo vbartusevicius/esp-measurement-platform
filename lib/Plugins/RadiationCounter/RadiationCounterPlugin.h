@@ -2,13 +2,15 @@
 #define RADIATION_COUNTER_PLUGIN_H
 
 #include "IPlugin.h"
+#include "IMqttContributor.h"
+#include "IDisplayContributor.h"
 #include "Storage.h"
 #include "Logger.h"
 #include "LedController.h"
 #include "RadiationCalculator.h"
 #include <vector>
 
-class RadiationCounterPlugin : public IPlugin
+class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public IDisplayContributor
 {
     public:
         static constexpr const char* PARAM_TUBE_FACTOR = "tube_conversion_factor";
@@ -29,6 +31,10 @@ class RadiationCounterPlugin : public IPlugin
         // Calculator
         RadiationCalculator radCalc;
 
+        // Configuration parsed once in setup() (changes require restart)
+        float tubeFactor = 120.0f;
+        int graphSpanSeconds = 600;
+
         // Button page counter
         volatile int buttonCounter;
 
@@ -40,7 +46,6 @@ class RadiationCounterPlugin : public IPlugin
         void loop() override;
 
         void getParameterDefs(std::vector<ParameterDef>& defs) const override;
-        std::vector<const char*> getRequiredParameters() const override;
 
         void getStats(std::vector<StatEntry>& entries) const override;
 
@@ -53,14 +58,17 @@ class RadiationCounterPlugin : public IPlugin
         int getCurrentDisplayPage() const override;
         int getSamplingInterval() const override;
 
+        IMqttContributor* mqtt() override { return this; }
+        IDisplayContributor* display() override { return this; }
+
         // Interrupt handlers (called from ISR context)
         void onRadiationClick();
         void onButtonClick();
 
     private:
         static RadiationCounterPlugin* instance;
-        static void IRAM_ATTR radiationISR();
-        static void IRAM_ATTR buttonISR();
+        static IRAM_ATTR void radiationISR();
+        static IRAM_ATTR void buttonISR();
 
         void renderGraphPage(U8G2& u8g2, int width, int height) const;
 };

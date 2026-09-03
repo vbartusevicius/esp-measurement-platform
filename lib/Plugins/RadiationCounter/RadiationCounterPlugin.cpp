@@ -1,14 +1,15 @@
 #include "RadiationCounterPlugin.h"
+#include <ArduinoJson.h>
 #include "HAL.h"
 
 RadiationCounterPlugin* RadiationCounterPlugin::instance = nullptr;
 
-void IRAM_ATTR RadiationCounterPlugin::radiationISR()
+IRAM_ATTR void RadiationCounterPlugin::radiationISR()
 {
     if (instance) instance->onRadiationClick();
 }
 
-void IRAM_ATTR RadiationCounterPlugin::buttonISR()
+IRAM_ATTR void RadiationCounterPlugin::buttonISR()
 {
     if (instance) instance->onButtonClick();
 }
@@ -27,30 +28,27 @@ void RadiationCounterPlugin::setup(HAL* hal, Storage* storage, Logger* logger, L
     this->buttonCounter = 0;
     this->radCalc.reset();
 
+    this->tubeFactor = this->storage->getParameter(PARAM_TUBE_FACTOR, "120").toFloat();
+    this->graphSpanSeconds = this->storage->getParameter(PARAM_GRAPH_RESOLUTION, "600").toInt();
+
     this->hal->pinMode(CNT_PIN, INPUT);
     this->hal->pinMode(BTN_PIN, INPUT);
 
     instance = this;
-    this->hal->attachInterrupt(this->hal->pinToInterrupt(CNT_PIN), radiationISR, CHANGE);
-    this->hal->attachInterrupt(this->hal->pinToInterrupt(BTN_PIN), buttonISR, CHANGE);
+    this->hal->attachInterrupt(this->hal->pinToInterrupt(CNT_PIN), radiationISR, RISING);
+    this->hal->attachInterrupt(this->hal->pinToInterrupt(BTN_PIN), buttonISR, FALLING);
     logger->info("Radiation counter interrupts attached");
 }
 
 void RadiationCounterPlugin::onRadiationClick()
 {
-    int pinState = this->hal->digitalRead(CNT_PIN);
-    if (pinState == HIGH) {
-        this->clickCounter++;
-        if (this->led) this->led->click();
-    }
+    this->clickCounter++;
+    if (this->led) this->led->click();
 }
 
 void RadiationCounterPlugin::onButtonClick()
 {
-    int pinState = this->hal->digitalRead(BTN_PIN);
-    if (pinState == LOW) {
-        this->buttonCounter++;
-    }
+    this->buttonCounter++;
 }
 
 int RadiationCounterPlugin::getCurrentDisplayPage() const
@@ -65,14 +63,14 @@ int RadiationCounterPlugin::getSamplingInterval() const
 
 void RadiationCounterPlugin::loop()
 {
+    // Swap the ISR-filled counter under a critical section so no pulses are lost
+    noInterrupts();
     int clicks = this->clickCounter;
     this->clickCounter = 0;
+    interrupts();
 
-    float tubeFactor = this->storage->getParameter(PARAM_TUBE_FACTOR, "120").toFloat();
-    this->radCalc.calculate(clicks, tubeFactor);
-
-    int spanSize = this->storage->getParameter(PARAM_GRAPH_RESOLUTION, "600").toInt();
-    this->radCalc.aggregateGraph(spanSize);
+    this->radCalc.calculate(clicks, this->tubeFactor);
+    this->radCalc.aggregateGraph(this->graphSpanSeconds);
 }
 
 // --- Parameters ---
@@ -81,11 +79,6 @@ void RadiationCounterPlugin::getParameterDefs(std::vector<ParameterDef>& defs) c
 {
     defs.push_back({PARAM_TUBE_FACTOR, "Tube Factor (CPM/uSv/h)", "120", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_GRAPH_RESOLUTION, "Graph Bar Seconds", "600", ParameterDef::NUMBER, false});
-}
-
-std::vector<const char*> RadiationCounterPlugin::getRequiredParameters() const
-{
-    return {};
 }
 
 // --- Stats ---
@@ -243,8 +236,7 @@ void RadiationCounterPlugin::renderGraphPage(U8G2& u8g2, int width, int height) 
     u8g2.drawStr(0, textY + boxH + 2, minText);
 
     // X-axis time label
-    int spanSize = this->storage->getParameter(PARAM_GRAPH_RESOLUTION, "600").toInt();
-    float maxSpanSec = (float)(spanSize * width);
+    float maxSpanSec = (float)(this->graphSpanSeconds * width);
     String duration;
     float span;
     if ((maxSpanSec / 60) < 60) {

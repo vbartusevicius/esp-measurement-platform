@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "AnalogDistanceCalculator.h"
 #include "UltrasonicDistanceCalculator.h"
+#include "MovingAverageFilter.h"
 
 // ====== Analog distance static methods ======
 
@@ -75,28 +76,28 @@ TEST(UltrasonicDistanceCalculator, RelativeZeroDenominator)
     EXPECT_FLOAT_EQ(UltrasonicDistanceCalculator::getRelative(1.0, 2.0, 2.0), 0.0f);
 }
 
-// ====== Aggregation (shared logic, tested via AnalogDistanceCalculator) ======
+// ====== Aggregation (shared MovingAverageFilter logic) ======
 
-class AnalogDistCalcAggregateTest : public ::testing::Test {
+class MovingAverageFilterTest : public ::testing::Test {
 protected:
-    AnalogDistanceCalculator calc;
+    MovingAverageFilter calc;
     void SetUp() override { calc.reset(); }
 };
 
-TEST_F(AnalogDistCalcAggregateTest, SingleValueReturnsItself)
+TEST_F(MovingAverageFilterTest, SingleValueReturnsItself)
 {
     float avg = calc.aggregate(1.5, 10, 15);
     EXPECT_FLOAT_EQ(avg, 1.5f);
 }
 
-TEST_F(AnalogDistCalcAggregateTest, AveragesMultipleValues)
+TEST_F(MovingAverageFilterTest, AveragesMultipleValues)
 {
     calc.aggregate(1.0, 10, 100);
     float avg = calc.aggregate(2.0, 10, 100);
     EXPECT_NEAR(avg, 1.5f, 0.01f);
 }
 
-TEST_F(AnalogDistCalcAggregateTest, RespectsWindowSize)
+TEST_F(MovingAverageFilterTest, RespectsWindowSize)
 {
     for (int i = 1; i <= 3; i++) {
         calc.aggregate((float)i, 3, 100);
@@ -110,7 +111,7 @@ TEST_F(AnalogDistCalcAggregateTest, RespectsWindowSize)
     EXPECT_NEAR(calc.calculateAverage(), 3.0f, 0.01f);
 }
 
-TEST_F(AnalogDistCalcAggregateTest, RejectsZeroValue)
+TEST_F(MovingAverageFilterTest, RejectsZeroValue)
 {
     calc.aggregate(1.0, 10, 15);
     calc.aggregate(0.0, 10, 15);
@@ -118,7 +119,7 @@ TEST_F(AnalogDistCalcAggregateTest, RejectsZeroValue)
     EXPECT_EQ(calc.getBuffer().size(), 1u);
 }
 
-TEST_F(AnalogDistCalcAggregateTest, RejectsLargeDelta)
+TEST_F(MovingAverageFilterTest, RejectsLargeDelta)
 {
     calc.aggregate(1.0, 10, 15);
     // Jump from 1.0 to 10.0 — delta=9.0, threshold=10.0*(15/100)=1.5 — 1.5 < 9.0 → reject
@@ -126,12 +127,12 @@ TEST_F(AnalogDistCalcAggregateTest, RejectsLargeDelta)
     EXPECT_EQ(calc.getBuffer().size(), 1u);
 }
 
-TEST_F(AnalogDistCalcAggregateTest, EmptyBufferReturnsZero)
+TEST_F(MovingAverageFilterTest, EmptyBufferReturnsZero)
 {
     EXPECT_FLOAT_EQ(calc.calculateAverage(), 0.0f);
 }
 
-TEST_F(AnalogDistCalcAggregateTest, ResetClearsBuffer)
+TEST_F(MovingAverageFilterTest, ResetClearsBuffer)
 {
     calc.aggregate(1.0, 10, 15);
     calc.reset();

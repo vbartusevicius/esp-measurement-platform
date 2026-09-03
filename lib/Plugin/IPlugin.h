@@ -2,15 +2,14 @@
 #define IPLUGIN_H
 
 #include <Arduino.h>
-#include <ArduinoJson.h>
-#include <MQTT.h>
-#include <U8g2lib.h>
 #include <vector>
 
 class HAL;
 class Storage;
 class Logger;
 class LedController;
+class IMqttContributor;
+class IDisplayContributor;
 
 struct ParameterDef {
     const char* key;
@@ -28,6 +27,9 @@ struct StatEntry {
     bool primary;
 };
 
+// Core plugin contract: identity, lifecycle, parameters and stats.
+// Optional capabilities are exposed through mqtt()/display() so that
+// plugins don't have to depend on the MQTT or display libraries.
 class IPlugin
 {
     public:
@@ -40,18 +42,14 @@ class IPlugin
         virtual void loop() = 0;
 
         virtual void getParameterDefs(std::vector<ParameterDef>& defs) const = 0;
-        virtual std::vector<const char*> getRequiredParameters() const = 0;
 
         virtual void getStats(std::vector<StatEntry>& entries) const = 0;
 
-        virtual void publishMqtt(MQTTClient& client, const String& baseTopic) = 0;
-        virtual void publishHomeAssistantAutoconfig(MQTTClient& client, const String& deviceId, const String& stateTopic) = 0;
-
-        virtual int getDisplayPageCount() const = 0;
-        virtual int getCurrentDisplayPage() const { return 0; }
-        virtual int renderDisplayPage(U8G2& u8g2, int page, int width, int height) const = 0;
-
         virtual int getSamplingInterval() const { return 10; }
+
+        // Optional capabilities — return nullptr if not supported.
+        virtual IMqttContributor* mqtt() { return nullptr; }
+        virtual IDisplayContributor* display() { return nullptr; }
 };
 
 #endif

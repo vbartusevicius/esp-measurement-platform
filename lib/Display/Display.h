@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include <U8g2lib.h>
-#include "IPlugin.h"
+#include "IDisplayContributor.h"
 
 class Display
 {
@@ -14,13 +14,10 @@ class Display
 
     public:
         Display();
-        void run(IPlugin* plugin, int page, bool mqttConnected);
+        void begin();
+        void run(IDisplayContributor* plugin, int page, bool mqttConnected);
         void configWizardFirstStep(const char* appName);
         void configWizardSecondStep(const char* ipAddress);
-
-        void renderNetwork(const char* ssid, const char* ip, int rssi, int startY);
-        void renderBoolStatus(const char* name, bool status, int startY);
-        void renderUptime(const char* uptime, int startY);
 
     private:
         void configWizard(const char* header, const char* helpLineOne, const char* helpLineTwo);
