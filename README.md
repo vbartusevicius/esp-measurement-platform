@@ -45,6 +45,8 @@ Bridges Geiger-Müller tube detectors (GGreg20_V3, RadiationD-v1.1 / CAJOE, etc.
 
 **Parameters:**
 - `Tube Factor` — CPM to µSv/h conversion. ~123 for J305, ~175 for CBM-20.
+- `Tube Dead Time` — GM tube dead time in µs for saturation correction at high count rates (paralyzable model `m = n / (1 - n·τ)`). ~90 for J305, `0` disables.
+- `Alert Threshold` — when the 5-minute average dose reaches this µSv/h, the device exposes an `alert` flag (HA binary sensor `Elevated Radiation`).
 - `Graph Bar Seconds` — seconds per graph bar on OLED. 665s ≈ 11min gives ~24h history.
 
 ## Required Components
@@ -74,13 +76,26 @@ The default state topic is `<device_name>/stat/<plugin_id>`. Payload examples:
 
 **Distance meters:**
 ```json
-{ "relative": 0.73, "absolute": 1.12, "measured": 1.51 }
+{ "relative": 0.73, "absolute": 1.12, "measured": 1.51,
+  "raw": 1.55, "connected": true,
+  "volume": 2340, "flow_rate": 0.42, "usage_24h": 187.3 }
 ```
+(`volume`, `flow_rate` and `usage_24h` only when `Total Water Volume` is configured.)
 
 **Radiation counter:**
 ```json
-{ "cpm": 42, "dose": 0.34 }
+{ "cpm": 42, "dose": 0.34, "dose_avg_5m": 0.29, "counts_total": 183412, "alert": false }
 ```
+
+The radiation counter also serves its graph history at `GET /api/v1/chart`,
+rendered as a bar chart in the admin dashboard.
+
+**System status** (all plugins), topic: `esp/<chip_id>/status`:
+```json
+{ "state": "active", "heap": 41520, "rssi": -62, "uptime_s": 3602, "version": "v2026.09.03.2214" }
+```
+HomeAssistant gets diagnostic sensors for heap, RSSI, uptime and firmware
+version from this topic automatically.
 
 ## IDE Setup
 

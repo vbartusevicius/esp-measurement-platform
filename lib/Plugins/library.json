@@ -5,7 +5,8 @@
         "flags": [
             "-IAnalogDistance",
             "-IUltrasonicDistance",
-            "-IRadiationCounter"
+            "-IRadiationCounter",
+            "-IDistanceBase"
         ]
     }
 }

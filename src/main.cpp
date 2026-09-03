@@ -14,6 +14,8 @@
 #include "Display.h"
 #include "WebApi.h"
 #include "PluginRegistry.h"
+#include "PluginConfig.h"
+#include "ReleaseUpdater.h"
 
 // Plugins
 #include "AnalogDistancePlugin.h"
@@ -40,6 +42,7 @@ WifiConnector* wifi = nullptr;
 MqttClient* mqtt = nullptr;
 WebApi* webApi = nullptr;
 IPlugin* activePlugin = nullptr;
+ReleaseUpdater* releaseUpdater = nullptr;
 
 void resetDevice()
 {
@@ -58,7 +61,7 @@ void setupOTA()
         logger.info("OTA update complete.");
     });
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        Serial.printf("OTA progress: %u%%\r", (progress / (total / 100)));
+        Serial.printf("OTA progress: %u%%\r", total >= 100 ? (progress / (total / 100)) : 0u);
     });
     ArduinoOTA.onError([](ota_error_t error) {
         logger.error("OTA error: " + String(error));
@@ -72,6 +75,7 @@ void setup()
     delay(500);
 
     ledController.begin(&hal);
+    display.begin();
 
     String chipId = ChipId::get();
     logger.info("=== ESP Unified ===");
@@ -102,10 +106,19 @@ void setup()
 
     if (!wifiConnected) {
         display.configWizardFirstStep(wifi->getAppName());
+        // Restart once the portal has saved working credentials so the full
+        // setup (Web API, MQTT, OTA, measurements) runs with a clean state.
+        taskManager.scheduleFixedRate(1000, [] {
+            if (WiFi.status() == WL_CONNECTED) {
+                logger.info("WiFi configured via portal, restarting for full setup...");
+                delay(500);
+                ESP.restart();
+            }
+        });
         return;
     }
 
-    if (storage.isEmpty(activePlugin)) {
+    if (!PluginConfig::isComplete(storage, activePlugin)) {
         display.configWizardSecondStep(WiFi.localIP().toString().c_str());
     }
 
@@ -113,17 +126,22 @@ void setup()
     webApi = new WebApi(&storage, &logger, activePlugin, &registry, resetDevice);
     webApi->begin();
 
-    // MQTT
+    // MQTT (requires an active plugin with MQTT support to publish)
     String mqttDevice = storage.getParameter(Parameter::MQTT_DEVICE);
-    if (mqttDevice.length() > 0) {
-        mqtt = new MqttClient(&storage, &logger, activePlugin, chipId);
+    IMqttContributor* mqttContributor = activePlugin ? activePlugin->mqtt() : nullptr;
+    if (mqttDevice.length() > 0 && mqttContributor) {
+        mqtt = new MqttClient(&storage, &logger, mqttContributor, activePlugin->getId(), chipId);
         mqtt->begin();
     } else {
         logger.warning("MQTT device name not configured, skipping MQTT");
     }
 
-    // OTA
+    // OTA (Arduino IDE uploads)
     setupOTA();
+
+    // GitHub release OTA: first check 2 min after boot, then every 10 min
+    releaseUpdater = new ReleaseUpdater(&logger);
+    taskManager.scheduleFixedRate(60000, [] { releaseUpdater->run(); });
 
     // Task scheduling
     int samplingInterval = activePlugin ? activePlugin->getSamplingInterval() : 10;
@@ -153,8 +171,9 @@ void setup()
     // Display update
     taskManager.scheduleFixedRate(1000, [] {
         bool mqttOk = mqtt ? mqtt->isConnected() : false;
-        int page = activePlugin ? activePlugin->getCurrentDisplayPage() : 0;
-        display.run(activePlugin, page, mqttOk);
+        IDisplayContributor* displayContributor = activePlugin ? activePlugin->display() : nullptr;
+        int page = displayContributor ? displayContributor->getCurrentDisplayPage() : 0;
+        display.run(displayContributor, page, mqttOk);
     });
 
     logger.info("Setup complete. Scheduling with " + String(samplingInterval) + "s sampling interval.");

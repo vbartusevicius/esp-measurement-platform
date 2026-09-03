@@ -23,6 +23,9 @@ pio run -e nodemcu -t compiledb
 
 echo "Generating .clangd with toolchain paths (GCC $GCC_VERSION)..."
 cat > .clangd <<EOF
+# Firmware sources: xtensa cross-compiler flags from compile_commands.json
+If:
+  PathExclude: test/.*
 CompileFlags:
   CompilationDatabase: .
   Add:
@@ -42,5 +45,6 @@ CompileFlags:
     - -fipa-pta
     - -falign-functions=4
 EOF
+# Note: native tests use test/compile_flags.txt instead of this file.
 
 echo "Done. Restart clangd in your IDE to apply."

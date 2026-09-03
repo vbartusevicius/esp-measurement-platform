@@ -10,7 +10,6 @@
 #include <ESPAsyncTCP.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h>
-#include <vector>
 #include "Logger.h"
 #include "Storage.h"
 #include "IPlugin.h"
@@ -27,8 +26,9 @@ class WebApi {
         IPlugin* activePlugin;
         PluginRegistry* registry;
         ResetCallback resetCallback;
-        size_t lastLogCount;
+        unsigned long lastLogSequence;
         bool mqttConnected;
+        static constexpr size_t MAX_CONFIG_BODY_SIZE = 2048;
 
     public:
         WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback);

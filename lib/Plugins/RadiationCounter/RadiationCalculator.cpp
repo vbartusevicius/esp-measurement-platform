@@ -1,11 +1,11 @@
 #include "RadiationCalculator.h"
 
 RadiationCalculator::RadiationCalculator()
-    : cpm(0), dose(0.0f), spanPointer(0)
+    : cpm(0), dose(0.0f), doseAvg5m(0.0f), spanPointer(0)
 {
 }
 
-void RadiationCalculator::calculate(int clicks, float tubeFactor)
+void RadiationCalculator::calculate(int clicks, float tubeFactor, float deadTimeUs)
 {
     this->calcBuffer.push_back(clicks);
 
@@ -15,9 +15,29 @@ void RadiationCalculator::calculate(int clicks, float tubeFactor)
 
     int totalClicks = 0;
     for (auto& v : this->calcBuffer) totalClicks += v;
-    this->cpm = totalClicks;
 
-    this->dose = this->cpm / tubeFactor;
+    // Dead-time (saturation) correction: at high count rates the GM tube
+    // misses pulses while recovering. Paralyzable model: m = n / (1 - n * tau).
+    // Only applied when the observed rate stays below 90% of 1/tau.
+    float correctedCpm = (float)totalClicks;
+    if (deadTimeUs > 0) {
+        float cps = totalClicks / 60.0f;
+        float tau = deadTimeUs / 1000000.0f;
+        if (cps * tau < 0.9f) {
+            correctedCpm = 60.0f * cps / (1.0f - cps * tau);
+        }
+    }
+
+    this->cpm = (int)(correctedCpm + 0.5f);
+    this->dose = correctedCpm / tubeFactor;
+
+    this->avgBuffer.push_back(this->dose);
+    if ((int)this->avgBuffer.size() > AVG_BUFFER_SIZE) {
+        this->avgBuffer.erase(this->avgBuffer.begin());
+    }
+    float sum = 0.0f;
+    for (auto& v : this->avgBuffer) sum += v;
+    this->doseAvg5m = sum / this->avgBuffer.size();
 }
 
 void RadiationCalculator::aggregateGraph(int spanSize)
@@ -48,8 +68,10 @@ void RadiationCalculator::reset()
     this->calcBuffer.clear();
     this->spanBuffer.clear();
     this->graphBuffer.clear();
+    this->avgBuffer.clear();
     this->cpm = 0;
     this->dose = 0.0f;
+    this->doseAvg5m = 0.0f;
     this->spanPointer = 0;
 }
 
@@ -61,6 +83,11 @@ int RadiationCalculator::getCPM() const
 float RadiationCalculator::getDose() const
 {
     return this->dose;
+}
+
+float RadiationCalculator::getDoseAvg5m() const
+{
+    return this->doseAvg5m;
 }
 
 const std::vector<float>& RadiationCalculator::getGraphData() const

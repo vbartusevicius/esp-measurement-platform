@@ -15,15 +15,8 @@ public:
     void loop() override {}
 
     void getParameterDefs(std::vector<ParameterDef>&) const override {}
-    std::vector<const char*> getRequiredParameters() const override { return {}; }
 
     void getStats(std::vector<StatEntry>&) const override {}
-
-    void publishMqtt(MQTTClient&, const String&) override {}
-    void publishHomeAssistantAutoconfig(MQTTClient&, const String&, const String&) override {}
-
-    int getDisplayPageCount() const override { return 1; }
-    int renderDisplayPage(U8G2&, int, int, int) const override { return 0; }
 };
 
 class PluginRegistryTest : public ::testing::Test {

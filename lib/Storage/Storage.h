@@ -2,9 +2,6 @@
 #define STORAGE_H
 
 #include <Preferences.h>
-#include <vector>
-
-class IPlugin;
 
 class Storage
 {
@@ -14,9 +11,9 @@ class Storage
     public:
         Storage();
         void begin();
-        void saveParameter(const char* name, String& value);
+        void saveParameter(const char* name, const String& value);
         String getParameter(const char* name, String defaultValue = String());
-        bool isEmpty(IPlugin* activePlugin);
+        bool hasParameter(const char* name);
         void reset();
 };
 

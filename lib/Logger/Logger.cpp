@@ -1,6 +1,23 @@
 #include "Logger.h"
 #include "TimeHelper.h"
 
+void LogBuffer::add(const String& entry)
+{
+    if (count < CAPACITY) {
+        entries[(start + count) % CAPACITY] = entry;
+        count++;
+    } else {
+        entries[start] = entry;
+        start = (start + 1) % CAPACITY;
+    }
+    totalAdded++;
+}
+
+const String& LogBuffer::operator[](size_t index) const
+{
+    return entries[(start + index) % CAPACITY];
+}
+
 void Logger::log(const char* level, const String& message)
 {
     char timestamp[24];
@@ -9,11 +26,7 @@ void Logger::log(const char* level, const String& message)
     String entry = String(timestamp) + " [" + level + "] " + message;
 
     Serial.println(entry);
-
-    if (this->buffer.size() >= MAX_ENTRIES) {
-        this->buffer.erase(this->buffer.begin());
-    }
-    this->buffer.push_back(entry);
+    this->buffer.add(entry);
 }
 
 void Logger::info(const String& message)
@@ -36,7 +49,7 @@ void Logger::debug(const String& message)
     this->log("DEBUG", message);
 }
 
-const std::vector<String>& Logger::getBuffer() const
+const LogBuffer& Logger::getBuffer() const
 {
     return this->buffer;
 }

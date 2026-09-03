@@ -311,3 +311,19 @@ h3 {
     font-size: 0.85rem;
     word-break: break-all;
 }
+
+.chart-panel {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+}
+
+.chart-panel h2 {
+    font-size: 1em;
+    margin-bottom: 8px;
+}
+
+#history-chart {
+    width: 100%;
+    display: block;
+}

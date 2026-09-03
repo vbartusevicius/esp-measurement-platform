@@ -4,6 +4,8 @@
 #include "TimeHelper.h"
 #include <ESP8266WiFi.h>
 
+static float rounded(float v) { return (float)(int)(v * 100 + 0.5f) / 100.0f; }
+
 WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback)
     : server(80), ws("/ws") {
     this->storage = storage;
@@ -11,7 +13,7 @@ WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry
     this->activePlugin = plugin;
     this->registry = registry;
     this->resetCallback = resetCallback;
-    this->lastLogCount = 0;
+    this->lastLogSequence = 0;
 }
 
 void WebApi::begin() {
@@ -105,9 +107,22 @@ void WebApi::setupApiEndpoints() {
     server.on("/api/v1/config", HTTP_POST, [](AsyncWebServerRequest *request) {},
     nullptr,
     [this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+        if (total > MAX_CONFIG_BODY_SIZE) {
+            if (index + len == total) {
+                request->send(413, "application/json", "{\"status\":\"error\",\"message\":\"Payload too large\"}");
+            }
+            return;
+        }
+
         if (index == 0) {
             request->_tempObject = malloc(total + 1);
+            if (!request->_tempObject) {
+                request->send(500, "application/json", "{\"status\":\"error\",\"message\":\"Out of memory\"}");
+                return;
+            }
         }
+
+        if (!request->_tempObject) return;
         memcpy((uint8_t*)request->_tempObject + index, data, len);
 
         if (index + len == total) {
@@ -131,7 +146,7 @@ void WebApi::setupApiEndpoints() {
                 request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Invalid JSON\"}");
             }
 
-            free(request->_tempObject);
+            // _tempObject is freed in the AsyncWebServerRequest destructor
         }
     });
 
@@ -166,6 +181,24 @@ void WebApi::setupApiEndpoints() {
             obj["numeric"] = e.numericValue;
             obj["render"] = e.render == StatEntry::PROGRESS ? "progress" : "text";
             obj["primary"] = e.primary;
+        }
+
+        serializeJson(doc, *response);
+        request->send(response);
+    });
+
+    // GET /api/v1/chart - history chart data (plugins that support it)
+    server.on("/api/v1/chart", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        AsyncResponseStream *response = request->beginResponseStream("application/json");
+        JsonDocument doc;
+
+        std::vector<float> points;
+        int spanSeconds = 0;
+        if (this->activePlugin && this->activePlugin->getChartData(points, spanSeconds) && !points.empty()) {
+            JsonArray arr = doc["points"].to<JsonArray>();
+            for (float v : points) arr.add(rounded(v));
+            doc["span_seconds"] = spanSeconds;
+            doc["unit"] = "\xC2\xB5Sv/h";  // only the radiation plugin supports charts today
         }
 
         serializeJson(doc, *response);
@@ -269,16 +302,21 @@ void WebApi::broadcastLogs() {
     if (ws.count() == 0) return;
 
     const auto& logs = this->logger->getBuffer();
-    if (logs.size() <= lastLogCount) return;
+    unsigned long total = logs.total();
+
+    // Nothing new since the last broadcast (sequence numbers survive buffer wrap)
+    if (total <= this->lastLogSequence) return;
 
     JsonDocument logsDoc;
     logsDoc["event"] = "log_batch";
     JsonArray arr = logsDoc["messages"].to<JsonArray>();
 
-    for (size_t i = lastLogCount; i < logs.size(); i++) {
+    unsigned long firstSeq = logs.firstSequence();
+    size_t startIdx = this->lastLogSequence > firstSeq ? (size_t)(this->lastLogSequence - firstSeq) : 0;
+    for (size_t i = startIdx; i < logs.size(); i++) {
         arr.add(logs[i]);
     }
-    lastLogCount = logs.size();
+    this->lastLogSequence = total;
 
     String message;
     serializeJson(logsDoc, message);
