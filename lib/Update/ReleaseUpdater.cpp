@@ -4,6 +4,7 @@
 #include <WiFiClientSecure.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266httpUpdate.h>
+#include <LittleFS.h>
 #include <ArduinoJson.h>
 
 #include "Logger.h"
@@ -92,12 +93,17 @@ bool ReleaseUpdater::flashFromRelease(const String& tag)
 
     String base = String("https://github.com/") + GITHUB_REPO + "/releases/download/" + tag;
 
+    // Unmount the filesystem while it is being overwritten: the web server
+    // serves files from it, and a concurrent request could read torn data.
+    LittleFS.end();
+
     // Filesystem first: if it fails, the firmware is untouched and we retry later
     this->logger->info("OTA: updating LittleFS image...");
     t_httpUpdate_return fsResult = httpUpdate.updateFS(client, base + "/littlefs.bin");
     if (fsResult != HTTP_UPDATE_OK) {
         this->logger->error("OTA: LittleFS update failed, error " + String(httpUpdate.getLastError()) +
                             ": " + httpUpdate.getLastErrorString());
+        LittleFS.begin();  // remount so the web UI keeps working (possibly partially)
         return false;
     }
 
