@@ -15,7 +15,6 @@
 #include "WebApi.h"
 #include "PluginRegistry.h"
 #include "PluginConfig.h"
-#include "ReleaseUpdater.h"
 
 // Plugins
 #include "AnalogDistancePlugin.h"
@@ -42,7 +41,6 @@ WifiConnector* wifi = nullptr;
 MqttClient* mqtt = nullptr;
 WebApi* webApi = nullptr;
 IPlugin* activePlugin = nullptr;
-ReleaseUpdater releaseUpdater;
 
 void resetDevice()
 {
@@ -75,7 +73,6 @@ void setup()
     delay(500);
 
     storage.begin();
-    releaseUpdater.flashPendingAtBoot(&logger, &storage);
 
     ledController.begin(&hal);
     display.begin();
@@ -124,14 +121,7 @@ void setup()
         display.configWizardSecondStep(WiFi.localIP().toString().c_str());
     }
 
-    releaseUpdater.begin(&logger, &storage);
-    releaseUpdater.setBusyCallback([]() -> bool {
-        return webApi && webApi->websocketClients() > 0;
-    });
-    releaseUpdater.logLastAttempt(&logger);
-    taskManager.scheduleFixedRate(60000, [] { releaseUpdater.run(); });
-
-    webApi = new WebApi(&storage, &logger, activePlugin, &registry, resetDevice, &releaseUpdater);
+    webApi = new WebApi(&storage, &logger, activePlugin, &registry, resetDevice);
     webApi->begin();
 
     String mqttDevice = storage.getParameter(Parameter::MQTT_DEVICE);

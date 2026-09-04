@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP Unified</title>
+    <title>ESP Measurement Platform</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1 id="app-title">ESP Unified</h1>
+            <h1 id="app-title">ESP Measurement Platform</h1>
             <div class="chip-info">
                 <span id="chip-id" class="badge"></span>
                 <span id="plugin-name" class="badge plugin-badge"></span>
@@ -110,14 +110,19 @@
                         <input type="text" id="mqtt-topic" name="mqtt_topic">
                     </div>
                     
-                    <h3>Over-The-Air Updates</h3>
+                    <h3>Firmware Update</h3>
                     <div class="form-group">
-                        <label for="update-interval">Release check interval (minutes):</label>
-                        <input type="number" id="update-interval" name="update_interval_min" min="1" max="1440">
-                        <small class="form-text">First check runs 2 min after boot</small>
+                        <label for="upload-target">What to upload:</label>
+                        <select id="upload-target">
+                            <option value="firmware">Firmware (firmware.bin)</option>
+                            <option value="filesystem">Filesystem (littlefs.bin)</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <button type="button" id="check-updates-btn" class="btn">Check for updates now</button>
+                        <input type="file" id="upload-file" accept=".bin">
+                        <button type="button" id="upload-btn" class="btn">Upload &amp; flash</button>
+                        <small class="form-text">Device restarts when the upload finishes.</small>
+                        <div id="upload-status" class="form-text"></div>
                     </div>
 
                     <div class="button-group">

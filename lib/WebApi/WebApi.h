@@ -17,8 +17,6 @@
 
 typedef void (*ResetCallback)();
 
-class ReleaseUpdater;
-
 class WebApi {
     private:
         AsyncWebServer server;
@@ -28,14 +26,14 @@ class WebApi {
         IPlugin* activePlugin;
         PluginRegistry* registry;
         ResetCallback resetCallback;
-        ReleaseUpdater* releaseUpdater = nullptr;
         unsigned long lastLogSequence;
         bool mqttConnected;
+        unsigned long restartAt = 0;
         static constexpr size_t MAX_CONFIG_BODY_SIZE = 2048;
         static constexpr size_t MAX_LOG_LINES_PER_MESSAGE = 15;
 
     public:
-        WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback, ReleaseUpdater* releaseUpdater = nullptr);
+        WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback);
 
         void begin();
         void run(bool mqttConnected);
@@ -45,6 +43,10 @@ class WebApi {
         void setupStaticFiles();
         void setupApiEndpoints();
         void setupWebSocket();
+
+        void setupUploadEndpoint();
+        void handleUpload(AsyncWebServerRequest* request, const String& filename,
+                          size_t index, uint8_t* data, size_t len, bool final);
 
         void handleWebSocketMessage(AsyncWebSocketClient* client, void* arg, uint8_t* data, size_t len);
         void broadcastStats();

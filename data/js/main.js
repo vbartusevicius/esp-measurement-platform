@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('restart-btn').addEventListener('click', restartDevice);
     document.getElementById('reset-btn').addEventListener('click', resetDevice);
-    document.getElementById('check-updates-btn').addEventListener('click', checkForUpdates);
+    document.getElementById('upload-btn').addEventListener('click', uploadBinary);
     
     // Reload plugin params when plugin selection changes
     document.getElementById('active-plugin').addEventListener('change', (e) => {

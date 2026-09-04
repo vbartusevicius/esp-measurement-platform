@@ -3,19 +3,21 @@
 #include "ChipId.h"
 #include "TimeHelper.h"
 #include "Version.h"
-#include "ReleaseUpdater.h"
 #include <ESP8266WiFi.h>
+#include <Updater.h>
+
+extern "C" uint32_t _FS_start;
+extern "C" uint32_t _FS_end;
 
 static float rounded(float v) { return (float)(int)(v * 100 + 0.5f) / 100.0f; }
 
-WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback, ReleaseUpdater* releaseUpdater)
+WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback)
     : server(80), ws("/ws") {
     this->storage = storage;
     this->logger = logger;
     this->activePlugin = plugin;
     this->registry = registry;
     this->resetCallback = resetCallback;
-    this->releaseUpdater = releaseUpdater;
     this->lastLogSequence = 0;
 }
 
@@ -27,6 +29,7 @@ void WebApi::begin() {
 
     this->setupWebSocket();
     this->setupApiEndpoints();
+    this->setupUploadEndpoint();
     this->setupStaticFiles();
 
     server.begin();
@@ -83,7 +86,6 @@ void WebApi::setupApiEndpoints() {
         doc["mqtt_pass"] = this->storage->getParameter(Parameter::MQTT_PASS, "");
         doc["mqtt_device"] = this->storage->getParameter(Parameter::MQTT_DEVICE, "");
         doc["mqtt_topic"] = this->storage->getParameter(Parameter::MQTT_TOPIC, "");
-        doc["update_interval_min"] = this->storage->getParameter(Parameter::UPDATE_INTERVAL_MIN, "10");
         doc["firmware_version"] = FW_VERSION;
 
         // Plugin parameter values and definitions
@@ -212,17 +214,6 @@ void WebApi::setupApiEndpoints() {
         request->send(response);
     });
 
-    // POST /api/v1/update-check - schedule an immediate GitHub release check
-    server.on("/api/v1/update-check", HTTP_POST, [this](AsyncWebServerRequest *request) {
-        if (this->releaseUpdater) {
-            this->releaseUpdater->requestCheck();
-            this->logger->info("Manual update check requested");
-            request->send(200, "application/json", "{\"status\":\"scheduled\"}");
-        } else {
-            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Update checker not available\"}");
-        }
-    });
-
     // POST /api/v1/restart
     server.on("/api/v1/restart", HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send(200, "application/json", "{\"status\":\"restarting\"}");
@@ -235,6 +226,77 @@ void WebApi::setupApiEndpoints() {
         request->send(200, "application/json", "{\"status\":\"resetting\"}");
         this->resetCallback();
     });
+}
+
+void WebApi::setupUploadEndpoint() {
+    server.on("/api/v1/upload", HTTP_POST,
+        [this](AsyncWebServerRequest *request) {
+            const bool ok = !Update.hasError();
+            AsyncWebServerResponse *response = request->beginResponse(
+                ok ? 200 : 500, "application/json",
+                ok ? "{\"status\":\"ok\",\"message\":\"Update applied, restarting\"}"
+                   : "{\"status\":\"error\",\"message\":\"Update failed\"}");
+            response->addHeader("Connection", "close");
+            request->send(response);
+
+            if (ok) {
+                this->logger->info("Upload complete, restarting");
+                this->restartAt = millis() + 500;   // let the response flush first
+            }
+        },
+        [this](AsyncWebServerRequest *request, const String& filename, size_t index,
+               uint8_t *data, size_t len, bool final) {
+            this->handleUpload(request, filename, index, data, len, final);
+        });
+}
+
+void WebApi::handleUpload(AsyncWebServerRequest* request, const String& filename,
+                          size_t index, uint8_t* data, size_t len, bool final) {
+    if (index == 0) {
+        const bool filesystem = request->hasParam("target", true)
+            ? request->getParam("target", true)->value() == "filesystem"
+            : request->hasParam("target") && request->getParam("target")->value() == "filesystem";
+
+        this->logger->info(String("Upload started: ") + filename +
+                           (filesystem ? " (filesystem)" : " (firmware)") +
+                           " free=" + String(ESP.getFreeHeap()) +
+                           " maxBlock=" + String(ESP.getMaxFreeBlockSize()));
+
+        // Free the websocket buffers: Update.begin() needs 4 KB contiguous.
+        ws.closeAll();
+        ws.enable(false);
+
+        size_t maxSize;
+        int command;
+        if (filesystem) {
+            maxSize = (size_t)&_FS_end - (size_t)&_FS_start;
+            command = U_FS;
+            LittleFS.end();   // must not be mounted while it is overwritten
+        } else {
+            maxSize = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+            command = U_FLASH;
+        }
+
+        Update.runAsync(true);
+        if (!Update.begin(maxSize, command)) {
+            this->logger->error("Update.begin failed: " + String(Update.getErrorString()));
+        }
+    }
+
+    if (Update.hasError()) return;
+
+    if (len && Update.write(data, len) != len) {
+        this->logger->error("Upload write failed: " + String(Update.getErrorString()));
+        return;
+    }
+
+    if (final) {
+        if (Update.end(true)) {
+            this->logger->info("Upload flashed " + String(index + len) + " bytes");
+        } else {
+            this->logger->error("Update.end failed: " + String(Update.getErrorString()));
+        }
+    }
 }
 
 void WebApi::setupWebSocket() {
@@ -371,6 +433,10 @@ void WebApi::sendLogHistory(AsyncWebSocketClient* client) {
 }
 
 void WebApi::run(bool mqttConnected) {
+    if (this->restartAt && (long)(millis() - this->restartAt) >= 0) {
+        ESP.restart();
+    }
+
     this->mqttConnected = mqttConnected;
     ws.cleanupClients();
     broadcastStats();

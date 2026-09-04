@@ -45,7 +45,6 @@ async function loadConfig() {
         document.getElementById('mqtt-pass').value = config.mqtt_pass || '';
         document.getElementById('mqtt-device').value = config.mqtt_device || '';
         document.getElementById('mqtt-topic').value = config.mqtt_topic || '';
-        document.getElementById('update-interval').value = config.update_interval_min || '10';
         
         // Build dynamic plugin parameter fields
         renderPluginParams(config.plugin_params);
@@ -136,14 +135,45 @@ async function saveConfig() {
     }
 }
 
-async function checkForUpdates() {
-    try {
-        const response = await fetch(`${API_BASE}/update-check`, { method: 'POST' });
-        if (!response.ok) throw new Error('Failed to schedule update check');
-        addLogMessage('Update check scheduled - firmware checks within a minute and reboots if an update is found');
-    } catch (error) {
-        addLogMessage(`Error scheduling update check: ${error.message}`);
+function uploadBinary() {
+    const fileInput = document.getElementById('upload-file');
+    const target = document.getElementById('upload-target').value;
+    const status = document.getElementById('upload-status');
+
+    if (!fileInput.files.length) {
+        status.textContent = 'Select a .bin file first';
+        return;
     }
+
+    const file = fileInput.files[0];
+    const form = new FormData();
+    form.append('update', file, file.name);
+
+    // XMLHttpRequest instead of fetch: it reports upload progress
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}/upload?target=${encodeURIComponent(target)}`);
+
+    xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable) return;
+        const percent = Math.round((event.loaded / event.total) * 100);
+        status.textContent = `Uploading ${target}: ${percent}%`;
+    };
+
+    xhr.onload = () => {
+        if (xhr.status === 200) {
+            status.textContent = `${target} flashed - device is restarting`;
+            addLogMessage(`${target} uploaded, device restarting`);
+        } else {
+            status.textContent = `Upload failed (HTTP ${xhr.status})`;
+        }
+    };
+
+    xhr.onerror = () => {
+        status.textContent = 'Upload failed - connection lost';
+    };
+
+    status.textContent = `Uploading ${target}...`;
+    xhr.send(form);
 }
 
 async function restartDevice() {

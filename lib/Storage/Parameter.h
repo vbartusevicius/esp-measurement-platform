@@ -12,11 +12,6 @@ class Parameter
         static constexpr const char* MQTT_PASS = "mqtt_pass";
         static constexpr const char* MQTT_DEVICE = "mqtt_device";
         static constexpr const char* MQTT_TOPIC = "mqtt_topic";
-
-        static constexpr const char* UPDATE_INTERVAL_MIN = "update_interval_min";
-
-        static constexpr const char* FS_PENDING_TAG = "fs_pending_tag";
-        static constexpr const char* FS_FAIL_COUNT = "fs_fail_count";
 };
 
 #endif

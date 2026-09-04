@@ -86,7 +86,7 @@ TEST_F(StorageTest, FullParameterSetFitsInSector)
     // round-trips rather than overflowing the sector.
     const char* keys[] = {
         "active_plugin", "mqtt_host", "mqtt_port", "mqtt_user", "mqtt_pass",
-        "mqtt_device", "mqtt_topic", "update_interval_min", "distance_empty",
+        "mqtt_device", "mqtt_topic", "distance_empty",
         "distance_full", "sensor_range", "avg_sample_count", "sampling_interval",
         "total_volume", "level_deadband_cm", "step_confirm_samples",
         "max_change_cm_min", "tube_conversion_factor", "display_graph_resolution",

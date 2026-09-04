@@ -147,14 +147,34 @@ pio run -t upload -e nodemcu
 pio run -t uploadfs -e nodemcu
 ```
 
-### Via OTA (Over-The-Air)
+### Via the web interface (recommended for updates)
 
-Replace `<DEVICE_IP>` with the device's IP address:
+Build the images locally, then upload them from the device's admin page
+(**Configuration → Firmware Update**). Uploads go over plain HTTP, so they do
+not need the contiguous heap a TLS download would require.
 
 ```bash
-# Flash firmware
-pio run -t upload -e nodemcu_ota --upload-port <DEVICE_IP>
+# Firmware -> .pio/build/nodemcu/firmware.bin
+pio run -e nodemcu
 
-# Flash LittleFS filesystem
+# Filesystem/web UI -> .pio/build/nodemcu/littlefs.bin
+pio run -e nodemcu -t buildfs
+```
+
+Pick **Firmware** or **Filesystem**, select the matching `.bin`, and press
+**Upload & flash**. The device restarts when the upload completes.
+
+Release builds of both images are also attached to every GitHub release by
+`.github/workflows/release.yml`, so they can be downloaded and uploaded the
+same way.
+
+### Via OTA (espota)
+
+Replace `<DEVICE_IP>` with the device's IP address. Note this needs a
+contiguous 4 KB heap block for `Update.begin()`, which is not always available
+while the web server and MQTT are running:
+
+```bash
+pio run -t upload -e nodemcu_ota --upload-port <DEVICE_IP>
 pio run -t uploadfs -e nodemcu_ota --upload-port <DEVICE_IP>
 ```
