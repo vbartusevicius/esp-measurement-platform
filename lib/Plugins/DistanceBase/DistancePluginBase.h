@@ -7,7 +7,7 @@
 #include "IDisplayContributor.h"
 #include "Storage.h"
 #include "Logger.h"
-#include "MovingAverageFilter.h"
+#include "LevelFilter.h"
 #include "FlowRateCalculator.h"
 #include "DailyUsageTracker.h"
 #include <vector>
@@ -22,15 +22,17 @@ class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisp
         static constexpr const char* PARAM_DISTANCE_FULL = "distance_full";
         static constexpr const char* PARAM_AVG_SAMPLE_COUNT = "avg_sample_count";
         static constexpr const char* PARAM_SAMPLING_INTERVAL = "sampling_interval";
-        static constexpr const char* PARAM_MAX_DELTA = "max_distance_delta";
         static constexpr const char* PARAM_TOTAL_VOLUME = "total_volume";
+        static constexpr const char* PARAM_DEADBAND_CM = "level_deadband_cm";
+        static constexpr const char* PARAM_SNAP_SAMPLES = "step_confirm_samples";
+        static constexpr const char* PARAM_MAX_RATE_CM_MIN = "max_change_cm_min";
 
     protected:
         HAL* hal = nullptr;
         Storage* storage = nullptr;
         Logger* logger = nullptr;
 
-        MovingAverageFilter distFilter;
+        LevelFilter distFilter;
         float measuredDistance = 0.0f;
         float relativeDistance = 0.0f;
         float absoluteDistance = 0.0f;
@@ -43,10 +45,12 @@ class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisp
 
         // Configuration parsed once in setup() (changes require restart)
         int avgSampleCount = 10;
-        int maxDeltaPercent = 15;
         float emptyDistM = 0.0f;
         float fullDistM = 0.0f;
         int samplingIntervalSec = 10;
+        float deadbandM = 0.10f;
+        int snapAfterSamples = 5;
+        float maxRateMPerMin = 0.0f;
 
         // Sensor-specific hooks
         virtual void setupPins() = 0;

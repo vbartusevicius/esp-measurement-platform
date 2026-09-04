@@ -5,7 +5,7 @@
 #include "../../lib/Plugins/UltrasonicDistance/UltrasonicDistanceCalculator.cpp"
 #include "../../lib/Plugins/RadiationCounter/RadiationCalculator.cpp"
 #include "../../lib/Plugin/FlowRateCalculator.cpp"
-#include "../../lib/Plugin/MovingAverageFilter.cpp"
+#include "../../lib/Plugin/LevelFilter.cpp"
 #include "../../lib/Plugin/DailyUsageTracker.cpp"
 #include "../../lib/Plugins/HaDiscovery.cpp"
 

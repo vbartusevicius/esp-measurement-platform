@@ -19,7 +19,10 @@ void DistancePluginBase::setup(HAL* hal, Storage* storage, Logger* logger, LedCo
     this->usageTracker.reset();
 
     this->avgSampleCount = atoi(this->storage->getParameter(PARAM_AVG_SAMPLE_COUNT, "10").c_str());
-    this->maxDeltaPercent = atoi(this->storage->getParameter(PARAM_MAX_DELTA, "15").c_str());
+    this->deadbandM = atof(this->storage->getParameter(PARAM_DEADBAND_CM, "10").c_str()) / 100.0f;
+    this->snapAfterSamples = atoi(this->storage->getParameter(PARAM_SNAP_SAMPLES, "5").c_str());
+    if (this->snapAfterSamples < 1) this->snapAfterSamples = 1;
+    this->maxRateMPerMin = atof(this->storage->getParameter(PARAM_MAX_RATE_CM_MIN, "0").c_str()) / 100.0f;
     this->emptyDistM = atof(this->storage->getParameter(PARAM_DISTANCE_EMPTY).c_str()) / 100.0f;
     this->fullDistM = atof(this->storage->getParameter(PARAM_DISTANCE_FULL).c_str()) / 100.0f;
 
@@ -35,7 +38,9 @@ void DistancePluginBase::loop()
     float raw = this->readSensor();
     this->lastRawDistance = raw;
 
-    this->measuredDistance = this->distFilter.aggregate(raw, this->avgSampleCount, this->maxDeltaPercent);
+    this->distFilter.process(raw, this->avgSampleCount, this->deadbandM,
+                             this->snapAfterSamples, this->maxRateMPerMin, millis());
+    this->measuredDistance = this->distFilter.getFiltered();
     this->relativeDistance = this->computeRelative(this->measuredDistance, this->emptyDistM, this->fullDistM);
     this->absoluteDistance = this->computeAbsolute(this->measuredDistance, this->emptyDistM, this->fullDistM);
 
@@ -52,9 +57,11 @@ void DistancePluginBase::loop()
 void DistancePluginBase::getParameterDefs(std::vector<ParameterDef>& defs) const
 {
     this->addPluginParameterDefs(defs);
-    defs.push_back({PARAM_AVG_SAMPLE_COUNT, "AVG Window Samples", "10", ParameterDef::NUMBER, false});
+    defs.push_back({PARAM_AVG_SAMPLE_COUNT, "Median Window Samples", "10", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_SAMPLING_INTERVAL, "Sampling Interval (s)", "10", ParameterDef::NUMBER, false});
-    defs.push_back({PARAM_MAX_DELTA, "Max Measurement Delta (%)", "15", ParameterDef::NUMBER, false});
+    defs.push_back({PARAM_DEADBAND_CM, "Change Deadband (cm)", "10", ParameterDef::NUMBER, false});
+    defs.push_back({PARAM_SNAP_SAMPLES, "Step Confirm Samples", "5", ParameterDef::NUMBER, false});
+    defs.push_back({PARAM_MAX_RATE_CM_MIN, "Max Change Rate (cm/min, 0=off)", "0", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_TOTAL_VOLUME, "Total Water Volume (L)", "", ParameterDef::NUMBER, false});
 }
 
