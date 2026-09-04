@@ -141,12 +141,6 @@ void ReleaseUpdater::flashPendingAtBoot(Logger* logger, Storage* storage)
         fail(ST_WIFI_FAIL);
         return;
     }
-    trace(ST_FS_FLASHING);
-    if (!this->flashFilesystem(tag)) {
-        trace(ST_FS_FAIL, this->lastError);
-        this->log("filesystem update failed, continuing with firmware (retried on a later boot)");
-    }
-
     String fwUrl;
     if (!this->resolveAssetUrl(tag, "firmware.bin", fwUrl)) {
         fail(ST_REDIRECT_FAIL);
@@ -157,7 +151,10 @@ void ReleaseUpdater::flashPendingAtBoot(Logger* logger, Storage* storage)
         st.pending  = 0;
         st.failures = 0;
         trace(ST_DONE);
-        if (this->storage) this->storage->saveParameter(Parameter::FS_FAIL_COUNT, String("0"));
+        if (this->storage) {
+            this->storage->saveParameter(Parameter::FS_PENDING_TAG, tag);
+            this->storage->saveParameter(Parameter::FS_FAIL_COUNT, String("0"));
+        }
         delay(200);
         ESP.restart();
     }
@@ -174,10 +171,6 @@ bool ReleaseUpdater::flashFilesystem(const String& tag)
     }
     if (!this->downloadAndFlash(fsUrl, true)) return false;
 
-    if (this->storage) {
-        this->storage->saveParameter(Parameter::FS_VERSION, tag);
-        this->storage->saveParameter(Parameter::FS_FAIL_COUNT, String("0"));
-    }
     this->log("filesystem updated to " + tag);
     return true;
 }
@@ -186,25 +179,32 @@ void ReleaseUpdater::repairFilesystemAtBoot()
 {
     if (!this->storage) return;
 
-    String current = FW_VERSION;
-    if (current == "dev") return;                       // local build, nothing to match
-    if (this->storage->getParameter(Parameter::FS_VERSION) == current) return;
+    String tag = this->storage->getParameter(Parameter::FS_PENDING_TAG, "");
+    if (tag.length() == 0) return;                      // filesystem is up to date
 
     int failures = this->storage->getParameter(Parameter::FS_FAIL_COUNT, "0").toInt();
-    if (failures >= MAX_FAILURES) return;               // stop retrying at every boot
+    if (failures >= MAX_FAILURES) {
+        this->log("filesystem update for " + tag + " failed " + String(failures) +
+                  " times, giving up until the next release");
+        this->storage->saveParameter(Parameter::FS_PENDING_TAG, String(""));
+        return;
+    }
 
-    this->log("filesystem is behind firmware " + current + ", repairing (attempt " +
+    this->log("installing filesystem for " + tag + " (attempt " +
               String(failures + 1) + "/" + String(MAX_FAILURES) + ")");
 
     if (!this->connectStoredWiFi(30000)) {
-        this->log("filesystem repair: no WiFi");
+        this->log("filesystem install: no WiFi, retrying next boot");
         return;                                         // not counted: no attempt was made
     }
 
-    if (!this->flashFilesystem(current)) {
+    if (!this->flashFilesystem(tag)) {
         this->storage->saveParameter(Parameter::FS_FAIL_COUNT, String(failures + 1));
         return;
     }
+
+    this->storage->saveParameter(Parameter::FS_PENDING_TAG, String(""));
+    this->storage->saveParameter(Parameter::FS_FAIL_COUNT, String("0"));
 
     delay(200);
     ESP.restart();                                      // reboot into the new filesystem
