@@ -13,7 +13,7 @@
 #include "Version.h"
 
 #define RTC_OTA_OFFSET 96            // uint32 block offset in RTC user memory
-#define RTC_OTA_MAGIC  0x4F544131UL
+#define RTC_OTA_MAGIC  0x4F544132UL
 
 namespace {
 enum : uint16_t {
@@ -47,6 +47,8 @@ struct RtcOtaState {
     uint16_t stage;
     uint16_t padding;
     int32_t  err;
+    int32_t  tlsError;
+    uint32_t transferMs;
     uint32_t freeHeap;
     uint32_t maxBlock;
     char     tag[24];
@@ -54,13 +56,14 @@ struct RtcOtaState {
 };
 // system_rtc_mem_* requires a size that is a multiple of 4 bytes
 static_assert(sizeof(RtcOtaState) % 4 == 0, "RTC state must be 4-byte sized");
+static_assert(RTC_OTA_OFFSET * 4 + sizeof(RtcOtaState) <= 512, "RTC state exceeds user memory");
 
 constexpr uint8_t MAX_FAILURES = 3;
 
 uint32_t rtcChecksum(const RtcOtaState& s) {
     uint32_t sum = s.magic ^ (s.pending * 31u) ^ (s.attempts * 131u)
                  ^ (s.failures * 17u) ^ (s.stage * 7919u) ^ (uint32_t)s.err
-                 ^ s.freeHeap ^ s.maxBlock;
+                 ^ s.freeHeap ^ s.maxBlock ^ (uint32_t)s.tlsError ^ s.transferMs;
     for (size_t i = 0; i < sizeof(s.tag); i++) sum = sum * 33 + (uint8_t)s.tag[i];
     return sum;
 }
@@ -113,6 +116,8 @@ void ReleaseUpdater::flashPendingAtBoot(Logger* logger, Storage* storage)
     auto trace = [&](uint16_t stage, int32_t err = 0) {
         st.stage    = stage;
         st.err      = err;
+        st.tlsError = this->lastTlsError;
+        st.transferMs = this->lastTransferMs;
         st.freeHeap = ESP.getFreeHeap();
         st.maxBlock = ESP.getMaxFreeBlockSize();
         rtcWrite(st);
@@ -131,7 +136,11 @@ void ReleaseUpdater::flashPendingAtBoot(Logger* logger, Storage* storage)
     };
 
     if (st.attempts >= 1) {
-        fail(ST_GAVE_UP);
+        this->log(String("interrupted during ") + stageName(st.stage) +
+                  "; reset=" + ESP.getResetReason());
+        this->lastTlsError = st.tlsError;
+        this->lastTransferMs = st.transferMs;
+        fail(ST_GAVE_UP, st.err);
         return;
     }
     st.attempts = 1;
@@ -169,7 +178,22 @@ bool ReleaseUpdater::flashFilesystem(const String& tag)
         this->log("filesystem asset not resolved");
         return false;
     }
-    if (!this->downloadAndFlash(fsUrl, true)) return false;
+    RtcOtaState state = {};
+    strncpy(state.tag, tag.c_str(), sizeof(state.tag) - 1);
+    state.stage = ST_FS_FLASHING;
+    state.freeHeap = ESP.getFreeHeap();
+    state.maxBlock = ESP.getMaxFreeBlockSize();
+    rtcWrite(state);
+
+    const bool installed = this->downloadAndFlash(fsUrl, true);
+    state.stage = installed ? ST_DONE : ST_FS_FAIL;
+    state.err = this->lastError;
+    state.tlsError = this->lastTlsError;
+    state.transferMs = this->lastTransferMs;
+    state.freeHeap = ESP.getFreeHeap();
+    state.maxBlock = ESP.getMaxFreeBlockSize();
+    rtcWrite(state);
+    if (!installed) return false;
 
     this->log("filesystem updated to " + tag);
     return true;
@@ -219,7 +243,8 @@ void ReleaseUpdater::logLastAttempt(Logger* logger)
 
     this->log(String("last attempt: ") + st.tag + " [" + stageName(st.stage) +
               "] err=" + String((long)st.err) + " free=" + String(st.freeHeap) +
-              " blk=" + String(st.maxBlock));
+              " blk=" + String(st.maxBlock) + " tls=" + String((long)st.tlsError) +
+              " elapsed_ms=" + String(st.transferMs));
 }
 
 bool ReleaseUpdater::connectStoredWiFi(uint32_t timeoutMs)
@@ -308,6 +333,8 @@ bool ReleaseUpdater::fetchLatestTag(String& tagOut)
     client->setTimeout(15000);
 
     HTTPClient http;
+    http.setTimeout(15000);
+    http.useHTTP10(true);
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
     http.setReuse(false);
 
@@ -357,6 +384,8 @@ bool ReleaseUpdater::resolveAssetUrl(const String& tag, const char* asset, Strin
     client->setTimeout(15000);
 
     HTTPClient http;
+    http.setTimeout(15000);
+    http.useHTTP10(true);
     http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
     http.setReuse(false);
     const char* keys[] = { "Location" };
@@ -396,18 +425,28 @@ bool ReleaseUpdater::downloadAndFlash(const String& url, bool filesystem)
     this->log("downloading (free=" + String(ESP.getFreeHeap()) +
               " maxBlock=" + String(ESP.getMaxFreeBlockSize()) + ")");
 
+    ESPhttpUpdate.setClientTimeout(30000);
     ESPhttpUpdate.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
     ESPhttpUpdate.rebootOnUpdate(false);
     ESPhttpUpdate.closeConnectionsOnUpdate(true);
 
+    this->lastError = 0;
+    this->lastTlsError = 0;
+    const uint32_t started = millis();
     t_httpUpdate_return result = filesystem
         ? ESPhttpUpdate.updateFS(*client, url)
         : ESPhttpUpdate.update(*client, url);
+    this->lastTransferMs = millis() - started;
 
     if (result == HTTP_UPDATE_OK) return true;
 
+    char tlsMessage[128] = {};
+    this->lastTlsError = client->getLastSSLError(tlsMessage, sizeof(tlsMessage));
     this->lastError = ESPhttpUpdate.getLastError();
     this->log("flash failed " + String((long)this->lastError) + ": " +
               ESPhttpUpdate.getLastErrorString());
+    this->log("TLS error=" + String((long)this->lastTlsError) + " " + tlsMessage +
+              " elapsed_ms=" + String(this->lastTransferMs) +
+              " wifi=" + String(WiFi.status()) + " rssi=" + String(WiFi.RSSI()));
     return false;
 }
