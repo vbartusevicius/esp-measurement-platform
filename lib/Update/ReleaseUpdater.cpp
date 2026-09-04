@@ -321,38 +321,13 @@ bool ReleaseUpdater::downloadAndFlash(const String& url, bool filesystem)
     client->setInsecure();
     client->setTimeout(30000);
 
-    // TLS buffer policy: small buffers are only legal if the server honours
-    // MFLN (RFC6066). GitHub's asset CDN may not - a full-size TLS record
-    // into a small BearSSL buffer kills the connection mid-transfer
-    // (error -5). Probe first; fall back to full buffers if heap allows.
-    String host = url;
-    int hs = host.indexOf("://");
-    if (hs >= 0) host.remove(0, hs + 3);
-    int pe = host.indexOf('/');
-    if (pe >= 0) host.remove(pe);
-
-    if (client->probeMaxFragmentLength(host.c_str(), 443, 1024)) {
-        client->setBufferSizes(1024, 512);
-        this->log("server supports MFLN (small TLS buffers)");
-    } else {
-        uint32_t blk = ESP.getMaxFreeBlockSize();
-        if (blk < 24 * 1024) {
-            this->lastError = -101;
-            this->log("no MFLN and heap block too small for full TLS buffers");
-            return false;
-        }
-        // default buffers (16384/512): the download needs ~22 KB contiguous
-        // for the BearSSL context
-        this->log("no MFLN, using full TLS buffers");
-    }
+    this->log("downloading (free=" + String(ESP.getFreeHeap()) +
+              " maxBlock=" + String(ESP.getMaxFreeBlockSize()) + ")");
 
     ESPhttpUpdate.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
     ESPhttpUpdate.rebootOnUpdate(false);
     ESPhttpUpdate.closeConnectionsOnUpdate(true);
 
-    // No currentVersion argument: the tag comparison already decided that
-    // this release is new. Passing it would send x-ESP8266-version and let a
-    // 304 response silently turn into "no update".
     t_httpUpdate_return result = filesystem
         ? ESPhttpUpdate.updateFS(*client, url)
         : ESPhttpUpdate.update(*client, url);
