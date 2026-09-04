@@ -42,7 +42,7 @@ WifiConnector* wifi = nullptr;
 MqttClient* mqtt = nullptr;
 WebApi* webApi = nullptr;
 IPlugin* activePlugin = nullptr;
-ReleaseUpdater* releaseUpdater = nullptr;
+ReleaseUpdater releaseUpdater;
 
 void resetDevice()
 {
@@ -73,6 +73,8 @@ void setup()
 {
     Serial.begin(9600);
     delay(500);
+
+    releaseUpdater.flashPendingAtBoot(&logger);
 
     ledController.begin(&hal);
     display.begin();
@@ -122,15 +124,13 @@ void setup()
         display.configWizardSecondStep(WiFi.localIP().toString().c_str());
     }
 
-    // GitHub release OTA: first check 2 min after boot, then at configured interval
-    releaseUpdater = new ReleaseUpdater(&logger, &storage);
-    taskManager.scheduleFixedRate(60000, [] { releaseUpdater->run(); });
+    releaseUpdater.begin(&logger, &storage);
+    releaseUpdater.logLastAttempt(&logger);
+    taskManager.scheduleFixedRate(60000, [] { releaseUpdater.run(); });
 
-    // Web API
-    webApi = new WebApi(&storage, &logger, activePlugin, &registry, resetDevice, releaseUpdater);
+    webApi = new WebApi(&storage, &logger, activePlugin, &registry, resetDevice, &releaseUpdater);
     webApi->begin();
 
-    // MQTT (requires an active plugin with MQTT support to publish)
     String mqttDevice = storage.getParameter(Parameter::MQTT_DEVICE);
     IMqttContributor* mqttContributor = activePlugin ? activePlugin->mqtt() : nullptr;
     if (mqttDevice.length() > 0 && mqttContributor) {
@@ -140,35 +140,28 @@ void setup()
         logger.warning("MQTT device name not configured, skipping MQTT");
     }
 
-    // OTA (Arduino IDE uploads)
     setupOTA();
 
-    // Task scheduling
     int samplingInterval = activePlugin ? activePlugin->getSamplingInterval() : 10;
 
-    // Web API updates
     taskManager.scheduleFixedRate(2000, [] {
         bool mqttOk = mqtt ? mqtt->isConnected() : false;
         if (webApi) webApi->run(mqttOk);
     });
 
-    // MQTT maintenance
     taskManager.scheduleFixedRate(5000, [] {
         if (mqtt) mqtt->run();
     });
 
-    // Plugin measurement loop
     taskManager.scheduleFixedRate(samplingInterval * 1000, [] {
         if (activePlugin) activePlugin->loop();
         ledController.click();
     });
 
-    // MQTT publish
     taskManager.scheduleFixedRate(samplingInterval * 1000, [] {
         if (mqtt) mqtt->publish();
     });
 
-    // Display update
     taskManager.scheduleFixedRate(1000, [] {
         bool mqttOk = mqtt ? mqtt->isConnected() : false;
         IDisplayContributor* displayContributor = activePlugin ? activePlugin->display() : nullptr;
