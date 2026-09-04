@@ -34,7 +34,8 @@ void WebApi::begin() {
 }
 
 void WebApi::setupStaticFiles() {
-    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
+    server.serveStatic("/", LittleFS, "/")
+        .setDefaultFile("index.html");
 
     server.onNotFound([this](AsyncWebServerRequest *request) {
         this->logger->warning("Not found: " + request->url());
@@ -281,6 +282,9 @@ void WebApi::handleWebSocketMessage(AsyncWebSocketClient* client, void* arg, uin
 
 void WebApi::broadcastStats() {
     if (ws.count() == 0) return;
+    // Skip the update if a client's send queue is still backed up: piling
+    // messages onto a slow client drops frames and starves async TCP.
+    if (!ws.availableForWriteAll()) return;
 
     JsonDocument doc;
     doc["event"] = "stats_update";
@@ -318,6 +322,7 @@ void WebApi::broadcastStats() {
 
 void WebApi::broadcastLogs() {
     if (ws.count() == 0) return;
+    if (!ws.availableForWriteAll()) return;
 
     const auto& logs = this->logger->getBuffer();
     unsigned long total = logs.total();
@@ -331,6 +336,9 @@ void WebApi::broadcastLogs() {
 
     unsigned long firstSeq = logs.firstSequence();
     size_t startIdx = this->lastLogSequence > firstSeq ? (size_t)(this->lastLogSequence - firstSeq) : 0;
+    if (logs.size() - startIdx > MAX_LOG_LINES_PER_MESSAGE) {
+        startIdx = logs.size() - MAX_LOG_LINES_PER_MESSAGE;
+    }
     for (size_t i = startIdx; i < logs.size(); i++) {
         arr.add(logs[i]);
     }
@@ -349,8 +357,12 @@ void WebApi::sendLogHistory(AsyncWebSocketClient* client) {
     logsDoc["event"] = "log_batch";
     JsonArray arr = logsDoc["messages"].to<JsonArray>();
 
-    for (auto& entry : logs) {
-        arr.add(entry);
+    // Only the most recent lines: the whole buffer serialises to several KB,
+    // and doc + String + the async copy would peak at ~3x that on a ~40 KB heap.
+    size_t startIdx = logs.size() > MAX_LOG_LINES_PER_MESSAGE
+        ? logs.size() - MAX_LOG_LINES_PER_MESSAGE : 0;
+    for (size_t i = startIdx; i < logs.size(); i++) {
+        arr.add(logs[i]);
     }
 
     String response;

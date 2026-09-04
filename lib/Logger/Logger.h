@@ -46,10 +46,16 @@ class Logger
 {
     private:
         LogBuffer buffer;
+        bool debugEnabled = false;
 
         void log(const char* level, const String& message);
 
     public:
+        // Debug lines are dropped unless explicitly enabled: verbose
+        // per-sample logging blocks the main loop (Serial) and floods the
+        // websocket, which drops async connections.
+        void setDebugEnabled(bool enabled) { this->debugEnabled = enabled; }
+
         void info(const String& message);
         void warning(const String& message);
         void error(const String& message);

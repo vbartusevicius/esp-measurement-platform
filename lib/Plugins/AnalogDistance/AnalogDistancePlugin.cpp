@@ -32,7 +32,7 @@ float AnalogDistancePlugin::readSensor()
         distance = AnalogSensorConverter::currentToDistance(current, MIN_CURRENT_MA, MAX_CURRENT_MA, this->sensorRange);
     }
 
-    this->logger->info("Analog read: raw=" + String(rawValue) + " V=" + String(voltage, 2) +
+    this->logger->debug("Analog read: raw=" + String(rawValue) + " V=" + String(voltage, 2) +
                        " mA=" + String(current, 2) + " dist=" + String(distance, 3) + "m" +
                        " sensor=" + String(this->sensorConnected ? "ok" : "fault"));
     return distance;

@@ -1,8 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     initWebSocket();
-    initChart();
-    loadPlugins();
-    loadConfig();
+
+    (async () => {
+        await loadPlugins();
+        await loadConfig();
+        initChart();
+    })();
     
     document.getElementById('config-form').addEventListener('submit', (e) => {
         e.preventDefault();

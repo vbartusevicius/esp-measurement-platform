@@ -46,6 +46,7 @@ void Logger::error(const String& message)
 
 void Logger::debug(const String& message)
 {
+    if (!this->debugEnabled) return;
     this->log("DEBUG", message);
 }
 

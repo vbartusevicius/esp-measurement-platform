@@ -18,7 +18,22 @@ TEST_F(LoggerTest, MultipleLogLevels)
     logger.warning("warning");
     logger.error("error");
     logger.debug("debug");
-    EXPECT_EQ(logger.size(), 4u);
+    // debug is suppressed unless explicitly enabled
+    EXPECT_EQ(logger.size(), 3u);
+}
+
+TEST_F(LoggerTest, DebugSuppressedByDefault)
+{
+    logger.debug("debug");
+    EXPECT_EQ(logger.size(), 0u);
+}
+
+TEST_F(LoggerTest, DebugRecordedWhenEnabled)
+{
+    logger.setDebugEnabled(true);
+    logger.debug("debug");
+    ASSERT_EQ(logger.size(), 1u);
+    EXPECT_NE(std::string(logger.getBuffer()[0].c_str()).find("DEBUG"), std::string::npos);
 }
 
 TEST_F(LoggerTest, BufferContainsLogLevel)

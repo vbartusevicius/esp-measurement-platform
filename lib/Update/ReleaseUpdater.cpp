@@ -186,7 +186,16 @@ void ReleaseUpdater::run()
 {
     long untilDue = (long)(this->nextCheckAt - millis());
     if (untilDue > 0) return;
+
+    // Defer while the web UI is connected: the TLS handshake blocks the loop
+    // for seconds and would drop the user's websocket. Manual checks proceed.
+    if (!this->forced && this->isBusy && this->isBusy()) {
+        this->nextCheckAt = millis() + 60000;
+        return;
+    }
+
     this->nextCheckAt = millis() + this->checkIntervalMs;
+    this->forced = false;
 
     if (WiFi.status() != WL_CONNECTED) return;
     this->checkForUpdates();

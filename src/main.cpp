@@ -71,7 +71,7 @@ void setupOTA()
 
 void setup()
 {
-    Serial.begin(9600);
+    Serial.begin(115200);
     delay(500);
 
     releaseUpdater.flashPendingAtBoot(&logger);
@@ -125,6 +125,9 @@ void setup()
     }
 
     releaseUpdater.begin(&logger, &storage);
+    releaseUpdater.setBusyCallback([]() -> bool {
+        return webApi && webApi->websocketClients() > 0;
+    });
     releaseUpdater.logLastAttempt(&logger);
     taskManager.scheduleFixedRate(60000, [] { releaseUpdater.run(); });
 

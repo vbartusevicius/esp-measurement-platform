@@ -34,13 +34,20 @@ class ReleaseUpdater
         void run();
 
         // Schedule a check as soon as possible (web UI "check now" button).
-        void requestCheck() { this->nextCheckAt = 0; }
+        void requestCheck() { this->nextCheckAt = 0; this->forced = true; }
+
+        // The periodic check performs a blocking TLS handshake (seconds),
+        // which starves the async web server and drops websocket clients.
+        // main() supplies this so checks are deferred while the UI is in use.
+        void setBusyCallback(bool (*isBusy)()) { this->isBusy = isBusy; }
 
     private:
         Logger* logger = nullptr;
         unsigned long nextCheckAt = FIRST_CHECK_DELAY_MS;
         unsigned long checkIntervalMs = 600000;
         int32_t lastError = 0;
+        bool forced = false;
+        bool (*isBusy)() = nullptr;
 
         static constexpr const char* GITHUB_REPO = "vbartusevicius/esp-measurement-platform";
 

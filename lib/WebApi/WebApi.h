@@ -32,12 +32,14 @@ class WebApi {
         unsigned long lastLogSequence;
         bool mqttConnected;
         static constexpr size_t MAX_CONFIG_BODY_SIZE = 2048;
+        static constexpr size_t MAX_LOG_LINES_PER_MESSAGE = 15;
 
     public:
         WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback, ReleaseUpdater* releaseUpdater = nullptr);
 
         void begin();
         void run(bool mqttConnected);
+        size_t websocketClients() { return ws.count(); }
 
     private:
         void setupStaticFiles();
