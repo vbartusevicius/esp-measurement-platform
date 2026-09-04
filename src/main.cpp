@@ -74,7 +74,8 @@ void setup()
     Serial.begin(115200);
     delay(500);
 
-    releaseUpdater.flashPendingAtBoot(&logger);
+    storage.begin();
+    releaseUpdater.flashPendingAtBoot(&logger, &storage);
 
     ledController.begin(&hal);
     display.begin();
@@ -88,8 +89,7 @@ void setup()
     registry.add(&ultrasonicDistancePlugin);
     registry.add(&radiationCounterPlugin);
 
-    // Initialize storage and determine active plugin
-    storage.begin();
+    // Determine active plugin (storage was initialised before the OTA check)
     String activePluginId = storage.getParameter(Parameter::ACTIVE_PLUGIN, "");
     activePlugin = registry.get(activePluginId.c_str());
 

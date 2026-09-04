@@ -42,7 +42,10 @@ struct RtcOtaState {
     uint32_t magic;
     uint8_t  pending;
     uint8_t  attempts;
+    uint8_t  failures;
+    uint8_t  reserved;
     uint16_t stage;
+    uint16_t padding;
     int32_t  err;
     uint32_t freeHeap;
     uint32_t maxBlock;
@@ -52,9 +55,11 @@ struct RtcOtaState {
 // system_rtc_mem_* requires a size that is a multiple of 4 bytes
 static_assert(sizeof(RtcOtaState) % 4 == 0, "RTC state must be 4-byte sized");
 
+constexpr uint8_t MAX_FAILURES = 3;
+
 uint32_t rtcChecksum(const RtcOtaState& s) {
     uint32_t sum = s.magic ^ (s.pending * 31u) ^ (s.attempts * 131u)
-                 ^ (s.stage * 7919u) ^ (uint32_t)s.err
+                 ^ (s.failures * 17u) ^ (s.stage * 7919u) ^ (uint32_t)s.err
                  ^ s.freeHeap ^ s.maxBlock;
     for (size_t i = 0; i < sizeof(s.tag); i++) sum = sum * 33 + (uint8_t)s.tag[i];
     return sum;
@@ -91,12 +96,16 @@ void ReleaseUpdater::begin(Logger* logger, Storage* storage)
 
 // --- Boot-time install -------------------------------------------------
 
-void ReleaseUpdater::flashPendingAtBoot(Logger* logger)
+void ReleaseUpdater::flashPendingAtBoot(Logger* logger, Storage* storage)
 {
     this->logger = logger;
+    this->storage = storage;
 
     RtcOtaState st;
-    if (!rtcRead(st) || !st.pending) return;
+    if (!rtcRead(st) || !st.pending) {
+        this->repairFilesystemAtBoot();
+        return;
+    }
 
     String tag(st.tag);
     this->log("installing " + tag + " (current " + FW_VERSION + ")");
@@ -111,49 +120,94 @@ void ReleaseUpdater::flashPendingAtBoot(Logger* logger)
                   " free=" + String(st.freeHeap) + " blk=" + String(st.maxBlock) + ")");
     };
 
-    if (st.attempts >= 1) {
+    auto fail = [&](uint16_t stage, int32_t err = 0) {
         st.pending = 0;
-        trace(ST_GAVE_UP);
+        if (st.failures < 255) st.failures++;
+        trace(stage, err);
+        this->log("attempt " + String(st.failures) + "/" + String(MAX_FAILURES) +
+                  " for " + tag + (st.failures >= MAX_FAILURES
+                      ? " - no further automatic retries for this release"
+                      : " - will retry on the next check"));
+    };
+
+    if (st.attempts >= 1) {
+        fail(ST_GAVE_UP);
         return;
     }
     st.attempts = 1;
     trace(ST_BOOT_START);
 
     if (!this->connectStoredWiFi(30000)) {
-        st.pending = 0;
-        trace(ST_WIFI_FAIL);
-        return;
-    }
-
-    String fsUrl;
-    if (!this->resolveAssetUrl(tag, "littlefs.bin", fsUrl)) {
-        st.pending = 0;
-        trace(ST_REDIRECT_FAIL);
+        fail(ST_WIFI_FAIL);
         return;
     }
     trace(ST_FS_FLASHING);
-    if (!this->downloadAndFlash(fsUrl, true)) {
-        st.pending = 0;
+    if (!this->flashFilesystem(tag)) {
         trace(ST_FS_FAIL, this->lastError);
-        return;
+        this->log("filesystem update failed, continuing with firmware (retried on a later boot)");
     }
 
     String fwUrl;
     if (!this->resolveAssetUrl(tag, "firmware.bin", fwUrl)) {
-        st.pending = 0;
-        trace(ST_REDIRECT_FAIL);
+        fail(ST_REDIRECT_FAIL);
         return;
     }
     trace(ST_FW_FLASHING);
     if (this->downloadAndFlash(fwUrl, false)) {
-        st.pending = 0;
+        st.pending  = 0;
+        st.failures = 0;
         trace(ST_DONE);
+        if (this->storage) this->storage->saveParameter(Parameter::FS_FAIL_COUNT, String("0"));
         delay(200);
         ESP.restart();
     }
 
-    st.pending = 0;
-    trace(ST_FW_FAIL, this->lastError);
+    fail(ST_FW_FAIL, this->lastError);
+}
+
+bool ReleaseUpdater::flashFilesystem(const String& tag)
+{
+    String fsUrl;
+    if (!this->resolveAssetUrl(tag, "littlefs.bin", fsUrl)) {
+        this->log("filesystem asset not resolved");
+        return false;
+    }
+    if (!this->downloadAndFlash(fsUrl, true)) return false;
+
+    if (this->storage) {
+        this->storage->saveParameter(Parameter::FS_VERSION, tag);
+        this->storage->saveParameter(Parameter::FS_FAIL_COUNT, String("0"));
+    }
+    this->log("filesystem updated to " + tag);
+    return true;
+}
+
+void ReleaseUpdater::repairFilesystemAtBoot()
+{
+    if (!this->storage) return;
+
+    String current = FW_VERSION;
+    if (current == "dev") return;                       // local build, nothing to match
+    if (this->storage->getParameter(Parameter::FS_VERSION) == current) return;
+
+    int failures = this->storage->getParameter(Parameter::FS_FAIL_COUNT, "0").toInt();
+    if (failures >= MAX_FAILURES) return;               // stop retrying at every boot
+
+    this->log("filesystem is behind firmware " + current + ", repairing (attempt " +
+              String(failures + 1) + "/" + String(MAX_FAILURES) + ")");
+
+    if (!this->connectStoredWiFi(30000)) {
+        this->log("filesystem repair: no WiFi");
+        return;                                         // not counted: no attempt was made
+    }
+
+    if (!this->flashFilesystem(current)) {
+        this->storage->saveParameter(Parameter::FS_FAIL_COUNT, String(failures + 1));
+        return;
+    }
+
+    delay(200);
+    ESP.restart();                                      // reboot into the new filesystem
 }
 
 void ReleaseUpdater::logLastAttempt(Logger* logger)
@@ -199,6 +253,7 @@ void ReleaseUpdater::run()
 
     if (WiFi.status() != WL_CONNECTED) return;
     this->checkForUpdates();
+    this->manualCheck = false;
 }
 
 void ReleaseUpdater::checkForUpdates()
@@ -211,11 +266,28 @@ void ReleaseUpdater::checkForUpdates()
         return;
     }
 
+    RtcOtaState previous;
+    uint8_t failures = 0;
+    if (rtcRead(previous) && tag == previous.tag) {
+        failures = previous.failures;
+        if (this->manualCheck) failures = 0;
+        if (failures >= MAX_FAILURES) {
+            if (!this->giveUpLogged) {
+                this->log("release " + tag + " failed " + String(failures) +
+                          " times, not retrying until a newer release or a power cycle");
+                this->giveUpLogged = true;
+            }
+            return;
+        }
+    }
+    this->giveUpLogged = false;
+
     // Park the tag and reboot: the flash needs a clean heap (see header).
     RtcOtaState st = {};
     strncpy(st.tag, tag.c_str(), sizeof(st.tag) - 1);
     st.pending  = 1;
     st.attempts = 0;
+    st.failures = failures;
     st.stage    = ST_PARKED;
     st.freeHeap = ESP.getFreeHeap();
     st.maxBlock = ESP.getMaxFreeBlockSize();
