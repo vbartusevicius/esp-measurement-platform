@@ -19,7 +19,7 @@ MqttClient::MqttClient(Storage* storage, Logger* logger, IMqttContributor* plugi
     this->lastReconnectAttempt = 0;
     this->reconnectInterval = 5000;
     this->lastActivityCheck = 0;
-    this->lastMqttActivity = 0;
+    this->lastStatusPublish = 0;
     this->lastBrokerMessageAt = 0;
     this->previouslyConnected = false;
 
@@ -117,13 +117,14 @@ bool MqttClient::connectMqtt()
         client.subscribe(this->statusTopic().c_str(), 0);
         this->logger->info("Connected to MQTT broker");
         this->reconnectInterval = 5000;
-        this->updateActivityTimestamp();
         this->lastBrokerMessageAt = millis();  // grace period right after connect
 
         if (this->previouslyConnected) {
             this->publishHomeAssistantAutoconfig();
         }
         this->previouslyConnected = true;
+        this->lastStatusPublish = millis();
+        this->publishStatus();
     } else {
         this->logger->warning("Failed to connect to MQTT broker, error: " + this->getMqttErrorMessage(client.lastError()));
         this->reconnectInterval = (unsigned long)std::min((double)this->reconnectInterval * 1.5, 30000.0);
@@ -182,12 +183,12 @@ void MqttClient::publishSystemHaConfig()
         const char* unit;
         const char* deviceClass;
         const char* icon;
+        bool numeric;      // state_class is only valid for numeric states
     };
     static const DiagSensorDef defs[] = {
-        {"heap", "Free Heap", "{{ value_json.heap | int }}", "B", nullptr, "mdi:memory"},
-        {"rssi", "WiFi Signal", "{{ value_json.rssi | int }}", "dBm", "signal_strength", nullptr},
-        {"uptime", "Uptime", "{{ value_json.uptime_s | int }}", "s", "duration", nullptr},
-        {"version", "Firmware Version", "{{ value_json.version }}", nullptr, nullptr, "mdi:chip"},
+        {"heap", "Free Heap", "{{ value_json.heap | int }}", "B", "data_size", "mdi:memory", true},
+        {"rssi", "WiFi Signal", "{{ value_json.rssi | int }}", "dBm", "signal_strength", nullptr, true},
+        {"uptime", "Uptime", "{{ value_json.uptime_s | int }}", "s", "duration", nullptr, true},
     };
 
     for (auto& def : defs) {
@@ -199,6 +200,7 @@ void MqttClient::publishSystemHaConfig()
         if (def.unit) doc["unit_of_measurement"] = def.unit;
         if (def.deviceClass) doc["device_class"] = def.deviceClass;
         if (def.icon) doc["icon"] = def.icon;
+        if (def.numeric) doc["state_class"] = "measurement";
         doc["entity_category"] = "diagnostic";
 
         JsonObject device = doc["device"].to<JsonObject>();
@@ -210,11 +212,6 @@ void MqttClient::publishSystemHaConfig()
         this->client.publish(("homeassistant/sensor/" + this->deviceId + "/" + def.objectId + "/config").c_str(),
                              json.c_str(), true, 1);
     }
-}
-
-void MqttClient::updateActivityTimestamp()
-{
-    this->lastMqttActivity = millis();
 }
 
 bool MqttClient::run()
@@ -243,9 +240,6 @@ bool MqttClient::run()
 
     unsigned long now = millis();
 
-    // Zombie watchdog: the broker stops delivering messages (and our own
-    // status echo) when the connection is broken behind our back (e.g. the
-    // Mosquitto container or a proxy restarted and left a half-open socket).
     if (isConnected && now - this->lastBrokerMessageAt > ZOMBIE_TIMEOUT_MS) {
         this->logger->warning("No MQTT traffic from broker for 90s, reconnecting");
         client.disconnect();
@@ -256,9 +250,9 @@ bool MqttClient::run()
         this->lastActivityCheck = now;
 
         if (isConnected) {
-            if (now - this->lastMqttActivity >= KEEPALIVE_INTERVAL) {
+            if (now - this->lastStatusPublish >= STATUS_INTERVAL_MS) {
+                this->lastStatusPublish = now;
                 this->publishStatus();
-                this->updateActivityTimestamp();
             }
         }
         else if (now - this->lastReconnectAttempt >= this->reconnectInterval) {
@@ -284,5 +278,4 @@ void MqttClient::publish()
 
     String topic = this->getBaseTopic();
     this->plugin->publishMqtt(this->client, topic);
-    this->updateActivityTimestamp();
 }
