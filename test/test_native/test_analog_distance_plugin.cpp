@@ -23,6 +23,7 @@ protected:
 
     void SetUp() override {
         storage.begin();
+        storage.reset();
         FakeHAL::currentMillis = 0;
 
         String range = "5";
