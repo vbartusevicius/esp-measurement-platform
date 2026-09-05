@@ -76,7 +76,7 @@ void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, co
         doc["state_class"] = "measurement";
 
         JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
         HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
         String json;
@@ -97,7 +97,7 @@ void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, co
         doc["state_class"] = "measurement";
 
         JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
         HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
         String json;

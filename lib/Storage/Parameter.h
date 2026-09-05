@@ -5,7 +5,7 @@ class Parameter
 {
     public:
         static constexpr const char* ACTIVE_PLUGIN = "active_plugin";
-
+        static constexpr const char* DEVICE_NAME = "device_name";
         static constexpr const char* MQTT_HOST = "mqtt_host";
         static constexpr const char* MQTT_PORT = "mqtt_port";
         static constexpr const char* MQTT_USER = "mqtt_user";

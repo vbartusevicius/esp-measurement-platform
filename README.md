@@ -62,7 +62,10 @@ Bridges Geiger-Müller tube detectors (GGreg20_V3, RadiationD-v1.1 / CAJOE, etc.
 1. Flash firmware and LittleFS filesystem (see below).
 2. On first boot, `WiFiManager` creates an AP named `ESP_<ChipID>`. Connect to it and configure your WiFi network. The device restarts automatically.
 3. Navigate to the device's IP address (shown on the OLED and Serial) to open the admin dashboard.
-4. Select the active plugin, configure sensor and MQTT parameters, then **Save & Restart**.
+4. Optionally set a **Name** under *Device* — this is what Home Assistant
+   shows. Left empty, the plugin's own name is used (e.g. "ESP Analog Distance
+   Meter").
+5. Select the active plugin, configure sensor and MQTT parameters, then **Save & Restart**.
 
 ![Web UI Settings](./doc/admin_dashboard.png)
 

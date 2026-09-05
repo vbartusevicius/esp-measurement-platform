@@ -178,6 +178,7 @@ void MqttClient::publishHomeAssistantAutoconfig()
     ctx.deviceId = this->deviceId;
     ctx.stateTopic = this->getBaseTopic();
     ctx.availabilityTopic = this->availabilityTopic();
+    ctx.deviceName = this->storage->getParameter(Parameter::DEVICE_NAME, "");
 
     this->plugin->publishHomeAssistantAutoconfig(this->client, ctx);
     this->publishSystemHaConfig();

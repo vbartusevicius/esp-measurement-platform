@@ -138,7 +138,7 @@ void RadiationCounterPlugin::publishHomeAssistantAutoconfig(MQTTClient& client, 
         doc["state_class"] = "measurement";
 
         JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, "ESP Radiation Counter");
+        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr("ESP Radiation Counter"));
         HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
         String json;
@@ -160,7 +160,7 @@ void RadiationCounterPlugin::publishHomeAssistantAutoconfig(MQTTClient& client, 
         doc["icon"] = "mdi:alert";
 
         JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, "ESP Radiation Counter");
+        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr("ESP Radiation Counter"));
         HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
         String json;

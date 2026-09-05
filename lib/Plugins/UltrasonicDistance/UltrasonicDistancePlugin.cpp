@@ -73,7 +73,7 @@ void UltrasonicDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client
         doc["object_id"] = "esp_ultrasonic_distance";
 
         JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
         HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
         String json;

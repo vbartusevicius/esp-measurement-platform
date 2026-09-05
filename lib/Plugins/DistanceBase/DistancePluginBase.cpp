@@ -128,7 +128,7 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const HaDisc
             doc["state_class"] = "measurement";
 
             JsonObject device = doc["device"].to<JsonObject>();
-            HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+            HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
             HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
             String json;
@@ -149,7 +149,7 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const HaDisc
             doc["state_class"] = "measurement";
 
             JsonObject device = doc["device"].to<JsonObject>();
-            HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+            HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
             HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
             String json;
@@ -170,7 +170,7 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const HaDisc
             doc["state_class"] = "measurement";
 
             JsonObject device = doc["device"].to<JsonObject>();
-            HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+            HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
             HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
             String json;
@@ -190,7 +190,7 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const HaDisc
         doc["entity_category"] = "diagnostic";
 
         JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
+        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
         HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
         String json;

@@ -80,6 +80,7 @@ void WebApi::setupApiEndpoints() {
         // Core values
         doc["active_plugin"] = this->activePlugin ? this->activePlugin->getId() : "";
         doc["chip_id"] = ChipId::get();
+        doc["device_name"] = this->storage->getParameter(Parameter::DEVICE_NAME, "");
         doc["mqtt_host"] = this->storage->getParameter(Parameter::MQTT_HOST, "");
         doc["mqtt_port"] = this->storage->getParameter(Parameter::MQTT_PORT, "1883");
         doc["mqtt_user"] = this->storage->getParameter(Parameter::MQTT_USER, "");

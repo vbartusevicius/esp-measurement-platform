@@ -39,6 +39,7 @@ async function loadConfig() {
         document.getElementById('chip-id').textContent = 'ID: ' + (config.chip_id || '');
         document.getElementById('plugin-name').textContent = config.active_plugin || '';
         
+        document.getElementById('device-name').value = config.device_name || '';
         document.getElementById('mqtt-host').value = config.mqtt_host || '';
         document.getElementById('mqtt-port').value = config.mqtt_port || '1883';
         document.getElementById('mqtt-user').value = config.mqtt_user || '';

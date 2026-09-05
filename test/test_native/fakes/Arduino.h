@@ -98,6 +98,7 @@ public:
 
     const char* c_str() const { return _buf.c_str(); }
     unsigned int length() const { return (unsigned int)_buf.length(); }
+    bool isEmpty() const { return _buf.empty(); }
     int toInt() const { return atoi(_buf.c_str()); }
     float toFloat() const { return (float)atof(_buf.c_str()); }
     void toUpperCase() {
