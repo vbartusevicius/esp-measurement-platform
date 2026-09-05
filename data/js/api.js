@@ -98,6 +98,10 @@ function renderPluginParams(plugin_params) {
             input.name = param.key;
             input.value = param.value || param.default || '';
             if (param.required) input.required = true;
+
+            // Number inputs default to step="1", which rejects decimals such as
+            // an alert threshold of 0.3 or a tube factor of 123.5.
+            if (input.type === 'number') input.step = 'any';
             
             group.appendChild(label);
             group.appendChild(input);
