@@ -109,8 +109,11 @@ void DistancePluginBase::publishMqtt(MQTTClient& client, const String& baseTopic
     client.publish(baseTopic.c_str(), json.c_str(), false, 0);
 }
 
-void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const String& deviceId, const String& stateTopic)
+void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const HaDiscoveryContext& ctx)
 {
+    const String& deviceId = ctx.deviceId;
+    const String& stateTopic = ctx.stateTopic;
+
     if (this->totalVolume > 0) {
         // Volume sensor (L)
         {
@@ -126,7 +129,7 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const String
 
             JsonObject device = doc["device"].to<JsonObject>();
             HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
-            HaDiscovery::addAvailability(doc, deviceId);
+            HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
             String json;
             serializeJson(doc, json);
@@ -147,7 +150,7 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const String
 
             JsonObject device = doc["device"].to<JsonObject>();
             HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
-            HaDiscovery::addAvailability(doc, deviceId);
+            HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
             String json;
             serializeJson(doc, json);
@@ -168,7 +171,7 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const String
 
             JsonObject device = doc["device"].to<JsonObject>();
             HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
-            HaDiscovery::addAvailability(doc, deviceId);
+            HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
             String json;
             serializeJson(doc, json);
@@ -188,7 +191,7 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const String
 
         JsonObject device = doc["device"].to<JsonObject>();
         HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
-        HaDiscovery::addAvailability(doc, deviceId);
+        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
         String json;
         serializeJson(doc, json);

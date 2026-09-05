@@ -62,7 +62,7 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
         void getStats(std::vector<StatEntry>& entries) const override;
 
         void publishMqtt(MQTTClient& client, const String& baseTopic) override;
-        void publishHomeAssistantAutoconfig(MQTTClient& client, const String& deviceId, const String& stateTopic) override;
+        void publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx) override;
 
         int getDisplayPageCount() const override;
         int renderDisplayPage(U8G2& u8g2, int page, int width, int height) const override;

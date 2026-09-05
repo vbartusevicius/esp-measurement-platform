@@ -12,8 +12,7 @@ void HaDiscovery::addDeviceInfo(JsonObject& device, const String& deviceId, cons
     device["configuration_url"] = "http://" + WiFi.localIP().toString();
 }
 
-void HaDiscovery::addAvailability(JsonDocument& doc, const String& deviceId)
+void HaDiscovery::addAvailability(JsonDocument& doc, const String& availabilityTopic)
 {
-    doc["availability_topic"] = "esp/" + deviceId + "/availability";
-    // default payload_available/not_available are "online"/"offline" - same as our LWT
+    doc["availability_topic"] = availabilityTopic;
 }

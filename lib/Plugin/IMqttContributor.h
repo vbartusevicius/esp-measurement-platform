@@ -4,6 +4,12 @@
 #include <Arduino.h>
 #include <MQTT.h>
 
+struct HaDiscoveryContext {
+    String deviceId;
+    String stateTopic;
+    String availabilityTopic;
+};
+
 // Capability interface for plugins that publish to MQTT.
 class IMqttContributor
 {
@@ -11,7 +17,7 @@ class IMqttContributor
         virtual ~IMqttContributor() = default;
 
         virtual void publishMqtt(MQTTClient& client, const String& baseTopic) = 0;
-        virtual void publishHomeAssistantAutoconfig(MQTTClient& client, const String& deviceId, const String& stateTopic) = 0;
+        virtual void publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx) = 0;
 };
 
 #endif

@@ -25,7 +25,9 @@ class MqttClient
         static const unsigned long ZOMBIE_TIMEOUT_MS = 90000;
 
         bool connectMqtt();
-        String statusTopic();
+        String rootTopic();
+        String diagTopic();
+        String availabilityTopic();
         void publishStatus();
         void publishSystemHaConfig();
         void publishHomeAssistantAutoconfig();

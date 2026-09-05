@@ -66,17 +66,27 @@ String MqttClient::getMqttErrorMessage(int errorCode)
     }
 }
 
-String MqttClient::statusTopic()
+String MqttClient::rootTopic()
 {
-    return "esp/" + this->deviceId + "/status";
+    String device = this->storage->getParameter(Parameter::MQTT_DEVICE);
+    return device.isEmpty() ? ("esp_" + this->deviceId) : device;
+}
+
+String MqttClient::diagTopic()
+{
+    return this->rootTopic() + "/diag";
+}
+
+String MqttClient::availabilityTopic()
+{
+    return this->rootTopic() + "/availability";
 }
 
 String MqttClient::getBaseTopic()
 {
     String topic = this->storage->getParameter(Parameter::MQTT_TOPIC);
     if (topic.isEmpty()) {
-        String device = this->storage->getParameter(Parameter::MQTT_DEVICE);
-        topic = device + "/stat/" + this->pluginId;
+        topic = this->rootTopic() + "/stat/" + this->pluginId;
         String mutableTopic = topic;
         this->storage->saveParameter(Parameter::MQTT_TOPIC, mutableTopic);
     }
@@ -88,7 +98,7 @@ bool MqttClient::connectMqtt()
     String username = this->storage->getParameter(Parameter::MQTT_USER);
     String password = this->storage->getParameter(Parameter::MQTT_PASS);
     String device = this->storage->getParameter(Parameter::MQTT_DEVICE);
-    String willTopic = "esp/" + this->deviceId + "/availability";
+    String willTopic = this->availabilityTopic();
 
     if (client.connected()) {
         client.disconnect();
@@ -114,7 +124,7 @@ bool MqttClient::connectMqtt()
 
     if (result) {
         client.publish(willTopic.c_str(), "online", true, 1);
-        client.subscribe(this->statusTopic().c_str(), 0);
+        client.subscribe(this->diagTopic().c_str(), 0);
         this->logger->info("Connected to MQTT broker");
         this->reconnectInterval = 5000;
         this->lastBrokerMessageAt = millis();  // grace period right after connect
@@ -156,7 +166,7 @@ void MqttClient::publishStatus()
 
     String payload;
     serializeJson(doc, payload);
-    if (!this->client.publish(this->statusTopic().c_str(), payload.c_str(), false, 0)) {
+    if (!this->client.publish(this->diagTopic().c_str(), payload.c_str(), false, 0)) {
         this->logger->warning("MQTT status publish failed, dropping connection");
         this->client.disconnect();
     }
@@ -164,8 +174,12 @@ void MqttClient::publishStatus()
 
 void MqttClient::publishHomeAssistantAutoconfig()
 {
-    String stateTopic = this->getBaseTopic();
-    this->plugin->publishHomeAssistantAutoconfig(this->client, this->deviceId, stateTopic);
+    HaDiscoveryContext ctx;
+    ctx.deviceId = this->deviceId;
+    ctx.stateTopic = this->getBaseTopic();
+    ctx.availabilityTopic = this->availabilityTopic();
+
+    this->plugin->publishHomeAssistantAutoconfig(this->client, ctx);
     this->publishSystemHaConfig();
     this->logger->info("Published Home Assistant autodiscovery config");
 }
@@ -174,7 +188,7 @@ void MqttClient::publishHomeAssistantAutoconfig()
 // sensors via shared identifiers).
 void MqttClient::publishSystemHaConfig()
 {
-    String statusTopic = "esp/" + this->deviceId + "/status";
+    String statusTopic = this->diagTopic();
 
     struct DiagSensorDef {
         const char* objectId;
@@ -205,7 +219,7 @@ void MqttClient::publishSystemHaConfig()
 
         JsonObject device = doc["device"].to<JsonObject>();
         HaDiscovery::addDeviceInfo(device, this->deviceId, nullptr);
-        HaDiscovery::addAvailability(doc, this->deviceId);
+        HaDiscovery::addAvailability(doc, this->availabilityTopic());
 
         String json;
         serializeJson(doc, json);

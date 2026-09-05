@@ -12,9 +12,6 @@
 #include "DailyUsageTracker.h"
 #include <vector>
 
-// Shared implementation for distance-based level plugins (analog / ultrasonic).
-// Subclasses only provide sensor reading, distance math and sensor-specific
-// parameters/HA sensors.
 class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisplayContributor
 {
     public:
@@ -62,7 +59,7 @@ class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisp
         virtual const char* getDeviceName() const = 0;
 
         // Home Assistant discovery helpers (flow rate + volume + usage + connectivity)
-        void publishCommonHaSensors(MQTTClient& client, const String& deviceId, const String& stateTopic);
+        void publishCommonHaSensors(MQTTClient& client, const HaDiscoveryContext& ctx);
 
     public:
         void setup(HAL* hal, Storage* storage, Logger* logger, LedController* led) override;

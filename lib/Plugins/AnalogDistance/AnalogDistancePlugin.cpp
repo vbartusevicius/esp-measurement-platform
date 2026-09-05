@@ -59,8 +59,11 @@ void AnalogDistancePlugin::addPluginParameterDefs(std::vector<ParameterDef>& def
 
 // --- Home Assistant discovery ---
 
-void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, const String& deviceId, const String& stateTopic)
+void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx)
 {
+    const String& deviceId = ctx.deviceId;
+    const String& stateTopic = ctx.stateTopic;
+
     // Level sensor (percentage)
     {
         JsonDocument doc;
@@ -74,7 +77,7 @@ void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, co
 
         JsonObject device = doc["device"].to<JsonObject>();
         HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
-        HaDiscovery::addAvailability(doc, deviceId);
+        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
         String json;
         serializeJson(doc, json);
@@ -95,7 +98,7 @@ void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, co
 
         JsonObject device = doc["device"].to<JsonObject>();
         HaDiscovery::addDeviceInfo(device, deviceId, this->getDeviceName());
-        HaDiscovery::addAvailability(doc, deviceId);
+        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
         String json;
         serializeJson(doc, json);
@@ -103,5 +106,5 @@ void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, co
     }
 
     // Flow rate sensor (L/min)
-    this->publishCommonHaSensors(client, deviceId, stateTopic);
+    this->publishCommonHaSensors(client, ctx);
 }

@@ -72,7 +72,16 @@ HomeAssistant autodiscovery is published automatically — the device should app
 
 ### MQTT Topics
 
-The default state topic is `<device_name>/stat/<plugin_id>`. Payload examples:
+Everything the device publishes lives under a single root topic — the
+configured device name:
+
+```
+<device_name>/stat/<plugin_id>   measurements (state topic, overridable)
+<device_name>/diag               diagnostics (heap, RSSI, uptime)
+<device_name>/availability       LWT: "online" / "offline"
+```
+
+Payload examples:
 
 **Distance meters:**
 ```json
@@ -90,12 +99,12 @@ The default state topic is `<device_name>/stat/<plugin_id>`. Payload examples:
 The radiation counter also serves its graph history at `GET /api/v1/chart`,
 rendered as a bar chart in the admin dashboard.
 
-**System status** (all plugins), topic: `esp/<chip_id>/status`:
+**Diagnostics** (all plugins), topic: `<device_name>/diag`, published every 30 s:
 ```json
 { "state": "active", "heap": 41520, "rssi": -62, "uptime_s": 3602, "version": "v2026.09.03.2214" }
 ```
-HomeAssistant gets diagnostic sensors for heap, RSSI, uptime and firmware
-version from this topic automatically.
+HomeAssistant gets diagnostic sensors for heap, RSSI and uptime from this topic
+automatically. The firmware version is exposed as the HA device's `sw_version`.
 
 ## IDE Setup
 

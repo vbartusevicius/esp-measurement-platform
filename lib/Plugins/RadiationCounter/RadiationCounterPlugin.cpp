@@ -121,8 +121,11 @@ void RadiationCounterPlugin::publishMqtt(MQTTClient& client, const String& baseT
     client.publish(baseTopic.c_str(), json.c_str(), false, 0);
 }
 
-void RadiationCounterPlugin::publishHomeAssistantAutoconfig(MQTTClient& client, const String& deviceId, const String& stateTopic)
+void RadiationCounterPlugin::publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx)
 {
+    const String& deviceId = ctx.deviceId;
+    const String& stateTopic = ctx.stateTopic;
+
     auto publishSensor = [&](const char* objectId, const char* name, const char* valueTemplate,
                              const char* unit, const char* icon) {
         JsonDocument doc;
@@ -136,7 +139,7 @@ void RadiationCounterPlugin::publishHomeAssistantAutoconfig(MQTTClient& client, 
 
         JsonObject device = doc["device"].to<JsonObject>();
         HaDiscovery::addDeviceInfo(device, deviceId, "ESP Radiation Counter");
-        HaDiscovery::addAvailability(doc, deviceId);
+        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
         String json;
         serializeJson(doc, json);
@@ -158,7 +161,7 @@ void RadiationCounterPlugin::publishHomeAssistantAutoconfig(MQTTClient& client, 
 
         JsonObject device = doc["device"].to<JsonObject>();
         HaDiscovery::addDeviceInfo(device, deviceId, "ESP Radiation Counter");
-        HaDiscovery::addAvailability(doc, deviceId);
+        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
 
         String json;
         serializeJson(doc, json);

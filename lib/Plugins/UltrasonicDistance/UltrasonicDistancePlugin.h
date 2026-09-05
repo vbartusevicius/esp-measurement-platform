@@ -28,7 +28,7 @@ class UltrasonicDistancePlugin : public DistancePluginBase
         const char* getId() const override;
         const char* getName() const override;
 
-        void publishHomeAssistantAutoconfig(MQTTClient& client, const String& deviceId, const String& stateTopic) override;
+        void publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx) override;
 };
 
 #endif
