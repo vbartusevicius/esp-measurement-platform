@@ -136,6 +136,7 @@ void setup()
     setupOTA();
 
     int samplingInterval = activePlugin ? activePlugin->getSamplingInterval() : 10;
+    int publishInterval = activePlugin ? activePlugin->getPublishInterval() : samplingInterval;
 
     taskManager.scheduleFixedRate(2000, [] {
         bool mqttOk = mqtt ? mqtt->isConnected() : false;
@@ -151,7 +152,7 @@ void setup()
         ledController.click();
     });
 
-    taskManager.scheduleFixedRate(samplingInterval * 1000, [] {
+    taskManager.scheduleFixedRate(publishInterval * 1000, [] {
         if (mqtt) mqtt->publish();
     });
 
@@ -162,7 +163,8 @@ void setup()
         display.run(displayContributor, page, mqttOk);
     });
 
-    logger.info("Setup complete. Scheduling with " + String(samplingInterval) + "s sampling interval.");
+    logger.info("Setup complete. Sampling every " + String(samplingInterval) +
+                "s, publishing every " + String(publishInterval) + "s.");
 }
 
 void loop()

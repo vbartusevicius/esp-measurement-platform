@@ -120,3 +120,13 @@ TEST_F(AnalogDistancePluginTest, ExposesCapabilities)
     EXPECT_NE(plugin.display(), nullptr);
     EXPECT_EQ(plugin.display()->getDisplayPageCount(), 1);
 }
+
+TEST_F(AnalogDistancePluginTest, PublishIntervalDefaultsToSamplingInterval)
+{
+    String interval = "20";
+    storage.saveParameter(DistancePluginBase::PARAM_SAMPLING_INTERVAL, interval);
+    plugin.setup(&hal, &storage, &logger, nullptr);
+
+    EXPECT_EQ(plugin.getSamplingInterval(), 20);
+    EXPECT_EQ(plugin.getPublishInterval(), 20);
+}

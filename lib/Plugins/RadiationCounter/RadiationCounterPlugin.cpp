@@ -65,6 +65,11 @@ int RadiationCounterPlugin::getSamplingInterval() const
     return 1;
 }
 
+int RadiationCounterPlugin::getPublishInterval() const
+{
+    return 15;
+}
+
 void RadiationCounterPlugin::loop()
 {
     // Swap the ISR-filled counter under a critical section so no pulses are lost

@@ -69,6 +69,7 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
 
         int getCurrentDisplayPage() const override;
         int getSamplingInterval() const override;
+        int getPublishInterval() const override;
 
         IMqttContributor* mqtt() override { return this; }
         IDisplayContributor* display() override { return this; }

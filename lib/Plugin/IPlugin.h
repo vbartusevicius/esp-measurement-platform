@@ -47,6 +47,8 @@ class IPlugin
 
         virtual int getSamplingInterval() const { return 10; }
 
+        virtual int getPublishInterval() const { return this->getSamplingInterval(); }
+
         // Optional history chart capability for the web UI. Default: unsupported.
         virtual bool getChartData(std::vector<float>& points, int& spanSeconds) const { return false; }
 
