@@ -42,9 +42,9 @@ def build(gnd):
     f1[1] += vin_raw
     f1[2] += vin_fused
 
-    d2 = part("Device", "D_Schottky", "SS16", SMA,
-              src(mpn="SS16", mfr="MDD", lcsc="C2481",
-                  source="60 V 1 A reverse-polarity blocking Schottky diode"),
+    d2 = part("Device", "D_Schottky", "SS34", SMA,
+              src(mpn="SS34", mfr="MDD", lcsc="C8678",
+                  source="40 V 3 A reverse-polarity blocking Schottky diode (JLCPCB Basic Part)"),
               ref="D2")
     d2["A"] += vin_fused
     d2["K"] += v24_loop
@@ -67,10 +67,10 @@ def build(gnd):
     u1["GND"] += gnd
 
     # UVLO divider: 100k / 20k -> turn-on at ~7.3 V (supports both 12 V and 24 V supplies)
-    r_en_top = res("100k 1%", src(source="SCT2400 EN UVLO top"))
+    r_en_top = res("100k", src(source="SCT2400 EN UVLO top"))
     r_en_top[1] += v24_loop
     r_en_top[2] += u1["EN"]
-    r_en_bot = res("20k 1%", src(source="SCT2400 EN UVLO bottom"))
+    r_en_bot = res("20k", src(source="SCT2400 EN UVLO bottom"))
     r_en_bot[1] += u1["EN"]
     r_en_bot[2] += gnd
 
@@ -88,10 +88,10 @@ def build(gnd):
     power_flag(v5)
 
     # FB divider: VOUT = 0.81 V * (1 + 51k / 10k) = 4.94 V
-    r_fb_top = res("51k 1%", src(source="SCT2400 FB top: 4.94 V output"))
+    r_fb_top = res("51k", src(source="SCT2400 FB top: 4.94 V output"))
     r_fb_top[1] += v5
     r_fb_top[2] += u1["FB"]
-    r_fb_bot = res("10k 1%", src(source="SCT2400 FB bottom"))
+    r_fb_bot = res("10k", src(source="SCT2400 FB bottom"))
     r_fb_bot[1] += u1["FB"]
     r_fb_bot[2] += gnd
 

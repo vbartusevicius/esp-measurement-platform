@@ -43,9 +43,9 @@ def status_leds(gnd, v5, led_data):
     buffer[4] += series[1]
     data = series[2]
     for i, name in enumerate(STATUS_LEDS):
-        led = part("gateway", "SK6805-EC15", f"RGB {name}", LED_RGB,
+        led = part("gateway", "SK6805-EC15", "SK6805-EC15", LED_RGB,
                    src(mpn="SK6805-EC15", mfr="OPSCO", lcsc="C2890035",
-                       source="SK6805-EC15 datasheet p.4: 1 DIN, 2 VDD, 3 DOUT, 4 GND"),
+                       source=f"SK6805-EC15 RGB LED ({name})"),
                    ref=f"D{i + 1}")
         led["DIN"] += data
         led["VDD"] += v5
@@ -70,14 +70,14 @@ def build_ui_components(gnd, v3, v5, btn_ladder, led_data, sda, scl, oled, butto
     c_ladder = cap("100n 50V", src(source="Ladder debounce/filter cap"))
     c_ladder[1] += btn_ladder
     c_ladder[2] += gnd
-    sw1 = part("Switch", "SW_Push", "RST/WIFI", button["footprint"],
+    sw1 = part("Switch", "SW_Push", "B3U-1000P", button["footprint"],
                src(mpn=button["mpn"], mfr=button["mfr"], lcsc=button["lcsc"],
                    source="tap: reboot; hold 5 s: WiFi setup / factory reset"))
     r_prog = res("20k", src(source="RST/WIFI ladder: 3V3*20k/30k=2.2V"))
     sw1[1] += btn_ladder
     sw1[2] += r_prog[1]
     r_prog[2] += gnd
-    sw2 = part("Switch", "SW_Push", "PAGE", button["footprint"],
+    sw2 = part("Switch", "SW_Push", "B3U-1000P", button["footprint"],
                src(mpn=button["mpn"], mfr=button["mfr"], lcsc=button["lcsc"],
                    source="tap: next display page / wake"))
     r_reset = res("10k", src(source="PAGE ladder: 3V3*10k/20k=1.65V; both 1.32V"))

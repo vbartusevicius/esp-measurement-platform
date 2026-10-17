@@ -32,13 +32,13 @@ from common import block, part, power, power_flag, src
 FPC_8P = "gateway_fp:FPC_Kinghelm_KH-FPC0.5-H1.2SMT-8P"
 TERM_2P = "gateway_fp:TerminalBlock_Kefa_KF142R-5.08-2P"
 TERM_3P = "gateway_fp:TerminalBlock_Kefa_KF142R-5.08-3P"
-TERM_7P = "gateway_fp:TerminalBlock_Kefa_KF142R-5.08-7P"
+TERM_4P = "gateway_fp:TerminalBlock_Kefa_KF142R-5.08-4P"
 UI_LINK = ("+3V3", "GND", "BTN_LADDER", "LED_DATA", "+5V", "I2C_SDA", "I2C_SCL", "GND")
 
 
 def ffc(value, ref, source):
-    return part("Connector", "Conn_01x08_Socket", value, FPC_8P,
-                src(mpn="KH-FPC0.5-H1.2SMT-8P-QCHF", mfr="Kinghelm", lcsc="C48532769", source=source), ref=ref)
+    return part("Connector", "Conn_01x08_Socket", "FPC-05F-8PH20", FPC_8P,
+                src(mpn="FPC-05F-8PH20", mfr="XUNPU", lcsc="C2856797", source=source), ref=ref)
 
 
 def wire(conn, names, nets):
@@ -59,7 +59,7 @@ def build():
     ui = mcu_xiao.build(gnd, v3, v5, s_io)
 
     block("terminals_bottom")
-    j1 = part("Connector", "Screw_Terminal_01x02", "POWER IN (2P push-in)", TERM_2P,
+    j1 = part("Connector", "Screw_Terminal_01x02", "KF142R-5.08-2P", TERM_2P,
               src(mpn="KF142R-5.08-2P", mfr="Cixi Kefa Elec", lcsc="C475144",
                   source="Bottom-front 2-pole 5.08 mm push-in terminal (SELV): 1=GND, 2=VIN+ (9-30 V)"),
               ref="J1")
@@ -67,7 +67,7 @@ def build():
     j1[2] += vin_raw
     power_flag(vin_raw)
 
-    j4 = part("Connector", "Screw_Terminal_01x03", "RELAY OUT (3P push-in)", TERM_3P,
+    j4 = part("Connector", "Screw_Terminal_01x03", "KF142R-5.08-3P", TERM_3P,
               src(mpn="KF142R-5.08-3P", mfr="Cixi Kefa Elec", lcsc="C475145",
                   source="Bottom-rear 3-pole 5.08 mm push-in terminal (250 V AC / 2 A isolated): 1=NC, 2=COM, 3=NO"),
               ref="J4")
@@ -78,17 +78,22 @@ def build():
         power_flag(net)
 
     block("terminals_top")
-    j2 = part("Connector", "Screw_Terminal_01x07", "SENSOR I/O (7P push-in)", TERM_7P,
-              src(mpn="KF142R-5.08-7P", mfr="Cixi Kefa Elec", lcsc="C475149",
-                  source="Top 7-pole 5.08 mm push-in terminal: 1=GND, 2=+5V, 3=+24V, 4=4-20mA, 5=0-10V (0.4-4.5V/0-10V), 6=IO1 (SDA/RX/PULSE), 7=IO2 (SCL/TX)"),
+    j2 = part("Connector", "Screw_Terminal_01x04", "KF142R-5.08-4P", TERM_4P,
+              src(mpn="KF142R-5.08-4P", mfr="Cixi Kefa Elec", lcsc="C475146",
+                  source="Top 4-pole interlocking push-in terminal (poles 1..4): 1=GND, 2=+5V, 3=+24V, 4=4-20mA"),
               ref="J2")
     j2[1] += gnd
     j2[2] += v5
     j2[3] += v24_loop
     j2[4] += s_io["ma_term"]
-    j2[5] += s_io["v0_10_term"]
-    j2[6] += s_io["io1_term"]
-    j2[7] += s_io["io2_term"]
+
+    j5 = part("Connector", "Screw_Terminal_01x03", "KF142R-5.08-3P", TERM_3P,
+              src(mpn="KF142R-5.08-3P", mfr="Cixi Kefa Elec", lcsc="C475145",
+                  source="Top 3-pole interlocking push-in terminal (poles 5..7, dovetailed to J2): 1=0-10V, 2=IO1 (SDA/RX/PULSE), 3=IO2 (SCL/TX)"),
+              ref="J5")
+    j5[1] += s_io["v0_10_term"]
+    j5[2] += s_io["io1_term"]
+    j5[3] += s_io["io2_term"]
 
     block("int_ui")
     nets = {

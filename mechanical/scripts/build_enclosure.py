@@ -257,7 +257,17 @@ def side_wall_legend_bodies():
     """Debossed/embossed terminal pole numbers, signal names, 90-deg leader lines
     to left-aligned signal explanations, and schematic changeover relay symbol
     over NC/COM/NO on the right side wall (x = +WIDTH/2) of the base."""
-    j2_z = _pin_z_positions("J2")
+    j2_raw = _pin_z_positions("J2")
+    j5_raw = _pin_z_positions("J5")
+    j2_z = {
+        "1": j2_raw["1"],
+        "2": j2_raw["2"],
+        "3": j2_raw["3"],
+        "4": j2_raw["4"],
+        "5": j5_raw["1"],
+        "6": j5_raw["2"],
+        "7": j5_raw["3"],
+    }
     j1_z = _pin_z_positions("J1")
     j4_z = _pin_z_positions("J4")
 

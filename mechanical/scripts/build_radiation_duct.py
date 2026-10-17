@@ -41,17 +41,27 @@ REPO = Path(__file__).resolve().parents[2]
 OUT = REPO / "hardware/releases/v1/accessories/radiation_duct"
 RENDERS = OUT / "renders"
 
-# CAJOE RadiationD-v1.1 board dimensions (mm)
+# CAJOE RadiationD-v1.1 board & J305 / M4011 GM tube dimensions (mm)
+# Official M4011 / J305 specs:
+#   - J305 length: 86.5..90.0 mm (M4011: 88.0..90.0 mm), metal end caps 11 mm long at each end
+#   - Tube diameter: 10.0 +- 0.5 mm (up to 11.2 mm over heat-shrink / end-cap solder sleeve)
 PCB_W = 108.0
 PCB_H = 63.0
 PCB_T = 1.6
 PCB_X_SHIFT = -3.0    # shifted -3 mm left so right side has +8.5 mm for header/jacks
 HOLE_DX = 102.0 / 2   # 4 corner M3 holes (102 x 57 mm spacing)
 HOLE_DY = 57.0 / 2
-TUBE_X = 39.0         # + and - tube clip positions along x (+-39.0 mm)
+# Dual-length tube support matching the 3 clip positions on the CAJOE PCB:
+#   - TUBE_X_POS   = -42.0 mm (+ Anode cradle & spigot on the left)
+#   - TUBE_X_SHORT = +26.0 mm (- Cathode cradle & spigot for 86.5..90 mm J305 / M4011, 68 mm pitch)
+#   - TUBE_X_LONG  = +44.0 mm (- Cathode cradle & spigot for 105..112 mm SBM-20 / STS-5 / long J305, 86 mm pitch)
+TUBE_X_POS = -42.0
+TUBE_X_SHORT = 26.0
+TUBE_X_LONG = 44.0
+TUBE_CRADLE_XS = (TUBE_X_POS, TUBE_X_SHORT, TUBE_X_LONG)
 TUBE_Y = -16.0        # y offset of the tube axis
-TUBE_LEN = 88.0
-TUBE_DIA = 10.0
+TUBE_LEN = 88.0       # nominal M4011 / J305 length shown in reference render
+TUBE_DIA = 10.2       # nominal tube OD (cradle bore is 11.6 mm for zero glass stress + heat-shrink clearance)
 
 # Outer box dimensions (mm, z=0 is outer face of airduct wall)
 WALL = 2.2
@@ -107,14 +117,14 @@ def build_cajoe_base():
             post = cyl_z(sx, dy, WALL, PCB_Z, 6.8).cut(cyl_z(sx, dy, WALL + 1.0, PCB_Z + 1, 2.5))
             shell = shell.union(post)
 
-    # Two insulated HV wire feedthrough spigots (protrude z = -4.5..0 through the
-    # airduct wall directly into the in-duct tube bracket's wire posts) + two M4
-    # through-duct clamping bosses at x = +-48.0, y = TUBE_Y
-    for sx in (-TUBE_X, TUBE_X):
-        spigot = cyl_z(sx, TUBE_Y, -4.5, WALL + 2.5, 8.0)
-        shell = shell.union(spigot).cut(cyl_z(sx, TUBE_Y, -5.5, WALL + 4.0, 3.8))
-    for sx in (-48.0, 48.0):
-        clamp = cyl_z(sx, TUBE_Y, 0, WALL + 4.0, 8.5).cut(cyl_z(sx, TUBE_Y, -1, WALL + 5.0, 3.2))
+    # Three insulated HV wire feedthrough spigots matching the 3 CAJOE tube pads:
+    #   x = -42.0 mm (+ Anode), x = +26.0 mm (- Short tube), x = +44.0 mm (- Long tube)
+    # Plus two M4 through-duct clamping bosses at x = -52.0 and +52.0 mm
+    for sx in TUBE_CRADLE_XS:
+        spigot = cyl_z(sx, TUBE_Y, -4.5, WALL + 2.5, 9.6)
+        shell = shell.union(spigot).cut(cyl_z(sx, TUBE_Y, -5.5, WALL + 4.0, 5.0))
+    for sx in (-52.0, 52.0):
+        clamp = cyl_z(sx, TUBE_Y, 0, WALL + 4.0, 8.5).cut(cyl_z(sx, TUBE_Y, -1, WALL + 5.0, 3.4))
         shell = shell.union(clamp)
 
     # Round D=6.2 mm cable gland boss on right wall (+x) for the 3-wire low-voltage
@@ -157,53 +167,57 @@ def build_cajoe_cover():
 
 def build_duct_tube_bracket():
     """Open-frame bracket inside the airduct (z < 0, tube centre at z = -23 mm).
-    Features a gently curved mounting flange matching the internal radius of a
-    ~20 cm (D=200 mm, R=100..110 mm) round airduct, rounded ends, and >90% open
-    exposure around the bare J305 glass tube for Beta/Gamma sensitivity."""
+    Supports BOTH tube lengths used on the CAJOE RadiationD-v1.1 board:
+      1. Short tubes (86.5..90 mm J305 / M4011): supported at x = -42.0 mm (+) and
+         x = +26.0 mm (- inner cradle, 68 mm pitch).
+      2. Long tubes (105..112 mm SBM-20 / STS-5 / long J305): supported at x = -42.0 mm (+)
+         and x = +44.0 mm (- outer cradle, 86 mm pitch).
+    All three coaxial cradles have a D = 11.6 mm axial slide-in bore, 9.8 mm throat,
+    zip-tie/O-ring retention slots, and D = 5.0 mm HV wire channels."""
     tz = -23.0
-    r_outer = 7.4
-    r_tube = TUBE_DIA / 2 + 0.25  # 5.25 mm
+    r_outer = 8.0
+    r_tube = 11.6 / 2  # 5.8 mm (D = 11.6 mm bore: clears D10+-0.5mm tube + heat-shrink sleeve)
 
-    # Curved base flange (x = -54..+54, y = TUBE_Y - 12..TUBE_Y + 12) arched along x
-    # to match the internal radius of a ~20 cm (R=110 mm) airduct (sagitta ~ 4.5 mm
-    # clipped/blended into a curved 3.8 mm thick saddle at z = -6.5..0.0)
     flange_blank = (
         cq.Workplane("XY")
         .center(0, TUBE_Y)
-        .slot2D(112.0, 22.0, 0)
+        .slot2D(118.0, 22.0, 0)
         .extrude(7.5)
         .translate((0, 0, -7.5))
     )
-    # Cut top surface with cylinder of radius R_DUCT=180 mm (gentle ~4.0 mm curve
-    # across the 112 mm span) and parallel bottom surface 3.6 mm below it
     r_arc = 185.0
-    top_cutter = cq.Workplane("YZ", origin=(-60, 0, 0)).center(TUBE_Y, -r_arc).circle(r_arc).extrude(120)
-    inner_cutter = cq.Workplane("YZ", origin=(-60, 0, 0)).center(TUBE_Y, -r_arc).circle(r_arc - 3.6).extrude(120)
+    top_cutter = cq.Workplane("YZ", origin=(-62, 0, 0)).center(TUBE_Y, -r_arc).circle(r_arc).extrude(124)
+    inner_cutter = cq.Workplane("YZ", origin=(-62, 0, 0)).center(TUBE_Y, -r_arc).circle(r_arc - 3.6).extrude(124)
     flange = flange_blank.intersect(top_cutter).cut(inner_cutter)
 
-    # Two hollow support pillars at x = +-TUBE_X reaching from the curved flange down to tz
-    for sx in (-TUBE_X, TUBE_X):
+    # Three coaxial support pillars + open-ended cradles at x = -42.0 (+), +26.0 (- short), +44.0 (- long)
+    for sx in TUBE_CRADLE_XS:
         z_flange_at_x = -(r_arc - math.sqrt(r_arc ** 2 - sx ** 2))
-        pillar = box(sx - 5.0, sx + 5.0, TUBE_Y - 5.5, TUBE_Y + 5.5, tz, z_flange_at_x - 1.0)
-        cradle = cyl_x(sx - 5.0, sx + 5.0, TUBE_Y, tz, r_outer * 2)
+        pillar = box(sx - 4.5, sx + 4.5, TUBE_Y - 6.0, TUBE_Y + 6.0, tz, z_flange_at_x - 1.0)
+        cradle = cyl_x(sx - 4.5, sx + 4.5, TUBE_Y, tz, r_outer * 2)
         flange = flange.union(pillar).union(cradle)
 
-    # Two aerodynamic side guard bows with rounded struts
-    for dy in (-9.2, 9.2):
-        bow = box(-TUBE_X, TUBE_X, TUBE_Y + dy - 1.2, TUBE_Y + dy + 1.2, tz - 2.0, tz + 2.0)
-        strut_l = box(-TUBE_X - 2.0, -TUBE_X + 2.0, min(TUBE_Y, TUBE_Y + dy), max(TUBE_Y, TUBE_Y + dy), tz - 2.0, tz + 2.0)
-        strut_r = box(TUBE_X - 2.0, TUBE_X + 2.0, min(TUBE_Y, TUBE_Y + dy), max(TUBE_Y, TUBE_Y + dy), tz - 2.0, tz + 2.0)
-        flange = flange.union(bow).union(strut_l).union(strut_r)
+    # Two aerodynamic side guard bows spanning from x = -42.0 to x = +44.0 (leave both
+    # axial ends completely open so tubes from 75 mm to 112 mm slide in freely)
+    for dy in (-9.6, 9.6):
+        bow = box(TUBE_X_POS, TUBE_X_LONG, TUBE_Y + dy - 1.2, TUBE_Y + dy + 1.2, tz - 2.0, tz + 2.0)
+        for sx in TUBE_CRADLE_XS:
+            strut = box(sx - 2.0, sx + 2.0, min(TUBE_Y, TUBE_Y + dy), max(TUBE_Y, TUBE_Y + dy), tz - 2.0, tz + 2.0)
+            flange = flange.union(strut)
+        flange = flange.union(bow)
 
-    # Cut the J305 tube bore + snap-in throat + HV wire channels + spigot sockets
-    for sx in (-TUBE_X, TUBE_X):
-        flange = flange.cut(cyl_x(sx - 6.5, sx + 6.5, TUBE_Y, tz, r_tube * 2))
-        flange = flange.cut(box(sx - 6.5, sx + 6.5, TUBE_Y - 4.2, TUBE_Y + 4.2, tz - r_outer - 1, tz))
-        flange = flange.cut(cyl_z(sx, TUBE_Y, tz, 2.0, 3.8))
-        flange = flange.cut(cyl_z(sx, TUBE_Y, -5.0, 2.0, 8.4))
+    # Cut the D=11.6 mm coaxial tube bore + 9.8 mm bottom throat + zip-tie slots + D=5.0 mm HV wire channels
+    flange = flange.cut(cyl_x(TUBE_X_POS - 8.0, TUBE_X_LONG + 8.0, TUBE_Y, tz, r_tube * 2))
+    flange = flange.cut(box(TUBE_X_POS - 8.0, TUBE_X_LONG + 8.0, TUBE_Y - 4.9, TUBE_Y + 4.9, tz - r_outer - 1, tz))
+    for sx in TUBE_CRADLE_XS:
+        # Zip-tie / O-ring retention slot through each pillar at z = tz + 7.5 mm
+        flange = flange.cut(box(sx - 1.8, sx + 1.8, TUBE_Y - 7.0, TUBE_Y + 7.0, tz + 6.5, tz + 9.5))
+        # D=5.0 mm HV wire channel + D=10.0 mm spigot socket
+        flange = flange.cut(cyl_z(sx, TUBE_Y, tz, 2.0, 5.0))
+        flange = flange.cut(cyl_z(sx, TUBE_Y, -5.0, 2.0, 10.0))
 
-    # Through-duct M3/M4 bolt holes at x = +-48.0 mm
-    for sx in (-48.0, 48.0):
+    # Through-duct M3/M4 bolt holes at x = -52.0 and +52.0 mm
+    for sx in (-52.0, 52.0):
         flange = flange.cut(cyl_z(sx, TUBE_Y, -8.0, 2.0, 3.6))
 
     return flange
@@ -227,13 +241,15 @@ def cajoe_board_and_tube_solids():
     hdr = box(x1 - 3.5, x1 + 4.5, -12.0, -4.0, top_z, top_z + 8.5)
     out_cable = cyl_x(x1 + 2.0, BOX_W / 2 + 16.0, -8.0, PCB_Z + 7.0, 4.5)
 
-    # J305 glass tube inside the duct (z = -23.0) + metal end caps + short HV wires
+    # J305 / M4011 glass tube inside the duct (z = -23.0, seated in the -42.0 and +26.0
+    # short-tube cradles, while the +44.0 long-tube cradle is visible to its right)
     tz = -23.0
-    glass = cyl_x(-TUBE_LEN / 2 + 10.0, TUBE_LEN / 2 - 10.0, TUBE_Y, tz, TUBE_DIA)
-    cap_l = cyl_x(-TUBE_LEN / 2, -TUBE_LEN / 2 + 10.0, TUBE_Y, tz, TUBE_DIA + 0.3)
-    cap_r = cyl_x(TUBE_LEN / 2 - 10.0, TUBE_LEN / 2, TUBE_Y, tz, TUBE_DIA + 0.3)
-    wire_pos = cyl_z(-TUBE_X, TUBE_Y, tz, top_z + 2.0, 1.8)
-    wire_neg = cyl_z(TUBE_X, TUBE_Y, tz, top_z + 2.0, 1.8)
+    x_tube_l, x_tube_r = TUBE_X_POS - 5.5, TUBE_X_SHORT + 5.5
+    glass = cyl_x(x_tube_l + 11.0, x_tube_r - 11.0, TUBE_Y, tz, TUBE_DIA)
+    cap_l = cyl_x(x_tube_l, x_tube_l + 11.0, TUBE_Y, tz, TUBE_DIA + 0.3)
+    cap_r = cyl_x(x_tube_r - 11.0, x_tube_r, TUBE_Y, tz, TUBE_DIA + 0.3)
+    wire_pos = cyl_z(TUBE_X_POS, TUBE_Y, tz, top_z + 2.0, 1.8)
+    wire_neg = cyl_z(TUBE_X_SHORT, TUBE_Y, tz, top_z + 2.0, 1.8)
     return [
         (pcb, (0.08, 0.35, 0.62)),
         (buzzer, (0.14, 0.14, 0.16)),

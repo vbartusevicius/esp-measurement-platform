@@ -41,36 +41,51 @@ def test_radiation_duct_cajoe_pcb_fits_without_corner_collision():
     base_val = base.val()
     assert not base_val.isInside(cq.Vector(brd.BOX_W / 2 - brd.WALL / 2, -8.0, brd.PCB_Z + 7.0))
 
-    # 4. Middle of the J305 glass tube (x=0, y=TUBE_Y, z=-23.0) is clear for Beta/Gamma
-    for x_probe in (-25.0, 0.0, 25.0):
+    # 4. Verify all 3 HV wire channels (x = -42.0, +26.0 short, +44.0 long) are open
+    #    and the central glass window (x = -25..+10) is clear for Beta/Gamma
+    for sx in brd.TUBE_CRADLE_XS:
+        assert not bracket.isInside(cq.Vector(sx, brd.TUBE_Y, -10.0))
+        assert not base_val.isInside(cq.Vector(sx, brd.TUBE_Y, 0.0))
+    for x_probe in (-25.0, -8.0, 10.0):
         assert not bracket.isInside(cq.Vector(x_probe, brd.TUBE_Y, -23.0))
         assert not bracket.isInside(cq.Vector(x_probe, brd.TUBE_Y, -30.0))
         assert not bracket.isInside(cq.Vector(x_probe, brd.TUBE_Y, -15.0))
 
 
 def test_distance_pod_clamps_both_sensors_and_has_open_wire_port():
-    base = bdp.build_pod_base().val()
-    cover = bdp.build_pod_cover().val()
+    base_wp = bdp.build_pod_base()
+    cover_wp = bdp.build_pod_cover()
+    base = base_wp.val()
+    cover = cover_wp.val()
 
     assert base.Volume() > 8000
     assert cover.Volume() > 3000
 
-    # 1. ToF Laser optical aperture at (0, TOF_Y, z=0..WALL) must be clear
+    # 1. Verify ZERO collision between the exact-datasheet sensor solids
+    #    (TOF400C-VL53L1X PCB + oval cap, A02YYUW body + 84.6mm ears + stepped horns)
+    #    and both distance_pod_base and distance_pod_cover
+    for idx, (sensor_solid, _) in enumerate(bdp.sensor_reference_solids()[1:6], start=1):
+        clash_b = base_wp.intersect(sensor_solid).val().Volume()
+        clash_c = cover_wp.intersect(sensor_solid).val().Volume()
+        assert clash_b < 1e-3, f"Sensor solid #{idx} collides with pod base ({clash_b:.2f} mm3)"
+        assert clash_c < 1e-3, f"Sensor solid #{idx} collides with pod cover ({clash_c:.2f} mm3)"
+
+    # 2. ToF Laser optical aperture at (0, TOF_Y, z=0..WALL) must be clear
     assert not base.isInside(cq.Vector(0.0, bdp.TOF_Y, bdp.WALL / 2))
 
-    # 2. Both A02YYUW ultrasonic horn ports at (+-US_HORN_DX, US_Y, z=0..WALL) must be clear
+    # 3. Both A02YYUW ultrasonic horn ports at (+-US_HORN_DX = +-17.0 mm, US_Y) must be clear
     for sx in (-bdp.US_HORN_DX, bdp.US_HORN_DX):
-        assert not base.isInside(cq.Vector(sx, bdp.US_Y, bdp.WALL / 2))
+        assert not base.isInside(cq.Vector(sx, bdp.US_Y, 1.0))
+        assert not base.isInside(cq.Vector(sx, bdp.US_Y, 4.0))
 
-    # 3. Cover hold-down pillars reach down to clamp the VL53L1X PCB (z = TOF_STANDOFF_Z + TOF_PCB_T + 0.5)
+    # 4. Cover hold-down blocks reach down to clamp the TOF400C / GY-530 PCB
     tof_top = bdp.TOF_STANDOFF_Z + bdp.TOF_PCB_T
-    for sx in (-bdp.TOF_HOLE_DX, bdp.TOF_HOLE_DX):
-        assert cover.isInside(cq.Vector(sx + 1.5, bdp.TOF_Y, tof_top + 0.5))
+    assert cover.isInside(cq.Vector(9.0, bdp.TOF_Y, tof_top + 0.5))
+    assert cover.isInside(cq.Vector(-9.0, bdp.TOF_Y, tof_top + 0.5))
 
-    # 4. Cover hold-down ribs reach down to clamp the A02YYUW ultrasonic body (z = US_SEAT_Z + US_BODY_H + 0.5)
-    us_top = bdp.US_SEAT_Z + bdp.US_BODY_H
-    for sx in (-15.5, 15.5):
-        assert cover.isInside(cq.Vector(sx, bdp.US_Y, us_top + 0.5))
+    # 5. Cover hold-down ribs reach down to clamp the A02YYUW ultrasonic body (z = US_TOP_Z + 0.5)
+    for sx in (-bdp.US_HORN_DX, bdp.US_HORN_DX):
+        assert cover.isInside(cq.Vector(sx, bdp.US_Y, bdp.US_TOP_Z + 0.5))
 
-    # 5. Wire exit port on right wall (+x = POD_W/2 - WALL/2, y = -3.0, z = 14.0) is open
-    assert not base.isInside(cq.Vector(bdp.POD_W / 2 - bdp.WALL / 2, -3.0, 14.0))
+    # 6. Rear wire exit port at (x = 16.0, y = POD_H/2 - WALL/2, z = 13.5) is open
+    assert not base.isInside(cq.Vector(16.0, bdp.POD_H / 2 - bdp.WALL / 2, 13.5))

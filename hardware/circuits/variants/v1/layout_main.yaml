@@ -42,6 +42,7 @@ heights:
   J2: 11.1
   J3: 1.2
   J4: 11.1
+  J5: 11.1
   U3: 11.0
   K1: 9.2
   Q1: 1.2
@@ -73,8 +74,9 @@ parts:
   R14: { x: 10.2,  y: 28.2,  rot: 0,   block: relay }
   R15: { x: 4.8,   y: 29.2,  rot: 0,   block: relay }
 
-  # --- Top shoulder: single 7-pole sensor terminal J2 (1:GND, 2:+5V, 3:+24V, 4:4-20mA, 5:0-10V, 6:IO1, 7:IO2) ---
-  J2:  { x: 19.9,  y: 71.1,  rot: 180, block: terminals_top, locked: true }
+  # --- Top shoulder: interlocking 4P + 3P = 7P sensor terminal (J2 poles 1..4 + J5 poles 5..7) ---
+  J2:  { x: 27.52, y: 71.1,  rot: 180, block: terminals_top, locked: true }
+  J5:  { x: 9.74,  y: 71.1,  rot: 180, block: terminals_top, locked: true }
 
   # --- UI FFC connector (middle-left, facing front UI board) ---
   J3:  { x: 5.5,   y: 44.0,  rot: -90, block: int_ui, locked: true }

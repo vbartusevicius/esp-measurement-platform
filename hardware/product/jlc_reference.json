@@ -268,6 +268,39 @@
         "2": "2"
       }
     },
+    "C20526": {
+      "record": {
+        "componentModelEn": "MMBT3904(RANGE:100-300)",
+        "componentBrandEn": "Jiangsu Changjing Electronics Technology Co., Ltd.",
+        "componentSpecificationEn": "SOT-23",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2207041900_Jiangsu-Changjing-Electronics-Technology-Co---Ltd--MMBT3904-RANGE-100-300_C20526.pdf",
+        "componentLibraryType": "base",
+        "attributes": []
+      },
+      "footprint": "SOT-23-3_L2.9-W1.3-P1.90-LS2.4-BR",
+      "pads": [
+        [
+          "1",
+          0.9999979999999742,
+          -0.9499599999999445
+        ],
+        [
+          "2",
+          0.9999979999999742,
+          0.9499599999999445
+        ],
+        [
+          "3",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "3": "C",
+        "1": "B",
+        "2": "E"
+      }
+    },
     "C21190": {
       "record": {
         "componentModelEn": "0603WAF1001T5E",
@@ -675,115 +708,79 @@
         "2": "2"
       }
     },
-    "C2856800": {
+    "C2856797": {
       "record": {
-        "componentModelEn": "FPC-05F-14PH20",
+        "componentModelEn": "FPC-05F-8PH20",
         "componentBrandEn": "XUNPU",
         "componentSpecificationEn": "SMD,P=0.5mm,Surface Mount，Right Angle",
-        "dataManualUrl": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2109221030_XUNPU-FPC-05F-14PH20_C2856800.pdf",
+        "dataManualUrl": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2110151130_XUNPU-FPC-05F-8PH20_C2856797.pdf",
         "componentLibraryType": "expand",
         "attributes": []
       },
-      "footprint": "FPC-SMD_14P-P0.50_XUNPU_FPC-05F-14PH20",
+      "footprint": "FPC-SMD_8P-P0.50_FPC-05F-8PH20",
       "pads": [
         [
-          "1",
-          -3.2499300000000186,
-          1.28752599999999
+          "9",
+          3.440023600000005,
+          -1.25247400000001
         ],
         [
-          "2",
-          -2.7500580000000574,
-          1.28752599999999
+          "10",
+          -3.4400743999999923,
+          -1.28752599999999
         ],
         [
-          "3",
-          -2.2499320000000442,
-          1.28752599999999
-        ],
-        [
-          "4",
-          -1.7500600000000832,
-          1.28752599999999
-        ],
-        [
-          "5",
-          -1.2499340000000703,
-          1.28752599999999
-        ],
-        [
-          "6",
-          -0.7500619999999936,
+          "8",
+          1.749907600000006,
           1.28752599999999
         ],
         [
           "7",
-          -0.2499359999999806,
+          1.2500356000000448,
           1.28752599999999
         ],
         [
-          "8",
-          0.2499359999999806,
+          "6",
+          0.7499096000000318,
           1.28752599999999
         ],
         [
-          "9",
-          0.7500619999999936,
+          "5",
+          0.2500376000000706,
           1.28752599999999
         ],
         [
-          "10",
-          1.2499339999999548,
+          "4",
+          -0.25008839999994237,
           1.28752599999999
         ],
         [
-          "11",
-          1.7500599999999678,
+          "3",
+          -0.7499604000000191,
           1.28752599999999
         ],
         [
-          "12",
-          2.2499319999999288,
+          "2",
+          -1.250086400000032,
           1.28752599999999
         ],
         [
-          "13",
-          2.750057999999942,
+          "1",
+          -1.7499583999999933,
           1.28752599999999
-        ],
-        [
-          "14",
-          3.2501839999999547,
-          1.28752599999999
-        ],
-        [
-          "16",
-          -4.9400460000000175,
-          -1.28752599999999
-        ],
-        [
-          "15",
-          4.9400460000000175,
-          -1.28752599999999
         ]
       ],
       "pin_names": {
-        "16": "16",
-        "15": "15",
-        "14": "14",
-        "13": "13",
-        "12": "12",
-        "11": "11",
-        "10": "10",
-        "9": "9",
-        "8": "8",
-        "7": "7",
-        "6": "6",
-        "5": "5",
-        "4": "4",
-        "3": "3",
+        "1": "1",
         "2": "2",
-        "1": "1"
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "6": "6",
+        "7": "7",
+        "8": "8",
+        "9": "9",
+        "10": "10"
       }
     },
     "C2869734": {
@@ -1018,69 +1015,6 @@
         "2": "2"
       }
     },
-    "C47190": {
-      "record": {
-        "componentModelEn": "G6K-2F-Y-TR DC5",
-        "componentBrandEn": "Omron Electronics",
-        "componentSpecificationEn": "SMD,10x6.5mm",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211282300_Omron-Electronics-G6K-2F-Y-TR-DC5_C47190.pdf",
-        "componentLibraryType": "expand",
-        "attributes": []
-      },
-      "footprint": "RELAY-SMD_G6K-2F-X-XX",
-      "pads": [
-        [
-          "1",
-          -3.7999669999999917,
-          -3.510000599999996
-        ],
-        [
-          "2",
-          -0.6000750000000029,
-          -3.510000599999996
-        ],
-        [
-          "3",
-          1.6000730000000059,
-          -3.510000599999996
-        ],
-        [
-          "4",
-          3.7999670000000063,
-          -3.510000599999996
-        ],
-        [
-          "5",
-          3.7999670000000063,
-          3.510000599999996
-        ],
-        [
-          "6",
-          1.6000730000000059,
-          3.510000599999996
-        ],
-        [
-          "7",
-          -0.6000750000000029,
-          3.510000599999996
-        ],
-        [
-          "8",
-          -3.7999669999999917,
-          3.510000599999996
-        ]
-      ],
-      "pin_names": {
-        "1": "1",
-        "2": "2",
-        "3": "3",
-        "4": "4",
-        "5": "5",
-        "6": "6",
-        "7": "7",
-        "8": "8"
-      }
-    },
     "C475144": {
       "record": {
         "componentModelEn": "KF142R-5.08-2P",
@@ -1166,65 +1100,55 @@
         "3": "3"
       }
     },
-    "C475147": {
+    "C475146": {
       "record": {
-        "componentModelEn": "KF142R-5.08-5P",
+        "componentModelEn": "KF142R-5.08-4P",
         "componentBrandEn": "Cixi Kefa Elec",
         "componentSpecificationEn": "Push-Pull,P=5.08mm",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2303170930_Cixi-Kefa-Elec-KF142R-5-08-5P_C475147.pdf",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2303170930_Cixi-Kefa-Elec-KF142R-5-08-4P_C475146.pdf",
         "componentLibraryType": "expand",
         "attributes": []
       },
-      "footprint": "CONN-TH_5P-P5.08_KF142R-5.08-5P",
+      "footprint": "CONN-TH_4P-P5.08_KF142R-5.08-4P",
       "pads": [
         [
           "1",
-          -10.16,
+          -7.62,
           3.81
         ],
         [
           "2",
-          -5.08,
+          -2.54,
           3.81
         ],
         [
           "3",
-          0.0,
+          2.54,
           3.81
         ],
         [
           "1",
-          -10.16,
+          -7.62,
           -3.81
         ],
         [
           "2",
-          -5.08,
+          -2.54,
           -3.81
         ],
         [
           "3",
-          0.0,
+          2.54,
           -3.81
         ],
         [
           "4",
-          5.08,
+          7.62,
           3.81
         ],
         [
           "4",
-          5.08,
-          -3.81
-        ],
-        [
-          "5",
-          10.16,
-          3.81
-        ],
-        [
-          "5",
-          10.16,
+          7.62,
           -3.81
         ]
       ],
@@ -1232,8 +1156,7 @@
         "1": "1",
         "2": "2",
         "3": "3",
-        "4": "4",
-        "5": "5"
+        "4": "4"
       }
     },
     "C475149": {
@@ -1479,6 +1402,33 @@
         "3": "GND",
         "4": "Y",
         "5": "VCC"
+      }
+    },
+    "C8678": {
+      "record": {
+        "componentModelEn": "SS34",
+        "componentBrandEn": "MDD(Microdiode Semiconductor)",
+        "componentSpecificationEn": "SMA(DO-214AC)",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407101107_MDD-Microdiode-Semiconductor-SS34_C8678.pdf",
+        "componentLibraryType": "base",
+        "attributes": []
+      },
+      "footprint": "SMA_L4.3-W2.6-LS5.2-RD",
+      "pads": [
+        [
+          "2",
+          2.1998940000000147,
+          -0.0
+        ],
+        [
+          "1",
+          -2.1998940000000147,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "A",
+        "1": "K"
       }
     },
     "C9900124963": {

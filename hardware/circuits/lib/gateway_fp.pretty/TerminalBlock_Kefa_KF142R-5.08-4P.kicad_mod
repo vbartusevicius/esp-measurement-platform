@@ -9,7 +9,7 @@
   (fp_rect (start -10.92 -5.81) (end 11.94 8.40) (stroke (width 0.1) (type solid)) (fill no) (layer "F.Fab"))
   (fp_rect (start -11.02 -5.91) (end 12.04 8.50) (stroke (width 0.12) (type solid)) (fill no) (layer "F.SilkS"))
   (fp_line (start -10.92 5.37) (end 11.94 5.37) (stroke (width 0.12) (type solid)) (layer "F.SilkS"))
-  (fp_rect (start -10.93 -5.85) (end 11.03 8.50) (stroke (width 0.05) (type solid)) (fill no) (layer "F.CrtYd"))
+  (fp_rect (start -10.10 -5.85) (end 10.10 8.50) (stroke (width 0.05) (type solid)) (fill no) (layer "F.CrtYd"))
   (pad "1" thru_hole rect (at -7.62 3.81) (size 2.2 2.2) (drill 1.5) (layers "*.Cu" "*.Mask"))
   (pad "1" thru_hole circle (at -7.62 -3.81) (size 2.2 2.2) (drill 1.5) (layers "*.Cu" "*.Mask"))
   (pad "2" thru_hole circle (at -2.54 3.81) (size 2.2 2.2) (drill 1.5) (layers "*.Cu" "*.Mask"))

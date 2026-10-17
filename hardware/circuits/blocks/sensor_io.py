@@ -56,8 +56,8 @@ def build(gnd, v3, v5):
     c_ma_filt[1] += ma_mcu
     c_ma_filt[2] += gnd
 
-    d_ma = part("Device", "D_Schottky", "SS16", SMA,
-                src(mpn="SS16", mfr="MDD", lcsc="C2481",
+    d_ma = part("Device", "D_Schottky", "SS34", SMA,
+                src(mpn="SS34", mfr="MDD", lcsc="C8678",
                     source="4-20 mA overvoltage Schottky clamp to +3V3"),
                 ref="D3")
     d_ma["A"] += ma_mcu
@@ -77,8 +77,8 @@ def build(gnd, v3, v5):
     c_v_filt[1] += v0_10_mcu
     c_v_filt[2] += gnd
 
-    d_v = part("Device", "D_Schottky", "SS16", SMA,
-               src(mpn="SS16", mfr="MDD", lcsc="C2481",
+    d_v = part("Device", "D_Schottky", "SS34", SMA,
+               src(mpn="SS34", mfr="MDD", lcsc="C8678",
                    source="0-10V input overvoltage Schottky clamp to +3V3"),
                ref="D4")
     d_v["A"] += v0_10_mcu
@@ -102,8 +102,8 @@ def build(gnd, v3, v5):
         r_ser[1] += t_net
         r_ser[2] += m_net
 
-        d_clamp = part("Device", "D_Schottky", "SS16", SMA,
-                       src(mpn="SS16", mfr="MDD", lcsc="C2481",
+        d_clamp = part("Device", "D_Schottky", "SS34", SMA,
+                       src(mpn="SS34", mfr="MDD", lcsc="C8678",
                            source=f"IO{idx} overvoltage Schottky clamp to +3V3"),
                        ref=f"D{idx + 4}")
         d_clamp["A"] += m_net
@@ -117,7 +117,7 @@ def build(gnd, v3, v5):
     d_rail["A"] += gnd
     d_rail["K"] += v5
 
-    # --- 4. SMD 3-Way Changeover Relay (Omron G6K-2F-Y-TR DC5: NC / COM / NO) ---
+    # --- 4. SMD 3-Way Changeover Relay (Omron G6S-2F DC5: NC / COM / NO) ---
     block("relay")
     relay_mcu = Net("RELAY_MCU")
     relay_base = Net("RELAY_BASE")
@@ -134,16 +134,16 @@ def build(gnd, v3, v5):
     r_rel_pd[1] += relay_base
     r_rel_pd[2] += gnd
 
-    q1 = part("Transistor_BJT", "BC847", "BC847B,215", SOT23,
-              src(mpn="BC847B,215", mfr="Nexperia", lcsc="C57668",
-                  source="NPN relay coil driver (45 V, 100 mA; G6K-2F-Y 5V coil draws 21 mA)"),
+    q1 = part("Transistor_BJT", "BC847", "MMBT3904", SOT23,
+              src(mpn="MMBT3904(RANGE:100-300)", mfr="CJ", lcsc="C20526",
+                  source="NPN relay coil driver (40 V, 200 mA, JLCPCB Basic Part; G6S-2F 5V coil draws 28 mA)"),
               ref="Q1")
     q1["B"] += relay_base
     q1["E"] += gnd
     q1["C"] += relay_coil_n
 
-    d_fly = part("Device", "D_Schottky", "SS16", SMA,
-                 src(mpn="SS16", mfr="MDD", lcsc="C2481",
+    d_fly = part("Device", "D_Schottky", "SS34", SMA,
+                 src(mpn="SS34", mfr="MDD", lcsc="C8678",
                      source="Relay coil flyback suppression diode"),
                  ref="D7")
     d_fly["A"] += relay_coil_n
