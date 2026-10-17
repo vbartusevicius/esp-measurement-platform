@@ -1,0 +1,1 @@
+"""Hardware variants package."""

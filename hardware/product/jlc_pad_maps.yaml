@@ -1,0 +1,12 @@
+# Parts whose JLCPCB (EasyEDA) footprint numbers its pads differently from our
+# footprint. Keyed by LCSC number: JLCPCB pad -> the pads of ours it may land
+# on. hardware/scripts/jlc_parts.py uses these instead of equal numbers.
+C460867:
+  # Diodes DF005S-DF10S datasheet (DS17001 rev 18-2, pin diagram): 1 +, 2 ~,
+  # 3 -, 4 ~. Our KiCad DF005S symbol / DFS footprint: 1 +, 2 -, 3 ~, 4 ~.
+  # The two AC pins are interchangeable.
+  map: { "1": ["1"], "2": ["3", "4"], "3": ["2"], "4": ["3", "4"] }
+C285485:
+  # C&K PTS645 SMT schematic: 1-2 one contact, 3-4 the other. Our footprint
+  # numbers each contact's two pads alike.
+  map: { "1": ["1"], "2": ["1"], "3": ["2"], "4": ["2"] }

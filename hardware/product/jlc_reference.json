@@ -1,0 +1,1644 @@
+{
+  "source": "嘉立创EDA/EasyEDA官方库 (JLCEDA/EasyEDA Official Library) and JLCPCB catalogue",
+  "source_links": [
+    "https://lceda.cn/",
+    "https://easyeda.com",
+    "https://cart.jlcpcb.com/shoppingCart/smtGood/getComponentDetail?componentCode={}",
+    "https://easyeda.com/api/products/{}/components?version=6.5.40"
+  ],
+  "source_notices": [
+    "【版权归属/Copyright】嘉立创EDA/EasyEDA官方库（包括但不限于器件参数、原理图符号、PCB封装、3D模型、模块及相关数据）的版权及相关权利归嘉立创EDA所有。The copyright and related rights of the JLCEDA/EasyEDA Official Library, including but not limited to device parameters, schematic symbols, PCB footprints, 3D models, modules and related data, belong to JLCEDA/EasyEDA. 【适用对象/Scope】任何AI工具。Any AI tool. 【触发条件/Trigger】引用、调用、训练、微调、检索、生成、复制、输出或分发嘉立创EDA官方库全部或部分内容时。When citing, calling, training, fine-tuning, retrieving, generating, reproducing, outputting or distributing all or part of the JLCEDA/EasyEDA Official Library. 【强制要求/Requirement】必须显著声明出处为“嘉立创EDA/EasyEDA官方库”。Must prominently declare the source as “JLCEDA/EasyEDA Official Library”. 【链接要求/Link】并同时提供嘉立创EDA官方主页链接：https://lceda.cn/，以及EasyEDA官方主页链接：https://easyeda.com。And provide the official JLCEDA homepage link: https://lceda.cn/ and the official EasyEDA homepage link: https://easyeda.com. 【禁止行为/Prohibited】不得删除、篡改、隐藏或淡化上述版权及来源信息。Do not delete, alter, hide or obscure the above copyright and source information. 【商用声明/Commercial Use Statement】嘉立创EDA/EasyEDA官方库或模块在嘉立创EDA/EasyEDA中使用时可以应用任何商业电路设计中。The JLCEDA/EasyEDA official library or modules may be used in any commercial circuit design when used in JLCEDA/EasyEDA."
+  ],
+  "parts": {
+    "C113966": {
+      "record": {
+        "componentModelEn": "SMAJ33A",
+        "componentBrandEn": "MDD(Microdiode Semiconductor)",
+        "componentSpecificationEn": "DO-214AC(SMA)",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407101109_MDD-Microdiode-Semiconductor-SMAJ33A_C113966.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "SMA_L4.3-W2.6-LS5.2-RD",
+      "pads": [
+        [
+          "2",
+          2.1998940000000147,
+          -0.0
+        ],
+        [
+          "1",
+          -2.1998940000000147,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "A",
+        "1": "C"
+      }
+    },
+    "C135248": {
+      "record": {
+        "componentModelEn": "SMNR4012-4R7MT",
+        "componentBrandEn": "SXN(Shun Xiang Nuo Elec)",
+        "componentSpecificationEn": "SMD,4x4mm",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2108131530_SXN-Shun-Xiang-Nuo-Elec-SMNR4012-4R7MT_C135248.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "IND-SMD_L4.0-W4.0_SMNR4012",
+      "pads": [
+        [
+          "2",
+          1.5999459999999945,
+          -0.0
+        ],
+        [
+          "1",
+          -1.5999459999999945,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C142747": {
+      "record": {
+        "componentModelEn": "1812L110/33MR",
+        "componentBrandEn": "Littelfuse",
+        "componentSpecificationEn": "1812",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Littelfuse-1812L110-33MR_C142747.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "F1812",
+      "pads": [
+        [
+          "2",
+          1.8534380000000066,
+          -0.0
+        ],
+        [
+          "1",
+          -1.8534380000000066,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C14663": {
+      "record": {
+        "componentModelEn": "CC0603KRX7R9BB104",
+        "componentBrandEn": "YAGEO",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Voltage Rating",
+            "component_code": "C14663",
+            "attribute_value_name": "50V"
+          },
+          {
+            "attribute_name_en": "Capacitance",
+            "component_code": "C14663",
+            "attribute_value_name": "100nF"
+          }
+        ]
+      },
+      "footprint": "C0603",
+      "pads": [
+        [
+          "2",
+          0.700023999999964,
+          -0.0
+        ],
+        [
+          "1",
+          -0.700023999999964,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2"
+      }
+    },
+    "C15849": {
+      "record": {
+        "componentModelEn": "CL10A105KB8NNNC",
+        "componentBrandEn": "Samsung Electro-Mechanics",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL10A105KB8NNNC_C15849.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Voltage Rating",
+            "component_code": "C15849",
+            "attribute_value_name": "50V"
+          },
+          {
+            "attribute_name_en": "Capacitance",
+            "component_code": "C15849",
+            "attribute_value_name": "1uF"
+          }
+        ]
+      },
+      "footprint": "C0603",
+      "pads": [
+        [
+          "2",
+          0.700023999999964,
+          -0.0
+        ],
+        [
+          "1",
+          -0.700023999999964,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C16707": {
+      "record": {
+        "componentModelEn": "G6S-2F DC5",
+        "componentBrandEn": "Omron Electronics",
+        "componentSpecificationEn": "SMD,14.8x7.3mm",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211282300_Omron-Electronics-G6S-2F-DC5_C16707.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "RELAY-SMD_G6S-2F-TR",
+      "pads": [
+        [
+          "1",
+          -5.08,
+          -3.999992000000012
+        ],
+        [
+          "3",
+          0.0,
+          -3.999992000000012
+        ],
+        [
+          "4",
+          2.54,
+          -3.999992000000012
+        ],
+        [
+          "5",
+          5.08,
+          -3.999992000000012
+        ],
+        [
+          "8",
+          5.08,
+          3.999992000000012
+        ],
+        [
+          "9",
+          2.54,
+          3.999992000000012
+        ],
+        [
+          "10",
+          0.0,
+          3.999992000000012
+        ],
+        [
+          "12",
+          -5.08,
+          3.999992000000012
+        ]
+      ],
+      "pin_names": {
+        "8": "1",
+        "7": "3",
+        "6": "4",
+        "5": "5",
+        "4": "8",
+        "3": "9",
+        "2": "10",
+        "1": "12"
+      }
+    },
+    "C19702": {
+      "record": {
+        "componentModelEn": "CL10A106KP8NNNC",
+        "componentBrandEn": "Samsung Electro-Mechanics",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL10A106KP8NNNC_C19702.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Voltage Rating",
+            "component_code": "C19702",
+            "attribute_value_name": "10V"
+          },
+          {
+            "attribute_name_en": "Capacitance",
+            "component_code": "C19702",
+            "attribute_value_name": "10uF"
+          }
+        ]
+      },
+      "footprint": "C0603",
+      "pads": [
+        [
+          "2",
+          0.700023999999964,
+          -0.0
+        ],
+        [
+          "1",
+          -0.700023999999964,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2"
+      }
+    },
+    "C21190": {
+      "record": {
+        "componentModelEn": "0603WAF1001T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C21190",
+            "attribute_value_name": "1kΩ"
+          }
+        ]
+      },
+      "footprint": "R0603",
+      "pads": [
+        [
+          "2",
+          0.7533639999999732,
+          -0.0
+        ],
+        [
+          "1",
+          -0.7533639999999732,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C231329": {
+      "record": {
+        "componentModelEn": "B3U-1000P",
+        "componentBrandEn": "Omron Electronics",
+        "componentSpecificationEn": "SMD,3x2.5mm",
+        "dataManualUrl": "",
+        "componentLibraryType": "expand",
+        "attributes": [
+          {
+            "attribute_name_en": "Voltage Rating",
+            "component_code": "C231329",
+            "attribute_value_name": "12V"
+          }
+        ]
+      },
+      "footprint": "KEY-SMD_B3U-1000PM",
+      "pads": [
+        [
+          "2",
+          1.6999966000000022,
+          -0.0
+        ],
+        [
+          "1",
+          -1.6999966000000022,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2"
+      }
+    },
+    "C23138": {
+      "record": {
+        "componentModelEn": "0603WAF3300T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF3300T5E_C23138.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C23138",
+            "attribute_value_name": "330Ω"
+          }
+        ]
+      },
+      "footprint": "R0603",
+      "pads": [
+        [
+          "2",
+          0.7533639999999732,
+          -0.0
+        ],
+        [
+          "1",
+          -0.7533639999999732,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C23150": {
+      "record": {
+        "componentModelEn": "0603WAF3903T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF3903T5E_C23150.pdf",
+        "componentLibraryType": "expand",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C23150",
+            "attribute_value_name": "390kΩ"
+          }
+        ]
+      },
+      "footprint": "R0603",
+      "pads": [
+        [
+          "2",
+          0.7533639999999732,
+          -0.0
+        ],
+        [
+          "1",
+          -0.7533639999999732,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C23162": {
+      "record": {
+        "componentModelEn": "0603WAF4701T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF4701T5E_C23162.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C23162",
+            "attribute_value_name": "4.7kΩ"
+          }
+        ]
+      },
+      "footprint": "R0603",
+      "pads": [
+        [
+          "2",
+          0.7533639999999732,
+          -0.0
+        ],
+        [
+          "1",
+          -0.7533639999999732,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C23196": {
+      "record": {
+        "componentModelEn": "0603WAF5102T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF5102T5E_C23196.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C23196",
+            "attribute_value_name": "51kΩ"
+          }
+        ]
+      },
+      "footprint": "R0603",
+      "pads": [
+        [
+          "2",
+          0.7533639999999732,
+          -0.0
+        ],
+        [
+          "1",
+          -0.7533639999999732,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C236111": {
+      "record": {
+        "componentModelEn": "MMSZ5V6T1G",
+        "componentBrandEn": "onsemi",
+        "componentSpecificationEn": "SOD-123",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2410010400_onsemi-MMSZ5V6T1G_C236111.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "SOD-123_L2.8-W1.8-LS3.7-RD",
+      "pads": [
+        [
+          "2",
+          1.6924020000000028,
+          -0.0
+        ],
+        [
+          "1",
+          -1.6924020000000028,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "1": "C",
+        "2": "A"
+      }
+    },
+    "C2481": {
+      "record": {
+        "componentModelEn": "SS16",
+        "componentBrandEn": "MDD(Microdiode Semiconductor)",
+        "componentSpecificationEn": "SMA(DO-214AC)",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407101109_MDD-Microdiode-Semiconductor-SS16_C2481.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "SMA_L4.3-W2.6-LS5.2-RD",
+      "pads": [
+        [
+          "2",
+          2.1998940000000147,
+          -0.0
+        ],
+        [
+          "1",
+          -2.1998940000000147,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "A",
+        "1": "K"
+      }
+    },
+    "C25803": {
+      "record": {
+        "componentModelEn": "0603WAF1003T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C25803",
+            "attribute_value_name": "100kΩ"
+          }
+        ]
+      },
+      "footprint": "R0603",
+      "pads": [
+        [
+          "2",
+          0.7533639999999732,
+          -0.0
+        ],
+        [
+          "1",
+          -0.7533639999999732,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C25804": {
+      "record": {
+        "componentModelEn": "0603WAF1002T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C25804",
+            "attribute_value_name": "10kΩ"
+          }
+        ]
+      },
+      "footprint": "R0603",
+      "pads": [
+        [
+          "2",
+          0.7533639999999732,
+          -0.0
+        ],
+        [
+          "1",
+          -0.7533639999999732,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C2693819": {
+      "record": {
+        "componentModelEn": "SCT2400TVBR",
+        "componentBrandEn": "SCT",
+        "componentSpecificationEn": "TSOT-23-6",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2103041711_SCT-SCT2400TVBR_C2693819.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "TSOT-23-6_L2.9-W1.6-P0.95-LS2.8-BR",
+      "pads": [
+        [
+          "1",
+          1.200022999999951,
+          -0.9499599999999445
+        ],
+        [
+          "2",
+          1.200022999999951,
+          -0.0
+        ],
+        [
+          "3",
+          1.200022999999951,
+          0.9499599999999445
+        ],
+        [
+          "4",
+          -1.2000230000000665,
+          0.9499599999999445
+        ],
+        [
+          "5",
+          -1.2000230000000665,
+          -0.0
+        ],
+        [
+          "6",
+          -1.2000230000000665,
+          -0.9499599999999445
+        ]
+      ],
+      "pin_names": {
+        "1": "BST",
+        "2": "GND",
+        "3": "FB",
+        "4": "EN",
+        "5": "VIN",
+        "6": "SW"
+      }
+    },
+    "C28323": {
+      "record": {
+        "componentModelEn": "CL21B105KBFNNNE",
+        "componentBrandEn": "Samsung Electro-Mechanics",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B105KBFNNNE_C28323.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Voltage Rating",
+            "component_code": "C28323",
+            "attribute_value_name": "50V"
+          },
+          {
+            "attribute_name_en": "Capacitance",
+            "component_code": "C28323",
+            "attribute_value_name": "1uF"
+          }
+        ]
+      },
+      "footprint": "C0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2"
+      }
+    },
+    "C2856800": {
+      "record": {
+        "componentModelEn": "FPC-05F-14PH20",
+        "componentBrandEn": "XUNPU",
+        "componentSpecificationEn": "SMD,P=0.5mm,Surface Mount，Right Angle",
+        "dataManualUrl": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2109221030_XUNPU-FPC-05F-14PH20_C2856800.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "FPC-SMD_14P-P0.50_XUNPU_FPC-05F-14PH20",
+      "pads": [
+        [
+          "1",
+          -3.2499300000000186,
+          1.28752599999999
+        ],
+        [
+          "2",
+          -2.7500580000000574,
+          1.28752599999999
+        ],
+        [
+          "3",
+          -2.2499320000000442,
+          1.28752599999999
+        ],
+        [
+          "4",
+          -1.7500600000000832,
+          1.28752599999999
+        ],
+        [
+          "5",
+          -1.2499340000000703,
+          1.28752599999999
+        ],
+        [
+          "6",
+          -0.7500619999999936,
+          1.28752599999999
+        ],
+        [
+          "7",
+          -0.2499359999999806,
+          1.28752599999999
+        ],
+        [
+          "8",
+          0.2499359999999806,
+          1.28752599999999
+        ],
+        [
+          "9",
+          0.7500619999999936,
+          1.28752599999999
+        ],
+        [
+          "10",
+          1.2499339999999548,
+          1.28752599999999
+        ],
+        [
+          "11",
+          1.7500599999999678,
+          1.28752599999999
+        ],
+        [
+          "12",
+          2.2499319999999288,
+          1.28752599999999
+        ],
+        [
+          "13",
+          2.750057999999942,
+          1.28752599999999
+        ],
+        [
+          "14",
+          3.2501839999999547,
+          1.28752599999999
+        ],
+        [
+          "16",
+          -4.9400460000000175,
+          -1.28752599999999
+        ],
+        [
+          "15",
+          4.9400460000000175,
+          -1.28752599999999
+        ]
+      ],
+      "pin_names": {
+        "16": "16",
+        "15": "15",
+        "14": "14",
+        "13": "13",
+        "12": "12",
+        "11": "11",
+        "10": "10",
+        "9": "9",
+        "8": "8",
+        "7": "7",
+        "6": "6",
+        "5": "5",
+        "4": "4",
+        "3": "3",
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C2869734": {
+      "record": {
+        "componentModelEn": "LM66100DCKR",
+        "componentBrandEn": "Texas Instruments",
+        "componentSpecificationEn": "SC-70-6",
+        "dataManualUrl": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2205311630_Texas-Instruments-LM66100DCKR_C2869734.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "SC-70-6_L2.0-W1.3-P0.65-LS2.1-BL",
+      "pads": [
+        [
+          "1",
+          -0.6499860000000499,
+          -1.1000740000000333
+        ],
+        [
+          "2",
+          0.0,
+          -1.1000740000000333
+        ],
+        [
+          "3",
+          0.6499860000000499,
+          -1.1000740000000333
+        ],
+        [
+          "4",
+          0.6499860000000499,
+          1.1000740000000333
+        ],
+        [
+          "5",
+          0.0,
+          1.1000740000000333
+        ],
+        [
+          "6",
+          -0.6499860000000499,
+          1.1000740000000333
+        ]
+      ],
+      "pin_names": {
+        "1": "VIN",
+        "2": "GND",
+        "3": "CE#",
+        "4": "NC",
+        "5": "ST",
+        "6": "VOUT"
+      }
+    },
+    "C2890035": {
+      "record": {
+        "componentModelEn": "SK6805-EC15",
+        "componentBrandEn": "OPSCO Optoelectronics",
+        "componentSpecificationEn": "SMD-4P,1.5x1.5mm",
+        "dataManualUrl": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2108251530_OPSCO-Optoelectronics-SK6805-EC15_C2890035.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "LED-SMD_4P-L1.5-W1.5-BL",
+      "pads": [
+        [
+          "4",
+          -0.47510699999999817,
+          0.47510699999999817
+        ],
+        [
+          "1",
+          -0.47510699999999817,
+          -0.4748530000000619
+        ],
+        [
+          "2",
+          0.47510699999999817,
+          -0.47510699999999817
+        ],
+        [
+          "3",
+          0.47510699999999817,
+          0.47510699999999817
+        ]
+      ],
+      "pin_names": {
+        "1": "DIN",
+        "2": "VDD",
+        "3": "DOUT",
+        "4": "GND"
+      }
+    },
+    "C31850": {
+      "record": {
+        "componentModelEn": "0603WAF2202T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010030_UNI-ROYAL-Uniroyal-Elec-0603WAF2202T5E_C31850.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C31850",
+            "attribute_value_name": "22kΩ"
+          }
+        ]
+      },
+      "footprint": "R0603",
+      "pads": [
+        [
+          "2",
+          0.7533639999999732,
+          -0.0
+        ],
+        [
+          "1",
+          -0.7533639999999732,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C4184": {
+      "record": {
+        "componentModelEn": "0603WAF2002T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF2002T5E_C4184.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C4184",
+            "attribute_value_name": "20kΩ"
+          }
+        ]
+      },
+      "footprint": "R0603",
+      "pads": [
+        [
+          "2",
+          0.7533639999999732,
+          -0.0
+        ],
+        [
+          "1",
+          -0.7533639999999732,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C440198": {
+      "record": {
+        "componentModelEn": "GRM21BR61H106KE43L",
+        "componentBrandEn": "Murata Electronics",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2411041759_Murata-Electronics-GRM21BR61H106KE43L_C440198.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Voltage Rating",
+            "component_code": "C440198",
+            "attribute_value_name": "50V"
+          },
+          {
+            "attribute_name_en": "Capacitance",
+            "component_code": "C440198",
+            "attribute_value_name": "10uF"
+          }
+        ]
+      },
+      "footprint": "C0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2"
+      }
+    },
+    "C45783": {
+      "record": {
+        "componentModelEn": "CL21A226MAQNNNE",
+        "componentBrandEn": "Samsung Electro-Mechanics",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21A226MAQNNNE_C45783.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Voltage Rating",
+            "component_code": "C45783",
+            "attribute_value_name": "25V"
+          },
+          {
+            "attribute_name_en": "Capacitance",
+            "component_code": "C45783",
+            "attribute_value_name": "22uF"
+          }
+        ]
+      },
+      "footprint": "C0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2"
+      }
+    },
+    "C47190": {
+      "record": {
+        "componentModelEn": "G6K-2F-Y-TR DC5",
+        "componentBrandEn": "Omron Electronics",
+        "componentSpecificationEn": "SMD,10x6.5mm",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211282300_Omron-Electronics-G6K-2F-Y-TR-DC5_C47190.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "RELAY-SMD_G6K-2F-X-XX",
+      "pads": [
+        [
+          "1",
+          -3.7999669999999917,
+          -3.510000599999996
+        ],
+        [
+          "2",
+          -0.6000750000000029,
+          -3.510000599999996
+        ],
+        [
+          "3",
+          1.6000730000000059,
+          -3.510000599999996
+        ],
+        [
+          "4",
+          3.7999670000000063,
+          -3.510000599999996
+        ],
+        [
+          "5",
+          3.7999670000000063,
+          3.510000599999996
+        ],
+        [
+          "6",
+          1.6000730000000059,
+          3.510000599999996
+        ],
+        [
+          "7",
+          -0.6000750000000029,
+          3.510000599999996
+        ],
+        [
+          "8",
+          -3.7999669999999917,
+          3.510000599999996
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "6": "6",
+        "7": "7",
+        "8": "8"
+      }
+    },
+    "C475144": {
+      "record": {
+        "componentModelEn": "KF142R-5.08-2P",
+        "componentBrandEn": "Cixi Kefa Elec",
+        "componentSpecificationEn": "Push-Pull,P=5.08mm",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2303170930_Cixi-Kefa-Elec-KF142R-5-08-2P_C475144.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "CONN-TH_2P-P5.08_KF142R-5.08-2P",
+      "pads": [
+        [
+          "1",
+          -2.54,
+          3.81
+        ],
+        [
+          "2",
+          2.54,
+          3.81
+        ],
+        [
+          "1",
+          -2.54,
+          -3.81
+        ],
+        [
+          "2",
+          2.54,
+          -3.81
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2"
+      }
+    },
+    "C475145": {
+      "record": {
+        "componentModelEn": "KF142R-5.08-3P",
+        "componentBrandEn": "Cixi Kefa Elec",
+        "componentSpecificationEn": "Push-Pull,P=5.08mm",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2303170930_Cixi-Kefa-Elec-KF142R-5-08-3P_C475145.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "CONN-TH_3P-P5.08_KF142R-5.08-3P",
+      "pads": [
+        [
+          "1",
+          -5.08,
+          3.81
+        ],
+        [
+          "2",
+          0.0,
+          3.81
+        ],
+        [
+          "3",
+          5.08,
+          3.81
+        ],
+        [
+          "1",
+          -5.08,
+          -3.81
+        ],
+        [
+          "2",
+          0.0,
+          -3.81
+        ],
+        [
+          "3",
+          5.08,
+          -3.81
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2",
+        "3": "3"
+      }
+    },
+    "C475147": {
+      "record": {
+        "componentModelEn": "KF142R-5.08-5P",
+        "componentBrandEn": "Cixi Kefa Elec",
+        "componentSpecificationEn": "Push-Pull,P=5.08mm",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2303170930_Cixi-Kefa-Elec-KF142R-5-08-5P_C475147.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "CONN-TH_5P-P5.08_KF142R-5.08-5P",
+      "pads": [
+        [
+          "1",
+          -10.16,
+          3.81
+        ],
+        [
+          "2",
+          -5.08,
+          3.81
+        ],
+        [
+          "3",
+          0.0,
+          3.81
+        ],
+        [
+          "1",
+          -10.16,
+          -3.81
+        ],
+        [
+          "2",
+          -5.08,
+          -3.81
+        ],
+        [
+          "3",
+          0.0,
+          -3.81
+        ],
+        [
+          "4",
+          5.08,
+          3.81
+        ],
+        [
+          "4",
+          5.08,
+          -3.81
+        ],
+        [
+          "5",
+          10.16,
+          3.81
+        ],
+        [
+          "5",
+          10.16,
+          -3.81
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5"
+      }
+    },
+    "C475149": {
+      "record": {
+        "componentModelEn": "KF142R-5.08-7P",
+        "componentBrandEn": "Cixi Kefa Elec",
+        "componentSpecificationEn": "Push-Pull,P=5.08mm",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2303170930_Cixi-Kefa-Elec-KF142R-5-08-7P_C475149.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "CONN-TH_7P-P5.08_KF142R-5.08-7P",
+      "pads": [
+        [
+          "1",
+          -15.24,
+          3.81
+        ],
+        [
+          "2",
+          -10.16,
+          3.81
+        ],
+        [
+          "3",
+          -5.08,
+          3.81
+        ],
+        [
+          "1",
+          -15.24,
+          -3.81
+        ],
+        [
+          "2",
+          -10.16,
+          -3.81
+        ],
+        [
+          "3",
+          -5.08,
+          -3.81
+        ],
+        [
+          "4",
+          0.0,
+          3.81
+        ],
+        [
+          "4",
+          0.0,
+          -3.81
+        ],
+        [
+          "5",
+          5.08,
+          3.81
+        ],
+        [
+          "6",
+          10.16,
+          3.81
+        ],
+        [
+          "7",
+          15.24,
+          3.81
+        ],
+        [
+          "7",
+          15.24,
+          -3.81
+        ],
+        [
+          "6",
+          10.16,
+          -3.81
+        ],
+        [
+          "5",
+          5.08,
+          -3.81
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "6": "6",
+        "7": "7"
+      }
+    },
+    "C48532769": {
+      "record": {
+        "componentModelEn": "KH-FPC0.5-H1.2SMT-8P-QCHF",
+        "componentBrandEn": "Shenzhen Kinghelm Elec",
+        "componentSpecificationEn": "SMD,P=0.5mm,Surface Mount，Right Angle",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2504231158_Shenzhen-Kinghelm-Elec-KH-FPC0-5-H1-2SMT-8P-QCHF_C48532769.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "FPC-SMD_8P-P0.50_KH-FPC0.5-H1.2SMT-8P-QCHF",
+      "pads": [
+        [
+          "9",
+          3.6997639999999503,
+          -0.8500110000000268
+        ],
+        [
+          "1",
+          -1.7503140000000195,
+          0.8500110000000268
+        ],
+        [
+          "2",
+          -1.2501880000000065,
+          0.8500110000000268
+        ],
+        [
+          "3",
+          -0.7503160000000453,
+          0.8500110000000268
+        ],
+        [
+          "4",
+          -0.25019000000003233,
+          0.8500110000000268
+        ],
+        [
+          "5",
+          0.24968200000004437,
+          0.8500110000000268
+        ],
+        [
+          "6",
+          0.7498080000000573,
+          0.8500110000000268
+        ],
+        [
+          "7",
+          1.2496800000000186,
+          0.8500110000000268
+        ],
+        [
+          "8",
+          1.7498060000000315,
+          0.8500110000000268
+        ],
+        [
+          "10",
+          -3.6997639999999503,
+          -0.8500110000000268
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "6": "6",
+        "7": "7",
+        "8": "8",
+        "9": "9",
+        "10": "10"
+      }
+    },
+    "C57668": {
+      "record": {
+        "componentModelEn": "BC847B,215",
+        "componentBrandEn": "Nexperia",
+        "componentSpecificationEn": "SOT-23",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2312291529_Nexperia-BC847B-215_C57668.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "SOT-23-3_L2.9-W1.3-P1.90-LS2.4-BR",
+      "pads": [
+        [
+          "1",
+          0.9999979999999742,
+          -0.9499599999999445
+        ],
+        [
+          "2",
+          0.9999979999999742,
+          0.9499599999999445
+        ],
+        [
+          "3",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "3": "3",
+        "2": "2"
+      }
+    },
+    "C7484": {
+      "record": {
+        "componentModelEn": "SN74AHCT1G125DBVR",
+        "componentBrandEn": "Texas Instruments",
+        "componentSpecificationEn": "SOT-23-5",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_1809192136_Texas-Instruments-SN74AHCT1G125DBVR_C7484.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "SOT-23-5_L3.0-W1.7-P0.95-LS2.8-BR",
+      "pads": [
+        [
+          "5",
+          -1.30009900000001,
+          -0.9499599999999445
+        ],
+        [
+          "4",
+          -1.30009900000001,
+          0.9499600000000601
+        ],
+        [
+          "3",
+          1.30009900000001,
+          0.9499600000000601
+        ],
+        [
+          "2",
+          1.30009900000001,
+          -0.0
+        ],
+        [
+          "1",
+          1.30009900000001,
+          -0.9499599999999445
+        ]
+      ],
+      "pin_names": {
+        "1": "OE#",
+        "2": "A",
+        "3": "GND",
+        "4": "Y",
+        "5": "VCC"
+      }
+    },
+    "C9900124963": {
+      "record": {
+        "componentModelEn": "XIAO-ESP32-C6",
+        "componentBrandEn": "JLCPCB Assembly",
+        "componentSpecificationEn": "LCC-14",
+        "dataManualUrl": null,
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "LCC-14P_L17.7-W20.8-XIAO-ESP32-C6",
+      "pads": [
+        [
+          "19",
+          1.2698730000000897,
+          8.128
+        ],
+        [
+          "15",
+          -1.2701269999999103,
+          8.128
+        ],
+        [
+          "1",
+          -8.261984999999921,
+          7.112
+        ],
+        [
+          "2",
+          -8.261984999999921,
+          4.572
+        ],
+        [
+          "3",
+          -8.261984999999921,
+          2.032
+        ],
+        [
+          "4",
+          -8.261984999999921,
+          -0.508
+        ],
+        [
+          "5",
+          -8.261984999999921,
+          -3.048
+        ],
+        [
+          "6",
+          -8.261984999999921,
+          -5.588
+        ],
+        [
+          "7",
+          -8.261984999999921,
+          -8.128
+        ],
+        [
+          "8",
+          8.261985000000037,
+          -8.128
+        ],
+        [
+          "9",
+          8.261985000000037,
+          -5.588
+        ],
+        [
+          "10",
+          8.261985000000037,
+          -3.048
+        ],
+        [
+          "11",
+          8.261985000000037,
+          -0.508
+        ],
+        [
+          "12",
+          8.261985000000037,
+          2.032
+        ],
+        [
+          "13",
+          8.261985000000037,
+          4.572
+        ],
+        [
+          "14",
+          8.261985000000037,
+          7.112
+        ],
+        [
+          "24",
+          0.7618730000000896,
+          -6.0452000000000465
+        ],
+        [
+          "23",
+          -1.7781523999999618,
+          -6.0452000000000465
+        ],
+        [
+          "18",
+          -1.2701269999999103,
+          0.508
+        ],
+        [
+          "22",
+          1.1771630000000295,
+          0.5648960000000407
+        ],
+        [
+          "21",
+          1.2698730000000897,
+          3.048
+        ],
+        [
+          "17",
+          -1.2701269999999103,
+          3.0480254000000513
+        ],
+        [
+          "20",
+          1.2698730000000897,
+          5.588
+        ],
+        [
+          "16",
+          -1.2701269999999103,
+          5.588
+        ]
+      ],
+      "pin_names": {
+        "1": "D0",
+        "2": "D1",
+        "3": "D2",
+        "4": "D3",
+        "5": "D4",
+        "6": "D5",
+        "7": "D6",
+        "8": "D7",
+        "9": "D8",
+        "10": "D9",
+        "11": "D10",
+        "12": "3V3",
+        "13": "GND",
+        "14": "5V",
+        "15": "MTDI",
+        "16": "GND",
+        "17": "MTCK",
+        "18": "3V3",
+        "19": "MTDO",
+        "20": "EN",
+        "21": "MTMS",
+        "22": "BOOT",
+        "23": "+",
+        "24": "-"
+      }
+    }
+  }
+}

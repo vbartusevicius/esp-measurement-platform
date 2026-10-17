@@ -1,0 +1,24 @@
+(version 1)
+(rule jlcpcb_minimum
+  (constraint track_width (min 0.12mm))
+  (constraint clearance (min 0.2mm))
+  (constraint hole_size (min 0.2mm)))
+(rule power_track_width
+  (constraint track_width (min 0.22mm))
+  (condition "A.hasNetclass('SELV-Power') || A.hasNetclass('KNX-Power') || A.hasNetclass('DALI-Power') || A.hasNetclass('AUX-Power')"))
+(rule relay_2a_track_width
+  (constraint track_width (min 0.75mm))
+  (constraint clearance (min 0.35mm))
+  (condition "A.hasNetclass('RELAY-Power')"))
+(rule power_neck_down_at_fine_pitch_pins
+  (constraint track_width (min 0.15mm))
+  (condition "(A.hasNetclass('SELV-Power') || A.hasNetclass('KNX-Power') || A.hasNetclass('DALI-Power') || A.hasNetclass('AUX-Power')) && (A.intersectsCourtyard('U1') || A.intersectsCourtyard('U2') || A.intersectsCourtyard('J3'))"))
+(rule neck_down_at_fine_pitch_pins
+  (constraint track_width (min 0.1mm))
+  (condition "A.intersectsCourtyard('U1') || A.intersectsCourtyard('U2') || A.intersectsCourtyard('J3')"))
+(rule parts_under_raised_modules
+  (constraint courtyard_clearance (min -100mm))
+  (condition "A.Reference == 'U3' || B.Reference == 'U3'"))
+(rule creepage_selv_relay
+  (constraint creepage (min 6.0mm))
+  (condition "(A.hasNetclass('SELV') || A.hasNetclass('SELV-Power')) && (B.hasNetclass('RELAY') || B.hasNetclass('RELAY-Power')) && !(A.Reference == 'K1' && B.Reference == 'K1')"))

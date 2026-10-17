@@ -3,4 +3,10 @@
 .cache/*
 .clangd
 compile_commands.json
+hardware/build/
+mechanical/build/
+__pycache__/
+.pytest_cache/
+*.pyc
 resources/*
+skidl_REPL*

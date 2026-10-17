@@ -1,0 +1,214 @@
+# Single source of truth for the Universal Sensor Node PCBs and 3D-printed enclosures.
+# Units: millimetres. Coordinate system (installed 1-DIN device, viewed from the front):
+#   x = width (left -> right, -9.0 .. +9.0 mm)
+#   y = height (bottom -> top, 0.0 .. 81.0 mm)
+#   z = depth (rail face = 0.0 -> front face = 61.0 mm)
+
+product:
+  name: ESP Measurement Platform
+  revision: A
+  release: v1
+  status: draft-unvalidated
+
+active_variant: v1
+
+din_envelope:
+  module_width: 18.0
+  module_pitch: 18.0
+  modules: 1
+  hidden_part: { height: 81.0, depth: 44.0 }
+  front_protrusion: { height: 45.0, depth: 17.0, depth_start: 44.0 }
+  shoulder_height: 18.0
+  max_board_width_inside: 13.8
+  max_board_height_inside: 78.0
+  front_board_max: { width: 13.8, height: 40.5, depth: 15.0 }
+  rail: TS35
+
+enclosure:
+  material: PETG-or-ASA
+  wall: 1.6
+  min_clearance_to_pcb: 0.5
+  shoulder_z: 44.0
+  screw_tabs: []
+  parts: [base, cover]
+
+variants:
+  v1:
+    description: "1 DIN (18 mm), two-sided vertical main board + front UI board, 6-pole top sensor bank + 4-pole bottom power/expansion bank"
+    modules: 1
+    boards: [main, ui]
+
+boards:
+  main:
+    plane: perpendicular-to-rail
+    thickness: 1.2
+    x: -4.2
+    y_offset: 1.5
+    z_front: 41.9
+    max_outline: { width: 39.8, height: 78.0 }
+    isolation:
+      - { between: [SELV, RELAY], creepage_min: 6.0, bridged_by: [K1] }
+  ui:
+    plane: parallel-to-front
+    thickness: 1.2
+    z: 55.4
+    max_outline: { width: 13.8, height: 40.5 }
+  interconnects:
+    - from: main
+      to: ui
+      signals: [+3V3, GND, BTN_LADDER, LED_DATA, +5V, I2C_SDA, I2C_SCL, GND]
+      refs: { main: J3, ui: J1 }
+      domain: SELV
+      type: ffc
+      pins: 8
+
+terminals:
+  power_in:
+    board: main
+    shoulder: bottom
+    ref: J1
+    poles: 2
+    pitch: 5.08
+    type: push-in spring (Kefa KF142R-5.08-2P)
+    labels: [GND, VIN+]
+  relay_out:
+    board: main
+    shoulder: bottom
+    ref: J4
+    poles: 3
+    pitch: 5.08
+    type: push-in spring (Kefa KF142R-5.08-3P)
+    labels: [NC, COM, NO]
+  sensor_io:
+    board: main
+    shoulder: top
+    ref: J2
+    poles: 7
+    pitch: 5.08
+    type: push-in spring (Kefa KF142R-5.08-7P)
+    labels: [GND, +5V, +24V, 4-20mA, 0-10V, IO1, IO2]
+
+front_ui:
+  board_z: 54.19
+  board_top_z: 55.39
+  oled:
+    header_gap: 4.06
+    module_board: 0.45
+    panel: 1.00
+    header_plastic_max: 2.5
+    pin_tail: 24.99
+  buttons:
+    - { id: prg_rst, label: RST/WIFI, actuator: tactile-B3U-1000P+plunger, actuator_length_mm: 7.0, protrusion_beyond_front: 1.4 }
+    - { id: func, label: PAGE, actuator: tactile-B3U-1000P+plunger, actuator_length_mm: 7.0, protrusion_beyond_front: 1.4 }
+  leds:
+    - { id: status, ref: D1, shows: "power & system heartbeat" }
+    - { id: net, ref: D2, shows: "WiFi & MQTT connectivity" }
+    - { id: sens, ref: D3, shows: "sensor pulse / sample / alert status" }
+  display:
+    type: oled-0.96in-64x128-ssd1312-i2c-hotbar14
+    part: QG-6428TSWCG02 / JLX12864OLED-S096W / NFP1312-15AY (14.0 x 28.0 x 1.22 mm, 14-pin 0.62 mm solder FPC)
+    geometry: hardware/circuits/variants/v1/layout_ui.yaml oled_module
+  labels_area: true
+
+mcu:
+  module: "Seeed XIAO ESP32C6"
+  package: "21 x 17.8 mm, 14 edge pads (2x7, 2.54 mm pitch, 15.24 mm row spacing)"
+  board: main
+  mounting: "2 x 7 female 2.54 mm headers, 5.0 mm height (+ 2.5 mm pin header plastic + 3.5 mm XIAO = 11.0 mm); 5 V buck and passives underneath"
+  power_feed: "5V pin via TI LM66100 ideal diode from 24V->5V SCT2400 buck; XIAO onboard regulator outputs +3V3 for logic and OLED"
+
+checks:
+  hole_to_actuator_max_offset: 0.3
+  led_to_window_max_offset: 0.3
+  terminal_axis_to_access_hole_max_offset: 0.4
+  component_to_wall_min_gap: 0.5
+  component_to_cover_min_gap: 0.5
+  component_air_gap: 2.0
+  board_to_board_component_gap: 1.0
+
+# --- BEGIN GENERATED (hardware/scripts/gen_circuits.py) ---
+derived:
+  mcu_pins:
+    v0_10_sense:
+      pin: D0/GPIO0
+      net: V0_10_MCU
+      note: 'ADC1_CH0: 0-10V / 0-5V / 0.4-4.5V / 2-10V input (22k/10k divider, J2.5)'
+    ma_sense:
+      pin: D1/GPIO1
+      net: MA_MCU
+      note: 'ADC1_CH1: 4-20 mA current-loop input (165R shunt, J2.4)'
+    button_ladder:
+      pin: D2/GPIO2
+      net: BTN_LADDER
+      note: 'ADC1_CH2: RST/WIFI + PAGE buttons on UI board'
+    led_data:
+      pin: D3/GPIO21
+      net: LED_DATA
+      note: SK6805 RGB LED chain via 5 V buffer on UI
+    i2c_sda:
+      pin: D4/GPIO22
+      net: I2C_SDA
+      note: Internal I2C SDA to OLED on UI board
+    i2c_scl:
+      pin: D5/GPIO23
+      net: I2C_SCL
+      note: Internal I2C SCL to OLED on UI board
+    io2_bus_tx_scl:
+      pin: D6/GPIO16
+      net: IO2_MCU
+      note: 'Protected sensor IO2: ToF I2C SCL / Ultrasonic UART TX (J2.7)'
+    io1_bus_rx_sda:
+      pin: D7/GPIO17
+      net: IO1_MCU
+      note: 'Protected sensor IO1: ToF I2C SDA / Ultrasonic UART RX / Radiation PULSE
+        (J2.6)'
+    relay_ctrl:
+      pin: D8/GPIO19
+      net: RELAY_MCU
+      note: Drives Omron G6K-2F-Y 5V SMD changeover relay (J1.3 NC, J1.4 COM, J1.5
+        NO)
+  net_classes:
+    main:
+      SELV:
+      - GND
+      - +3V3
+      - BTN_LADDER
+      - LED_DATA
+      - I2C_SDA
+      - I2C_SCL
+      - MA_TERM
+      - MA_MCU
+      - V0_10_TERM
+      - V0_10_MCU
+      - IO1_TERM
+      - IO1_MCU
+      - IO2_TERM
+      - IO2_MCU
+      - RELAY_MCU
+      - RELAY_BASE
+      - RELAY_COIL_N
+      - BUCK5_SW
+      - Net-*
+      SELV-Power:
+      - VIN_RAW
+      - VIN_FUSED
+      - +24V_LOOP
+      - +5V
+      - +5V_XIAO
+      RELAY-Power:
+      - RELAY_NC
+      - RELAY_COM
+      - RELAY_NO
+    ui:
+      SELV:
+      - GND
+      - +3V3
+      - +5V
+      - BTN_LADDER
+      - LED_DATA
+      - LED_CHAIN1
+      - LED_CHAIN2
+      - I2C_SDA
+      - I2C_SCL
+      - Net-*
+# --- END GENERATED ---

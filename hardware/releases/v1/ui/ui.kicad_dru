@@ -1,0 +1,18 @@
+(version 1)
+(rule jlcpcb_minimum
+  (constraint track_width (min 0.12mm))
+  (constraint clearance (min 0.2mm))
+  (constraint hole_size (min 0.2mm)))
+(rule power_track_width
+  (constraint track_width (min 0.22mm))
+  (condition "A.hasNetclass('SELV-Power') || A.hasNetclass('KNX-Power') || A.hasNetclass('DALI-Power') || A.hasNetclass('AUX-Power')"))
+(rule relay_2a_track_width
+  (constraint track_width (min 0.75mm))
+  (constraint clearance (min 0.35mm))
+  (condition "A.hasNetclass('RELAY-Power')"))
+(rule power_neck_down_at_fine_pitch_pins
+  (constraint track_width (min 0.15mm))
+  (condition "(A.hasNetclass('SELV-Power') || A.hasNetclass('KNX-Power') || A.hasNetclass('DALI-Power') || A.hasNetclass('AUX-Power')) && (A.intersectsCourtyard('J1') || A.intersectsCourtyard('J2') || A.intersectsCourtyard('U1') || A.intersectsCourtyard('D1') || A.intersectsCourtyard('D2') || A.intersectsCourtyard('D3'))"))
+(rule neck_down_at_fine_pitch_pins
+  (constraint track_width (min 0.1mm))
+  (condition "A.intersectsCourtyard('J1') || A.intersectsCourtyard('J2') || A.intersectsCourtyard('U1') || A.intersectsCourtyard('D1') || A.intersectsCourtyard('D2') || A.intersectsCourtyard('D3')"))

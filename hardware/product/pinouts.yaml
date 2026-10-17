@@ -1,0 +1,81 @@
+# Hand-fitted parts with no JLCPCB/EasyEDA footprint, keyed by manufacturer
+# part number. Pad centres (mm, top view, y up) and pin functions transcribed
+# from the cited manufacturer document. hardware/scripts/jlc_parts.py fits the
+# pads onto ours like a supplier footprint and checks the functions against
+# our symbol's pin names (`names`) or, for plain connectors whose symbol pins
+# carry no function, against the nets on our pads (`nets`; a list allows any).
+# Every part on a board must be covered here or by a JLCPCB/EasyEDA record.
+
+"1574200":
+  source: >-
+    Phoenix Contact 1574200 (PST 1,0/2-5,75 R32) data sheet: 2 positions,
+    5.75 mm pitch, 1.2 mm holes. With the mating KNX plug PTS 0,5/2-PH-5,75
+    BKRD oriented so its 4 wire-entry holes face the bottom edge (-y), the
+    black (-) half sits on the left [0, 0] (pin 2) and the red (+) half with
+    its coding tab sits on the right [5.75, 0] (pin 1).
+  pads: {"2": [0, 0], "1": [5.75, 0]}
+  nets: {"1": [KNX_P, AUX_IN], "2": [GND, GNDA]}
+
+WEA012864DWPP3N00003:
+  source: >-
+    Winstar WEA012864D-03 specification p.3 (contour drawing, interface pin
+    function): 4-pin header P2.54, 1 VCC (2.8-5.2 V), 2 GND, 3 SCL, 4 SDA
+  pads: {"1": [0, 0], "2": [2.54, 0], "3": [5.08, 0], "4": [7.62, 0]}
+  nets: {"1": "+3V3", "2": GND, "3": I2C_SCL, "4": I2C_SDA}
+
+QG-6428TSWCG02:
+  source: >-
+    Allvision / JLX QG-6428TSWCG02 / JLX12864OLED-S096W / NFP1312-15AY 0.96in
+    64x128 SSD1312 portrait OLED drawing: panel 14.0x28.0x1.22 mm, 12.0 mm
+    soldering FPC tail (width 9.3 mm), 14 pads at 0.62 mm pitch (P0.62x13 =
+    8.06 mm): 1 C2P, 2 C2N, 3 C1P, 4 C1N, 5 VBAT, 6 NC, 7 VSS, 8 VDD, 9 RES#,
+    10 SCL, 11 SDA, 12 IREF, 13 VCOMH, 14 VCC.
+  pads:
+    "1": [-4.03, 0]
+    "2": [-3.41, 0]
+    "3": [-2.79, 0]
+    "4": [-2.17, 0]
+    "5": [-1.55, 0]
+    "6": [-0.93, 0]
+    "7": [-0.31, 0]
+    "8": [0.31, 0]
+    "9": [0.93, 0]
+    "10": [1.55, 0]
+    "11": [2.17, 0]
+    "12": [2.79, 0]
+    "13": [3.41, 0]
+    "14": [4.03, 0]
+  nets:
+    "1": OLED_C2P
+    "2": OLED_C2N
+    "3": OLED_C1P
+    "4": OLED_C1N
+    "5": "+3V3"
+    "7": GND
+    "8": "+3V3"
+    "9": OLED_RES
+    "10": I2C_SCL
+    "11": I2C_SDA
+    "12": OLED_IREF
+    "13": OLED_VCOMH
+    "14": OLED_VOUT
+
+REC3-2415SRW/H2/A/CTRL:
+  source: >-
+    RECOM REC3-RW / REM3 datasheet ("A" Pinning, Pin Connections, Single with
+    /CTRL option): 1 CTRL (active-low remote on/off referred to -Vin: open or
+    0-1.2 V = DC-DC ON, 3.0-12 V = DC-DC OFF), 2 -Vin (3 -Vin clipped flush),
+    11 NC (clipped flush), 14 +Vout, 16 -Vout, 22 +Vin, 23 +Vin; DIP24,
+    2.54 mm pitch, 15.24 mm between rows (top view).
+  pads: {"1": [0, 0], "2": [0, -2.54], "14": [15.24, -25.4], "16": [15.24, -20.32], "22": [15.24, -5.08], "23": [15.24, -2.54]}
+  names: {"1": CTRL, "2": -Vin, "14": +Vout, "16": -Vout, "22": +Vin, "23": +Vin}
+
+REM3-2415S/A/CTRL:
+  source: >-
+    RECOM REM3 datasheet (LCSC copy of C6643363, p.6 "A" Pinning, Pin
+    Connections, Single): 1 CTRL (fitted with the /CTRL option), 2 -Vin,
+    11 NC, 14 +Vout, 16 -Vout, 22 +Vin, 23 +Vin; DIP24, 2.54 mm pitch,
+    15.24 mm between rows, pin 1 marked (top view); remote on/off referred
+    to -Vin: open or 0-1.2 V on, 2.2-12 V off
+  pads: {"1": [0, 0], "2": [0, -2.54], "14": [15.24, -25.4], "16": [15.24, -20.32], "22": [15.24, -5.08], "23": [15.24, -2.54]}
+  names: {"1": CTRL, "2": -Vin, "14": +Vout, "16": -Vout, "22": +Vin, "23": +Vin}

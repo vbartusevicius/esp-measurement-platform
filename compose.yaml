@@ -1,0 +1,20 @@
+# Containerized EDA (SKiDL + KiCad 10 + Freerouting) and CAD (CadQuery + VTK)
+# toolchain for the 1-DIN Universal Sensor Node and plugin enclosures.
+services:
+  eda:
+    profiles: ["hardware"]
+    image: knx-dali-gateway-eda
+    build:
+      context: .
+      dockerfile: docker/eda/Dockerfile
+    volumes: [".:/work"]
+    working_dir: /work
+
+  cad:
+    profiles: ["hardware"]
+    image: knx-dali-gateway-cad
+    build:
+      context: .
+      dockerfile: docker/cad/Dockerfile
+    volumes: [".:/work"]
+    working_dir: /work
