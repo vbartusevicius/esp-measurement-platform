@@ -17,6 +17,10 @@ void DistancePluginBase::setup(HAL* hal, Storage* storage, Logger* logger, LedCo
     this->distFilter.reset();
     this->flowCalc.reset();
     this->usageTracker.reset();
+    this->levelTrend.reset();
+    this->levelExtremes.reset();
+    this->levelHistory.reset();
+    this->lastSignal = "";
 
     this->avgSampleCount = atoi(this->storage->getParameter(PARAM_AVG_SAMPLE_COUNT, "10").c_str());
     this->deadbandM = atof(this->storage->getParameter(PARAM_DEADBAND_CM, "10").c_str()) / 100.0f;
@@ -44,6 +48,13 @@ void DistancePluginBase::loop()
     this->relativeDistance = this->computeRelative(this->measuredDistance, this->emptyDistM, this->fullDistM);
     this->absoluteDistance = this->computeAbsolute(this->measuredDistance, this->emptyDistM, this->fullDistM);
 
+    if (this->sensorConnected) {
+        float percent = this->relativeDistance * 100.0f;
+        this->levelTrend.add(percent, millis());
+        this->levelExtremes.update(percent, millis());
+        this->levelHistory.add(percent, millis());
+    }
+
     // Volume-derived metrics (uses raw float precision, no rounding)
     if (this->totalVolume > 0) {
         this->currentVolume = this->relativeDistance * this->totalVolume;
@@ -62,29 +73,70 @@ void DistancePluginBase::getParameterDefs(std::vector<ParameterDef>& defs) const
     defs.push_back({PARAM_DEADBAND_CM, "Change Deadband (cm)", "10", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_SNAP_SAMPLES, "Step Confirm Samples", "5", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_MAX_RATE_CM_MIN, "Max Change Rate (cm/min, 0=off)", "0", ParameterDef::NUMBER, false});
-    defs.push_back({PARAM_TOTAL_VOLUME, "Total Water Volume (L)", "", ParameterDef::NUMBER, false});
+    defs.push_back({PARAM_TOTAL_VOLUME, "Total Volume (L)", "", ParameterDef::NUMBER, false});
 }
 
 // --- Stats ---
 
 void DistancePluginBase::getStats(std::vector<StatEntry>& entries) const
 {
-    entries.push_back({"Level", String(this->relativeDistance * 100, 1) + "%", this->relativeDistance, StatEntry::PROGRESS, true});
-    entries.push_back({"Depth", String(this->absoluteDistance, 2) + " m", this->absoluteDistance, StatEntry::TEXT, true});
+    entries.push_back({"Level", String(this->relativeDistance * 100, 1) + "%", this->relativeDistance, StatEntry::PROGRESS, true, "level"});
+    entries.push_back({"Depth", String(this->absoluteDistance, 2) + " m", this->absoluteDistance, StatEntry::TEXT, true, "depth"});
     if (this->totalVolume > 0) {
-        entries.push_back({"Volume", String(this->currentVolume, 0) + " L", this->currentVolume, StatEntry::TEXT, true});
+        entries.push_back({"Volume", String(this->currentVolume, 0) + " L", this->currentVolume, StatEntry::TEXT, true, "volume"});
+        entries.push_back({"Capacity", String(this->totalVolume, 0) + " L", this->totalVolume, StatEntry::TEXT, false, "capacity"});
     }
-    entries.push_back({"Distance", String(this->measuredDistance, 3) + " m", this->measuredDistance, StatEntry::TEXT, false});
-    entries.push_back({"Raw", String(this->lastRawDistance, 3) + " m", this->lastRawDistance, StatEntry::TEXT, false});
-    entries.push_back({"Sensor", this->sensorConnected ? "Connected" : "Disconnected", this->sensorConnected ? 1.0f : 0.0f, StatEntry::TEXT, false});
+    entries.push_back({"Distance", String(this->measuredDistance, 3) + " m", this->measuredDistance, StatEntry::TEXT, false, "distance"});
+    entries.push_back({"Raw", String(this->lastRawDistance, 3) + " m", this->lastRawDistance, StatEntry::TEXT, false, "raw"});
+    entries.push_back({"Sensor", this->sensorConnected ? "Connected" : "Disconnected", this->sensorConnected ? 1.0f : 0.0f, StatEntry::TEXT, false, "sensor"});
     if (this->totalVolume > 0) {
         float rate = this->flowCalc.getRate();
         String rateStr = (rate >= 0 ? "+" : "") + String(rate, 2) + " L/min";
-        entries.push_back({"Flow Rate", rateStr, rate, StatEntry::TEXT, true});
+        entries.push_back({"Flow Rate", rateStr, rate, StatEntry::TEXT, true, "flow_rate"});
 
         float usage = this->usageTracker.getUsageLiters();
-        entries.push_back({"Usage 24h", String(usage, 1) + " L", usage, StatEntry::TEXT, false});
+        entries.push_back({"Usage 24h", String(usage, 1) + " L", usage, StatEntry::TEXT, false, "usage_24h"});
     }
+}
+
+// --- Screen model (OLED + WebUI) ---
+
+bool DistancePluginBase::getScreen(ScreenModel& model) const
+{
+    model.kind = "level";
+    model.title = "TANK";
+    model.value = this->relativeDistance * 100.0f;
+    model.unit = "%";
+    model.decimals = 0;
+    model.valid = this->sensorConnected;
+    model.scaleMin = 0.0f;
+    model.scaleMax = 100.0f;
+    model.trend = this->levelTrend.values();
+    model.trendBucketSec = this->levelTrend.getBucketMs() / 1000UL;
+    model.sensorLabel = "SENS";
+    model.sensorOk = this->sensorConnected;
+    model.raw = String(this->lastRawDistance * 100.0f, 1) + "cm";
+    model.signal = this->lastSignal;
+    if (this->levelExtremes.valid()) {
+        model.low24 = this->levelExtremes.min();
+        model.high24 = this->levelExtremes.max();
+    }
+    if (this->totalVolume > 0) {
+        float rate = this->flowCalc.getRate();
+        model.lines.push_back({"VOL", String(this->currentVolume, 0) + "L"});
+        model.lines.push_back({"FLW", (rate >= 0 ? "+" : "") + String(rate, 1) + "Lm"});   // 10 chars/row on the OLED
+    } else {
+        model.lines.push_back({"DEP", String(this->absoluteDistance, 2) + "m"});
+        model.lines.push_back({"DST", String(this->measuredDistance, 2) + "m"});
+    }
+    return true;
+}
+
+bool DistancePluginBase::getChartData(std::vector<float>& points, int& spanSeconds) const
+{
+    points = this->levelHistory.values();
+    spanSeconds = (int)(this->levelHistory.getBucketMs() / 1000UL);
+    return true;
 }
 
 // --- MQTT ---
@@ -122,9 +174,9 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const HaDisc
             doc["value_template"] = "{{ value_json.volume | round(0) }}";
             doc["unit_of_measurement"] = "L";
             doc["device_class"] = "volume";
-            doc["name"] = "Water Volume";
+            doc["name"] = "Volume";
             doc["unique_id"] = deviceId + "_volume";
-            doc["icon"] = "mdi:water";
+            doc["icon"] = "mdi:cube-outline";
             doc["state_class"] = "measurement";
 
             JsonObject device = doc["device"].to<JsonObject>();
@@ -136,16 +188,16 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const HaDisc
             client.publish(("homeassistant/sensor/" + deviceId + "/volume/config").c_str(), json.c_str(), true, 1);
         }
 
-        // Water usage over the last 24 h (L)
+        // Usage over the last 24 h (L)
         {
             JsonDocument doc;
             doc["state_topic"] = stateTopic;
             doc["value_template"] = "{{ value_json.usage_24h | round(1) }}";
             doc["unit_of_measurement"] = "L";
             doc["device_class"] = "volume";
-            doc["name"] = "Water Usage 24h";
+            doc["name"] = "Usage 24h";
             doc["unique_id"] = deviceId + "_usage_24h";
-            doc["icon"] = "mdi:water-sync";
+            doc["icon"] = "mdi:chart-bar";
             doc["state_class"] = "measurement";
 
             JsonObject device = doc["device"].to<JsonObject>();
@@ -164,9 +216,9 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const HaDisc
             doc["value_template"] = "{{ value_json.flow_rate | round(2) }}";
             doc["unit_of_measurement"] = "L/min";
             doc["device_class"] = "volume_flow_rate";
-            doc["name"] = "Water Flow Rate";
+            doc["name"] = "Flow Rate";
             doc["unique_id"] = deviceId + "_flow_rate";
-            doc["icon"] = "mdi:water-pump";
+            doc["icon"] = "mdi:swap-vertical";
             doc["state_class"] = "measurement";
 
             JsonObject device = doc["device"].to<JsonObject>();

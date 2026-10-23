@@ -6,6 +6,7 @@
 #include "Logger.h"
 #include "IMqttContributor.h"
 #include "RelayOutput.h"
+#include "DeviceMonitor.h"
 
 class MqttClient
 {
@@ -14,6 +15,8 @@ class MqttClient
         Logger* logger;
         IMqttContributor* plugin;
         RelayOutput* relay = nullptr;
+        DeviceMonitor* monitor = nullptr;
+        int publishedRelayState = -1;
         MQTTClient client;
         String deviceId;
         String pluginId;
@@ -42,7 +45,8 @@ class MqttClient
 
     public:
         MqttClient(Storage* storage, Logger* logger, IMqttContributor* plugin, const char* pluginId, const String& deviceId);
-        void setRelay(RelayOutput* relay) { this->relay = relay; }
+        // Relay commands go through the monitor (it refuses them while a limit rule owns the relay).
+        void setRelay(RelayOutput* relay, DeviceMonitor* monitor) { this->relay = relay; this->monitor = monitor; }
         void begin();
         bool run();
         void publish();

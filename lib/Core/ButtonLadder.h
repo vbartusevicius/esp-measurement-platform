@@ -7,9 +7,12 @@ class ButtonLadder
 {
     public:
         enum class Button { NONE, RESET, PAGE, BOTH };
-        enum class Event { NONE, PAGE_PRESSED, RESET_TAPPED, RESET_HELD };
+        enum class Event { NONE, PAGE_PRESSED, RESET_TAPPED, RESET_HELD, RESET_FACTORY };
 
+        // RESET_HELD (WiFi setup portal) fires at 5 s while still held,
+        // RESET_FACTORY at 15 s.
         static constexpr unsigned long RESET_HOLD_MS = 5000;
+        static constexpr unsigned long FACTORY_HOLD_MS = 15000;
 
         static Button classify(int millivolts);
 
@@ -20,6 +23,7 @@ class ButtonLadder
         Button stable = Button::NONE;
         unsigned long resetPressedAt = 0;
         bool resetHeldReported = false;
+        bool factoryReported = false;
 };
 
 #endif

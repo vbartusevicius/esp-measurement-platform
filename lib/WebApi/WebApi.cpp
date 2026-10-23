@@ -1,21 +1,20 @@
 #include "WebApi.h"
+#include <cmath>
 #include "Parameter.h"
 #include "ChipId.h"
 #include "TimeHelper.h"
 #include "Version.h"
 #include "PlatformWiFi.h"
+#include "WebAssets.h"
 #if defined(ESP32)
 #include <Update.h>
 static String updateError() { return String(Update.errorString()); }
 #else
 #include <Updater.h>
 static String updateError() { return String(Update.getErrorString()); }
-
-extern "C" uint32_t _FS_start;
-extern "C" uint32_t _FS_end;
 #endif
 
-static float rounded(float v) { return (float)(int)(v * 100 + 0.5f) / 100.0f; }
+static float rounded(float v) { return roundf(v * 100.0f) / 100.0f; }
 
 WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback)
     : server(80), ws("/ws") {
@@ -28,11 +27,6 @@ WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry
 }
 
 void WebApi::begin() {
-    if (!LittleFS.begin()) {
-        this->logger->error("Failed to mount LittleFS");
-        return;
-    }
-
     this->setupWebSocket();
     this->setupApiEndpoints();
     this->setupUploadEndpoint();
@@ -43,8 +37,28 @@ void WebApi::begin() {
 }
 
 void WebApi::setupStaticFiles() {
-    server.serveStatic("/", LittleFS, "/")
-        .setDefaultFile("index.html");
+    // The web UI is compiled into the firmware (tools/embed_web.py): gzipped,
+    // with one ETag per build so browsers revalidate instead of re-downloading.
+    for (size_t i = 0; i < WEB_ASSET_COUNT; i++) {
+        const WebAsset* asset = &WEB_ASSETS[i];
+        auto handler = [asset](AsyncWebServerRequest *request) {
+            if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == WEB_ASSETS_ETAG) {
+                request->send(304);
+                return;
+            }
+#if defined(ESP32)
+            AsyncWebServerResponse *response = request->beginResponse(200, asset->mime, asset->gzip, asset->length);
+#else
+            AsyncWebServerResponse *response = request->beginResponse_P(200, asset->mime, asset->gzip, asset->length);
+#endif
+            response->addHeader("Content-Encoding", "gzip");
+            response->addHeader("ETag", WEB_ASSETS_ETAG);
+            response->addHeader("Cache-Control", "no-cache");
+            request->send(response);
+        };
+        server.on(asset->path, HTTP_GET, handler);
+        if (strcmp(asset->path, "/index.html") == 0) server.on("/", HTTP_GET, handler);
+    }
 
     server.onNotFound([this](AsyncWebServerRequest *request) {
         this->logger->warning("Not found: " + request->url());
@@ -94,11 +108,22 @@ void WebApi::setupApiEndpoints() {
         doc["mqtt_device"] = this->storage->getParameter(Parameter::MQTT_DEVICE, "");
         doc["mqtt_topic"] = this->storage->getParameter(Parameter::MQTT_TOPIC, "");
         doc["firmware_version"] = FW_VERSION;
+        doc["limit_low"] = this->storage->getParameter(Parameter::LIMIT_LOW, "");
+        doc["limit_high"] = this->storage->getParameter(Parameter::LIMIT_HIGH, "");
+        doc["limit_hysteresis"] = this->storage->getParameter(Parameter::LIMIT_HYSTERESIS, "");
+        if (this->monitor) {
+            doc["limit_low_on"] = this->monitor->limitEnabled(Parameter::LIMIT_LOW_ON, Parameter::LIMIT_LOW) ? "1" : "0";
+            doc["limit_high_on"] = this->monitor->limitEnabled(Parameter::LIMIT_HIGH_ON, Parameter::LIMIT_HIGH) ? "1" : "0";
+        }
+        doc["relay_mode"] = this->storage->getParameter(Parameter::RELAY_MODE, "manual");
+        doc["relay_available"] = this->monitor && this->monitor->relayAvailable();
 
         // Plugin parameter values and definitions
         std::vector<ParameterDef> defs;
+        std::vector<ParameterPreset> presets;
         if (pluginToInspect) {
             pluginToInspect->getParameterDefs(defs);
+            pluginToInspect->getParameterPresets(presets);
         }
         
         JsonArray paramDefs = doc["plugin_params"].to<JsonArray>();
@@ -109,7 +134,27 @@ void WebApi::setupApiEndpoints() {
             obj["label"] = def.label;
             obj["default"] = def.defaultValue;
             obj["type"] = def.type == ParameterDef::NUMBER ? "number" :
-                          def.type == ParameterDef::PASSWORD ? "password" : "text";
+                          def.type == ParameterDef::PASSWORD ? "password" :
+                          def.type == ParameterDef::SELECT ? "select" : "text";
+            if (def.options) {
+                // "value=Label;value=Label" -> [{value, label}]
+                JsonArray options = obj["options"].to<JsonArray>();
+                String all = def.options;
+                int start = 0;
+                while (start < (int)all.length()) {
+                    int end = all.indexOf(';', start);
+                    if (end < 0) end = all.length();
+                    String item = all.substring(start, end);
+                    int eq = item.indexOf('=');
+                    JsonObject option = options.add<JsonObject>();
+                    option["value"] = eq < 0 ? item : item.substring(0, eq);
+                    option["label"] = eq < 0 ? item : item.substring(eq + 1);
+                    start = end + 1;
+                }
+            }
+            for (auto& preset : presets) {
+                if (strcmp(preset.param, def.key) == 0) obj["presets"][preset.option][preset.key] = preset.value;
+            }
             obj["required"] = def.required;
             obj["value"] = this->storage->getParameter(def.key, def.defaultValue);
         }
@@ -155,6 +200,7 @@ void WebApi::setupApiEndpoints() {
                     this->storage->saveParameter(key.c_str(), value);
                 }
                 this->logger->info("Configuration saved");
+                this->pendingLimitsReload = true;
                 request->send(200, "application/json", "{\"status\":\"ok\"}");
             } else {
                 this->logger->error("Failed to parse config JSON");
@@ -169,38 +215,41 @@ void WebApi::setupApiEndpoints() {
     server.on("/api/v1/status", HTTP_GET, [this](AsyncWebServerRequest *request) {
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
-
-        doc["chip_id"] = ChipId::get();
-        doc["active_plugin"] = this->activePlugin ? this->activePlugin->getId() : "";
-        doc["active_plugin_name"] = this->activePlugin ? this->activePlugin->getName() : "None";
-        doc["wifi_network"] = WiFi.SSID();
-        doc["wifi_signal"] = String(WiFi.RSSI());
-        doc["ip_address"] = WiFi.localIP().toString();
-        doc["free_heap"] = ESP.getFreeHeap();
-        doc["firmware_version"] = FW_VERSION;
-
-        char uptimeBuf[32];
-        TimeHelper::getUptime(uptimeBuf);
-        doc["uptime"] = uptimeBuf;
-
-        // Plugin-specific stats
-        std::vector<StatEntry> entries;
-        if (this->activePlugin) {
-            this->activePlugin->getStats(entries);
-        }
-        
-        JsonArray statsArr = doc["stats"].to<JsonArray>();
-        for (auto& e : entries) {
-            JsonObject obj = statsArr.add<JsonObject>();
-            obj["label"] = e.label;
-            obj["value"] = e.value;
-            obj["numeric"] = e.numericValue;
-            obj["render"] = e.render == StatEntry::PROGRESS ? "progress" : "text";
-            obj["primary"] = e.primary;
-        }
-
+        this->fillStatus(doc);
         serializeJson(doc, *response);
         request->send(response);
+    });
+
+    // POST /api/v1/relay?state=on|off - manual relay control
+    server.on("/api/v1/relay", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        if (!this->monitor || !this->monitor->relayAvailable()) {
+            request->send(404, "application/json", "{\"status\":\"error\",\"message\":\"No relay on this board\"}");
+            return;
+        }
+        if (this->monitor->limits().relayMode() != LimitMonitor::RelayMode::MANUAL) {
+            request->send(409, "application/json", "{\"status\":\"error\",\"message\":\"Relay follows the limit rule\"}");
+            return;
+        }
+        String state = request->hasParam("state") ? request->getParam("state")->value() : String();
+        bool on = false;
+        if (!RelayOutput::parseCommand(state.c_str(), on)) {
+            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"state must be on or off\"}");
+            return;
+        }
+        this->pendingRelay = on ? 1 : 0;
+        request->send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+
+    // POST /api/v1/display?action=page|dismiss - same as the PAGE button
+    server.on("/api/v1/display", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        String action = request->hasParam("action") ? request->getParam("action")->value() : String();
+        if (action == "page") this->pendingPage = true;
+        else if (action == "dismiss") this->pendingDismiss = true;
+        else {
+            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"action must be page or dismiss\"}");
+            return;
+        }
+        request->send(200, "application/json", "{\"status\":\"ok\"}");
     });
 
     // GET /api/v1/chart - history chart data (plugins that support it)
@@ -214,7 +263,8 @@ void WebApi::setupApiEndpoints() {
             JsonArray arr = doc["points"].to<JsonArray>();
             for (float v : points) arr.add(rounded(v));
             doc["span_seconds"] = spanSeconds;
-            doc["unit"] = "\xC2\xB5Sv/h";  // only the radiation plugin supports charts today
+            ScreenModel screen;
+            doc["unit"] = this->activePlugin->getScreen(screen) ? screen.unit : "";
         }
 
         serializeJson(doc, *response);
@@ -260,17 +310,13 @@ void WebApi::setupUploadEndpoint() {
 void WebApi::handleUpload(AsyncWebServerRequest* request, const String& filename,
                           size_t index, uint8_t* data, size_t len, bool final) {
     if (index == 0) {
-        const bool filesystem = request->hasParam("target", true)
-            ? request->getParam("target", true)->value() == "filesystem"
-            : request->hasParam("target") && request->getParam("target")->value() == "filesystem";
-
 #if defined(ESP32)
         const uint32_t maxBlock = ESP.getMaxAllocHeap();
 #else
         const uint32_t maxBlock = ESP.getMaxFreeBlockSize();
 #endif
+        // The web UI is part of firmware.bin, so firmware is the only target.
         this->logger->info(String("Upload started: ") + filename +
-                           (filesystem ? " (filesystem)" : " (firmware)") +
                            " free=" + String(ESP.getFreeHeap()) +
                            " maxBlock=" + String(maxBlock));
 
@@ -278,21 +324,11 @@ void WebApi::handleUpload(AsyncWebServerRequest* request, const String& filename
         ws.closeAll();
         ws.enable(false);
 
-        size_t maxSize;
-        int command;
+        const int command = U_FLASH;
 #if defined(ESP32)
-        maxSize = UPDATE_SIZE_UNKNOWN;   // the target partition bounds the image
-        command = filesystem ? U_SPIFFS : U_FLASH;
-        if (filesystem) LittleFS.end();
+        const size_t maxSize = UPDATE_SIZE_UNKNOWN;   // the target partition bounds the image
 #else
-        if (filesystem) {
-            maxSize = (size_t)&_FS_end - (size_t)&_FS_start;
-            command = U_FS;
-            LittleFS.end();   // must not be mounted while it is overwritten
-        } else {
-            maxSize = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-            command = U_FLASH;
-        }
+        const size_t maxSize = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
         Update.runAsync(true);
 #endif
 
@@ -368,23 +404,43 @@ void WebApi::broadcastStats() {
 
     JsonDocument doc;
     doc["event"] = "stats_update";
+    this->fillStatus(doc);
+
+    String message;
+    serializeJson(doc, message);
+    ws.textAll(message);
+}
+
+static void addNumber(JsonObject obj, const char* key, float value)
+{
+    if (std::isnan(value)) obj[key] = nullptr;
+    else obj[key] = value;
+}
+
+void WebApi::fillStatus(JsonDocument& doc) {
+    doc["chip_id"] = ChipId::get();
+    doc["active_plugin"] = this->activePlugin ? this->activePlugin->getId() : "";
+    doc["active_plugin_name"] = this->activePlugin ? this->activePlugin->getName() : "None";
     doc["wifi_network"] = WiFi.SSID();
     doc["wifi_signal"] = String(WiFi.RSSI());
     doc["ip_address"] = WiFi.localIP().toString();
     doc["free_heap"] = ESP.getFreeHeap();
     doc["mqtt_connected"] = this->mqttConnected;
     doc["firmware_version"] = FW_VERSION;
+    doc["errors"] = this->logger->errors();
+    doc["warnings"] = this->logger->warnings();
 
     char uptimeBuf[32];
     TimeHelper::getUptime(uptimeBuf);
     doc["uptime"] = uptimeBuf;
+    doc["uptime_s"] = millis() / 1000UL;
 
     // Plugin-specific stats as structured array
     std::vector<StatEntry> entries;
     if (this->activePlugin) {
         this->activePlugin->getStats(entries);
     }
-    
+
     JsonArray statsArr = doc["stats"].to<JsonArray>();
     for (auto& e : entries) {
         JsonObject obj = statsArr.add<JsonObject>();
@@ -393,11 +449,97 @@ void WebApi::broadcastStats() {
         obj["numeric"] = e.numericValue;
         obj["render"] = e.render == StatEntry::PROGRESS ? "progress" : "text";
         obj["primary"] = e.primary;
+        obj["key"] = e.key;
     }
 
-    String message;
-    serializeJson(doc, message);
-    ws.textAll(message);
+    // Primary-measurement view shared with the OLED pages
+    ScreenModel screen;
+    if (this->activePlugin && this->activePlugin->getScreen(screen)) {
+        JsonObject s = doc["screen"].to<JsonObject>();
+        s["kind"] = screen.kind;
+        s["title"] = screen.title;
+        addNumber(s, "value", screen.value);
+        s["text"] = screen.format(screen.value);
+        s["unit"] = screen.unit;
+        s["decimals"] = screen.decimals;
+        s["valid"] = screen.valid;
+        addNumber(s, "scale_min", screen.scaleMin);
+        addNumber(s, "scale_max", screen.scaleMax);
+        s["trend_bucket_s"] = screen.trendBucketSec;
+        JsonArray trend = s["trend"].to<JsonArray>();
+        for (float v : screen.trend) trend.add(rounded(v));
+        JsonArray lines = s["lines"].to<JsonArray>();
+        for (auto& line : screen.lines) {
+            JsonObject l = lines.add<JsonObject>();
+            l["label"] = line.label;
+            l["value"] = line.value;
+        }
+        s["sensor_label"] = screen.sensorLabel;
+        s["sensor_ok"] = screen.sensorOk;
+        s["raw"] = screen.raw;
+        s["signal"] = screen.signal;
+        addNumber(s, "low_24h", screen.low24);
+        addNumber(s, "high_24h", screen.high24);
+    }
+
+    if (this->monitor) {
+        const LimitMonitor& limits = this->monitor->limits();
+        JsonObject lim = doc["limits"].to<JsonObject>();
+        addNumber(lim, "low", limits.low());
+        addNumber(lim, "high", limits.high());
+        lim["state"] = LimitMonitor::stateName(limits.state());
+        lim["alert"] = limits.alertPending();
+        lim["trips"] = limits.trips();
+
+        JsonObject relay = doc["relay"].to<JsonObject>();
+        relay["available"] = this->monitor->relayAvailable();
+        relay["on"] = this->monitor->relayOn();
+        relay["activations"] = this->monitor->relayActivations();
+        relay["mode"] = LimitMonitor::modeName(limits.relayMode());
+
+        const EventLog& events = this->monitor->events();
+        JsonArray arr = doc["events"].to<JsonArray>();
+        for (size_t i = 0; i < events.size(); i++) {
+            const EventLog::Entry& e = events.newest(i);
+            JsonObject obj = arr.add<JsonObject>();
+            obj["t"] = e.uptimeSec;
+            obj["title"] = e.title;
+            obj["detail"] = e.detail;
+        }
+    }
+
+    if (this->display) {
+        JsonObject d = doc["display"].to<JsonObject>();
+        d["portrait"] = this->display->isPortrait();
+        d["page"] = this->display->getPage();
+        d["pages"] = this->display->isPortrait() ? Display::PORTRAIT_PAGES : 1;
+    }
+}
+
+void WebApi::setDevice(DeviceMonitor* monitor, Display* display, ActionCallback pagePress) {
+    this->monitor = monitor;
+    this->display = display;
+    this->pagePress = pagePress;
+}
+
+void WebApi::processActions() {
+    if (this->pendingLimitsReload) {
+        this->pendingLimitsReload = false;
+        if (this->monitor) this->monitor->loadLimits();
+    }
+    int relay = this->pendingRelay;
+    if (relay >= 0) {
+        this->pendingRelay = -1;
+        if (this->monitor) this->monitor->commandRelay(relay == 1, "WEB UI", millis());
+    }
+    if (this->pendingDismiss) {
+        this->pendingDismiss = false;
+        if (this->monitor) this->monitor->dismissAlert();
+    }
+    if (this->pendingPage) {
+        this->pendingPage = false;
+        if (this->pagePress) this->pagePress();
+    }
 }
 
 void WebApi::broadcastLogs() {

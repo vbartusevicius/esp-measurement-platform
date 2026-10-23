@@ -14,10 +14,16 @@ void WifiConnector::run()
     wm.process();
 }
 
-bool WifiConnector::begin()
+bool WifiConnector::begin(bool forcePortal)
 {
     wm.setConfigPortalBlocking(false);
     wm.setConfigPortalTimeout(300);
+
+    if (forcePortal) {
+        this->logger->info("Opening WiFi setup portal on request.");
+        wm.startConfigPortal(this->appName.c_str());
+        return false;
+    }
 
     bool connected = wm.autoConnect(this->appName.c_str());
 

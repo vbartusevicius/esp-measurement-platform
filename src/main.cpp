@@ -9,6 +9,8 @@
 #include "HAL.h"
 #include "LedController.h"
 #include "RelayOutput.h"
+#include "DeviceMonitor.h"
+#include "Version.h"
 #include "Logger.h"
 #include "Storage.h"
 #include "Parameter.h"
@@ -23,6 +25,7 @@
 #include "AnalogDistancePlugin.h"
 #include "UltrasonicDistancePlugin.h"
 #include "RadiationCounterPlugin.h"
+#include "AnalogVoltagePlugin.h"
 
 WiFiClient network;
 
@@ -35,11 +38,13 @@ Display display;
 PluginRegistry registry;
 RelayOutput relay;
 ButtonLadder buttonLadder;
+DeviceMonitor monitor;
 
 // Plugins
 AnalogDistancePlugin analogDistancePlugin;
 UltrasonicDistancePlugin ultrasonicDistancePlugin;
 RadiationCounterPlugin radiationCounterPlugin;
+AnalogVoltagePlugin analogVoltagePlugin;
 
 // Pointers to be initialized after plugin selection
 WifiConnector* wifi = nullptr;
@@ -55,22 +60,60 @@ void resetDevice()
     ESP.restart();
 }
 
+void refreshDisplay()
+{
+    DisplayFrame frame;
+    ScreenModel screen;
+    frame.legacy = activePlugin ? activePlugin->display() : nullptr;
+    frame.legacyPage = frame.legacy ? frame.legacy->getCurrentDisplayPage() : 0;
+    frame.screen = (activePlugin && activePlugin->getScreen(screen)) ? &screen : nullptr;
+    frame.monitor = &monitor;
+    frame.mqttConnected = mqtt ? mqtt->isConnected() : false;
+    frame.errors = logger.errors();
+    display.run(frame);
+}
+
+// PAGE button (and the WebUI PAGE button): dismisses a pending alert first,
+// otherwise cycles the display pages.
+void pagePressed()
+{
+    if (monitor.alertPending()) {
+        monitor.dismissAlert();
+    } else if (display.isPortrait()) {
+        display.nextPage();
+    } else {
+        IDisplayContributor* contributor = activePlugin ? activePlugin->display() : nullptr;
+        if (contributor) contributor->nextDisplayPage();
+    }
+    if (webApi) refreshDisplay();   // the setup portal keeps its own screen
+}
+
 void pollButtons()
 {
+    if (webApi) webApi->processActions();
 #if defined(BOARD_XIAO_ESP32C6)
     switch (buttonLadder.update(hal.analogReadMilliVolts(Board::BUTTON_LADDER_PIN), millis())) {
-        case ButtonLadder::Event::PAGE_PRESSED: {
-            IDisplayContributor* contributor = activePlugin ? activePlugin->display() : nullptr;
-            if (contributor) contributor->nextDisplayPage();
+        case ButtonLadder::Event::PAGE_PRESSED:
+            if (webApi) pagePressed();
             break;
-        }
         case ButtonLadder::Event::RESET_TAPPED:
             logger.info("RST/WIFI tapped, rebooting");
             delay(200);
             ESP.restart();
             break;
         case ButtonLadder::Event::RESET_HELD:
-            logger.warning("RST/WIFI held 5 s: factory reset and WiFi setup portal");
+            // Rebooting keeps the setup portal (port 80) and the Web API apart.
+            if (wifi && wifi->isPortalActive()) {
+                logger.info("RST/WIFI held 5 s: leaving WiFi setup portal");
+            } else {
+                logger.info("RST/WIFI held 5 s: rebooting into WiFi setup portal");
+                storage.saveParameter(Parameter::PORTAL_ON_BOOT, String("1"));
+            }
+            delay(200);
+            ESP.restart();
+            break;
+        case ButtonLadder::Event::RESET_FACTORY:
+            logger.warning("RST/WIFI held 15 s: factory reset");
             resetDevice();
             break;
         case ButtonLadder::Event::NONE:
@@ -117,6 +160,8 @@ void setup()
 #endif
 
     storage.begin();
+    monitor.begin(&storage, &logger, &relay);
+    monitor.event("SYSTEM BOOT", "FW " FW_VERSION, millis());
 
     ledController.begin(&hal);
     display.begin();
@@ -130,6 +175,7 @@ void setup()
     registry.add(&analogDistancePlugin);
     registry.add(&ultrasonicDistancePlugin);
     registry.add(&radiationCounterPlugin);
+    registry.add(&analogVoltagePlugin);
 
     // Determine active plugin (storage was initialised before the OTA check)
     String activePluginId = storage.getParameter(Parameter::ACTIVE_PLUGIN, "");
@@ -143,8 +189,11 @@ void setup()
     }
 
     // WiFi
+    bool forcePortal = storage.getParameter(Parameter::PORTAL_ON_BOOT, "") == "1";
+    if (forcePortal) storage.saveParameter(Parameter::PORTAL_ON_BOOT, String(""));
+
     wifi = new WifiConnector(&logger, chipId);
-    bool wifiConnected = wifi->begin();
+    bool wifiConnected = wifi->begin(forcePortal);
 
     taskManager.schedule(repeatMillis(250), [] { wifi->run(); });
 
@@ -159,6 +208,12 @@ void setup()
                 delay(500);
                 ESP.restart();
             }
+            // Portal timed out (300 s): retry the saved network.
+            if (millis() > 10000 && !wifi->isPortalActive()) {
+                logger.info("WiFi setup portal closed, restarting...");
+                delay(500);
+                ESP.restart();
+            }
         });
         return;
     }
@@ -168,13 +223,14 @@ void setup()
     }
 
     webApi = new WebApi(&storage, &logger, activePlugin, &registry, resetDevice);
+    webApi->setDevice(&monitor, &display, pagePressed);
     webApi->begin();
 
     String mqttDevice = storage.getParameter(Parameter::MQTT_DEVICE);
     IMqttContributor* mqttContributor = activePlugin ? activePlugin->mqtt() : nullptr;
     if (mqttDevice.length() > 0 && mqttContributor) {
         mqtt = new MqttClient(&storage, &logger, mqttContributor, activePlugin->getId(), chipId);
-        if (relay.available()) mqtt->setRelay(&relay);
+        if (relay.available()) mqtt->setRelay(&relay, &monitor);
         mqtt->begin();
     } else {
         logger.warning("MQTT device name not configured, skipping MQTT");
@@ -195,7 +251,11 @@ void setup()
     });
 
     taskManager.scheduleFixedRate(samplingInterval * 1000, [] {
-        if (activePlugin) activePlugin->loop();
+        if (activePlugin) {
+            activePlugin->loop();
+            ScreenModel screen;
+            if (activePlugin->getScreen(screen)) monitor.evaluate(screen, millis());
+        }
         ledController.click();
     });
 
@@ -204,10 +264,11 @@ void setup()
     });
 
     taskManager.scheduleFixedRate(1000, [] {
+        bool wifiOk = WiFi.status() == WL_CONNECTED;
         bool mqttOk = mqtt ? mqtt->isConnected() : false;
-        IDisplayContributor* displayContributor = activePlugin ? activePlugin->display() : nullptr;
-        int page = displayContributor ? displayContributor->getCurrentDisplayPage() : 0;
-        display.run(displayContributor, page, mqttOk);
+        monitor.updateNetwork(wifiOk, mqttOk, WiFi.SSID() + " " + String(WiFi.RSSI()),
+                              storage.getParameter(Parameter::MQTT_HOST, ""), millis());
+        refreshDisplay();
         updateNetworkLed(false);
     });
 

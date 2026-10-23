@@ -21,6 +21,10 @@ ButtonLadder::Event ButtonLadder::update(int millivolts, unsigned long nowMs)
             this->resetHeldReported = true;
             return Event::RESET_HELD;
         }
+        if (reading == Button::RESET && !this->factoryReported && nowMs - this->resetPressedAt >= FACTORY_HOLD_MS) {
+            this->factoryReported = true;
+            return Event::RESET_FACTORY;
+        }
         return Event::NONE;
     }
 
@@ -30,6 +34,7 @@ ButtonLadder::Event ButtonLadder::update(int millivolts, unsigned long nowMs)
     if (reading == Button::RESET) {
         this->resetPressedAt = nowMs;
         this->resetHeldReported = false;
+        this->factoryReported = false;
     }
     if (previous == Button::RESET && reading == Button::NONE && !this->resetHeldReported) {
         return Event::RESET_TAPPED;

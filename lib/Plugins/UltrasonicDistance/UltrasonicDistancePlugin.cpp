@@ -33,6 +33,7 @@ float UltrasonicDistancePlugin::readSensor()
     float distance = this->speedOfSound * timeTook / 2;
 
     this->sensorConnected = (distance > 0.0);
+    this->lastSignal = String((unsigned long)pulse) + "us";
     this->logger->debug("Ultrasonic read: dist=" + String(distance, 3) + "m");
 
     return distance;

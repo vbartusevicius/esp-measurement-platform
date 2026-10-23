@@ -130,3 +130,80 @@ TEST_F(AnalogDistancePluginTest, PublishIntervalDefaultsToSamplingInterval)
     EXPECT_EQ(plugin.getSamplingInterval(), 20);
     EXPECT_EQ(plugin.getPublishInterval(), 20);
 }
+
+TEST_F(AnalogDistancePluginTest, ScreenModelMatchesStatsAndCarriesTrendAndSignal)
+{
+    plugin.setup(&hal, &storage, &logger, nullptr);
+    plugin.loop();
+    FakeHAL::currentMillis = 61000;
+    plugin.loop();
+
+    ScreenModel screen;
+    ASSERT_TRUE(plugin.getScreen(screen));
+    EXPECT_STREQ(screen.title, "TANK");
+    EXPECT_STREQ(screen.unit, "%");
+    EXPECT_TRUE(screen.valid);
+    EXPECT_NEAR(screen.value, 66.75f, 1.0f);
+    EXPECT_EQ(screen.trend.size(), 2u);             // one closed 1-min bucket + running bucket
+    EXPECT_NEAR(screen.low24, screen.value, 0.01f);
+    EXPECT_NEAR(screen.high24, screen.value, 0.01f);
+    EXPECT_STREQ(screen.signal.c_str(), "12.0mA");
+    ASSERT_EQ(screen.lines.size(), 2u);
+    EXPECT_STREQ(screen.lines[0].label, "DEP");
+}
+
+TEST_F(AnalogDistancePluginTest, ScreenModelShowsVolumeAndFlowWhenConfigured)
+{
+    storage.saveParameter(DistancePluginBase::PARAM_TOTAL_VOLUME, String("1000"));
+    plugin.setup(&hal, &storage, &logger, nullptr);
+    plugin.loop();
+
+    ScreenModel screen;
+    plugin.getScreen(screen);
+    ASSERT_EQ(screen.lines.size(), 2u);
+    EXPECT_STREQ(screen.lines[0].label, "VOL");
+    EXPECT_STREQ(screen.lines[1].label, "FLW");
+}
+
+TEST_F(AnalogDistancePluginTest, FaultedSensorGivesAnInvalidScreenValue)
+{
+    hal.analogValue = 0;
+    plugin.setup(&hal, &storage, &logger, nullptr);
+    plugin.loop();
+
+    ScreenModel screen;
+    plugin.getScreen(screen);
+    EXPECT_FALSE(screen.valid);
+    EXPECT_FALSE(screen.sensorOk);
+    EXPECT_TRUE(screen.trend.empty());
+}
+
+TEST_F(AnalogDistancePluginTest, WebContractHasKindStatKeysAnd24hHistory)
+{
+    storage.saveParameter(DistancePluginBase::PARAM_TOTAL_VOLUME, String("3000"));
+    plugin.setup(&hal, &storage, &logger, nullptr);
+    plugin.loop();
+    FakeHAL::currentMillis = 900000;
+    plugin.loop();
+
+    ScreenModel screen;
+    plugin.getScreen(screen);
+    EXPECT_STREQ(screen.kind, "level");
+
+    std::vector<StatEntry> stats;
+    plugin.getStats(stats);
+    bool capacity = false, flow = false;
+    for (auto& e : stats) {
+        EXPECT_STRNE(e.key, "");
+        if (strcmp(e.key, "capacity") == 0) { capacity = true; EXPECT_FLOAT_EQ(e.numericValue, 3000.0f); }
+        if (strcmp(e.key, "flow_rate") == 0) flow = true;
+    }
+    EXPECT_TRUE(capacity);
+    EXPECT_TRUE(flow);
+
+    std::vector<float> points;
+    int span = 0;
+    ASSERT_TRUE(plugin.getChartData(points, span));
+    EXPECT_EQ(span, 900);
+    EXPECT_EQ(points.size(), 2u);
+}

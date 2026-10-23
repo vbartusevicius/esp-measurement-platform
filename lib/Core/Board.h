@@ -43,6 +43,8 @@ namespace Board
     constexpr int PAGE_BUTTON_PIN = 0;      // NodeMCU FLASH button
 
     constexpr float MA_SHUNT_OHMS = 0.0f;   // no on-board shunt
+    constexpr int V0_10_PIN = A0;           // shared with ANALOG_PIN; 0-3.3 V (NodeMCU on-board divider), add a divider for 5/10 V sensors
+    constexpr float V0_10_DIVIDER = 1.0f;
 
     constexpr int RELAY_PIN = -1;
     constexpr bool HAS_RELAY = false;

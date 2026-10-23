@@ -34,6 +34,7 @@ float AnalogDistancePlugin::readSensor()
         current = AnalogSensorConverter::voltageToCurrentMA(voltage, VOLTAGE_REF, MIN_CURRENT_MA, MAX_CURRENT_MA);
     }
     this->sensorConnected = AnalogSensorConverter::isSensorConnected(current, FAULT_CURRENT_MA);
+    this->lastSignal = String(current, 1) + "mA";
     float distance = 0.0;
 
     if (this->sensorConnected) {
@@ -78,9 +79,9 @@ void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, co
         doc["state_topic"] = stateTopic;
         doc["value_template"] = "{{ ((value_json.relative | float) * 100) | round(1) }}";
         doc["unit_of_measurement"] = "%";
-        doc["name"] = "Water Level";
+        doc["name"] = "Level";
         doc["unique_id"] = deviceId + "_level";
-        doc["icon"] = "mdi:water-percent";
+        doc["icon"] = "mdi:gauge";
         doc["state_class"] = "measurement";
 
         JsonObject device = doc["device"].to<JsonObject>();
@@ -98,7 +99,7 @@ void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, co
         doc["state_topic"] = stateTopic;
         doc["value_template"] = "{{ value_json.absolute | round(2) }}";
         doc["unit_of_measurement"] = "m";
-        doc["name"] = "Water Depth";
+        doc["name"] = "Depth";
         doc["unique_id"] = deviceId + "_depth";
         doc["device_class"] = "distance";
         doc["icon"] = "mdi:ruler";

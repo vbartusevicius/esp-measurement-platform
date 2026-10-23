@@ -9,11 +9,14 @@
 #include "LedController.h"
 #include "RadiationCalculator.h"
 #include "Board.h"
+#include "TrendBuffer.h"
+#include "RollingExtremes.h"
 #include <vector>
 
 class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public IDisplayContributor
 {
     public:
+        static constexpr const char* PARAM_TUBE_MODEL = "tube_model";
         static constexpr const char* PARAM_TUBE_FACTOR = "tube_conversion_factor";
         static constexpr const char* PARAM_GRAPH_RESOLUTION = "display_graph_resolution";
         static constexpr const char* PARAM_DEAD_TIME_US = "tube_dead_time_us";
@@ -41,6 +44,18 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
         float alertThresholdUsvH = 0.3f;
 
         unsigned long totalCounts = 0;
+        unsigned long startedAt = 0;
+        unsigned long lastPulseAt = 0;
+        bool pulseSeen = false;
+        int lastClicks = 0;
+        TrendBuffer doseTrend{1000UL};       // 56 x 1 s of dose rate
+        RollingExtremes doseExtremes;        // 24 h low/high of dose rate
+
+        static constexpr unsigned long WARMUP_MS = 60000UL;          // CPM window fill
+        static constexpr unsigned long TUBE_SILENT_MS = 300000UL;    // no pulse for 5 min = tube fault
+
+        bool tubeOk() const;
+        bool warmedUp() const;
 
     public:
         // Chart capability for the web UI
@@ -59,8 +74,10 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
         void loop() override;
 
         void getParameterDefs(std::vector<ParameterDef>& defs) const override;
+        void getParameterPresets(std::vector<ParameterPreset>& presets) const override;
 
         void getStats(std::vector<StatEntry>& entries) const override;
+        bool getScreen(ScreenModel& model) const override;
 
         void publishMqtt(MQTTClient& client, const String& baseTopic) override;
         void publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx) override;

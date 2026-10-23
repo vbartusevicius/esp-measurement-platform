@@ -10,6 +10,8 @@
 #include "LevelFilter.h"
 #include "FlowRateCalculator.h"
 #include "DailyUsageTracker.h"
+#include "TrendBuffer.h"
+#include "RollingExtremes.h"
 #include <vector>
 
 class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisplayContributor
@@ -39,6 +41,10 @@ class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisp
         float lastRawDistance = 0.0f;
         FlowRateCalculator flowCalc;
         DailyUsageTracker usageTracker;
+        TrendBuffer levelTrend{60000UL};     // 56 x 1 min of level %
+        RollingExtremes levelExtremes;       // 24 h low/high of level %
+        TrendBuffer levelHistory{900000UL, 96};   // 24 h of level %, 15 min points (web history)
+        String lastSignal;                   // terminal signal of the last read (mA / echo us)
 
         // Configuration parsed once in setup() (changes require restart)
         int avgSampleCount = 10;
@@ -67,6 +73,8 @@ class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisp
 
         void getParameterDefs(std::vector<ParameterDef>& defs) const override;
         void getStats(std::vector<StatEntry>& entries) const override;
+        bool getScreen(ScreenModel& model) const override;
+        bool getChartData(std::vector<float>& points, int& spanSeconds) const override;
 
         void publishMqtt(MQTTClient& client, const String& baseTopic) override;
 

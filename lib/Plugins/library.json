@@ -6,7 +6,8 @@
             "-IAnalogDistance",
             "-IUltrasonicDistance",
             "-IRadiationCounter",
-            "-IDistanceBase"
+            "-IDistanceBase",
+            "-IAnalogVoltage"
         ]
     }
 }

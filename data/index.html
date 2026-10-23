@@ -3,157 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
     <title>ESP Measurement Platform</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1 id="app-title">ESP Measurement Platform</h1>
-            <div class="chip-info">
-                <span id="chip-id" class="badge"></span>
-                <span id="plugin-name" class="badge plugin-badge"></span>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="identity">
+                <h1 id="device-title">ESP Measurement Platform</h1>
+                <div id="device-subtitle" class="muted small"></div>
             </div>
-        </header>
-        
-        <div class="dashboard">
-            <!-- Plugin stats panel - dynamically populated -->
-            <div class="stats-panel">
-                <h2>Current Status</h2>
-                <div id="plugin-stats" class="primary-stats"></div>
-                
-                <div class="secondary-stats">
-                    <div class="system-info">
-                        <div class="stat-item small">
-                            <span class="stat-label">MQTT:</span>
-                            <span id="mqtt-status" class="stat-value">--</span>
-                        </div>
-                    </div>
-                    
-                    <div class="network-info">
-                        <div class="stat-item small">
-                            <span class="stat-label">Network:</span>
-                            <span id="wifi-network" class="stat-value">--</span>
-                        </div>
-                        <div class="stat-item small">
-                            <span class="stat-label">Signal:</span>
-                            <span id="wifi-signal" class="stat-value">--</span>
-                        </div>
-                        <div class="stat-item small">
-                            <span class="stat-label">IP:</span>
-                            <span id="ip-address" class="stat-value">--</span>
-                        </div>
-                        <div class="stat-item small">
-                            <span class="stat-label">Uptime:</span>
-                            <span id="uptime" class="stat-value">--</span>
-                        </div>
-                        <div class="stat-item small">
-                            <span class="stat-label">Free heap:</span>
-                            <span id="free-heap" class="stat-value">--</span>
-                        </div>
-                        <div class="stat-item small">
-                            <span class="stat-label">Firmware:</span>
-                            <span id="firmware-version" class="stat-value">--</span>
-                        </div>
-                    </div>
-                </div>
-                <div id="chart-panel" class="chart-panel" style="display:none">
-                    <h2 id="chart-title">History</h2>
-                    <canvas id="history-chart"></canvas>
-                </div>
-            </div>
-            
-            <!-- Configuration panel -->
-            <div class="config-panel">
-                <div id="config-toggle" class="panel-header">
-                    <h2>Configuration</h2>
-                    <span class="toggle-icon">+</span>
-                </div>
-                <form id="config-form">
-                    <h3>Device</h3>
-                    <div class="form-group">
-                        <label for="device-name">Name:</label>
-                        <input type="text" id="device-name" name="device_name" placeholder="e.g. Rainwater Tank">
-                        <small class="form-text">Shown in Home Assistant. Leave empty to use the plugin's default name.</small>
-                    </div>
-
-                    <!-- Plugin selector -->
-                    <h3>Plugin</h3>
-                    <div class="form-group">
-                        <label for="active-plugin">Active Plugin:</label>
-                        <select id="active-plugin" name="active_plugin"></select>
-                        <small class="form-text">Changing plugin requires a restart</small>
-                    </div>
-
-                    <!-- Dynamic plugin parameters -->
-                    <div id="plugin-params-section">
-                        <h3 id="plugin-params-title">Plugin Settings</h3>
-                        <div id="plugin-params"></div>
-                    </div>
-                    
-                    <h3>MQTT Settings</h3>
-                    <div class="form-group">
-                        <label for="mqtt-host">Host:</label>
-                        <input type="text" id="mqtt-host" name="mqtt_host">
-                    </div>
-                    <div class="form-group">
-                        <label for="mqtt-port">Port:</label>
-                        <input type="number" id="mqtt-port" name="mqtt_port">
-                    </div>
-                    <div class="form-group">
-                        <label for="mqtt-user">Username:</label>
-                        <input type="text" id="mqtt-user" name="mqtt_user">
-                    </div>
-                    <div class="form-group">
-                        <label for="mqtt-pass">Password:</label>
-                        <input type="password" id="mqtt-pass" name="mqtt_pass">
-                    </div>
-                    <div class="form-group">
-                        <label for="mqtt-device">Device Name:</label>
-                        <input type="text" id="mqtt-device" name="mqtt_device">
-                    </div>
-                    <div class="form-group">
-                        <label for="mqtt-topic">Topic:</label>
-                        <input type="text" id="mqtt-topic" name="mqtt_topic">
-                    </div>
-                    
-                    <h3>Firmware Update</h3>
-                    <div class="form-group">
-                        <label for="upload-target">What to upload:</label>
-                        <select id="upload-target">
-                            <option value="firmware">Firmware (firmware.bin)</option>
-                            <option value="filesystem">Filesystem (littlefs.bin)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <input type="file" id="upload-file" accept=".bin">
-                        <button type="button" id="upload-btn" class="btn">Upload &amp; flash</button>
-                        <small class="form-text">Device restarts when the upload finishes.</small>
-                        <div id="upload-status" class="form-text"></div>
-                    </div>
-
-                    <div class="button-group">
-                        <div class="left-buttons">
-                            <button type="submit" class="btn primary">Save Changes</button>
-                        </div>
-                        <div class="right-buttons">
-                            <button type="button" id="restart-btn" class="btn warning">Restart</button>
-                            <button type="button" id="reset-btn" class="btn danger">Reset</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Log panel -->
-            <div class="log-panel">
-                <h2>System Log</h2>
-                <div id="log-container" class="log-container"></div>
+            <div id="connection" class="connection" role="status" aria-live="polite">
+                <span class="dot"></span><span id="connection-text">Connecting…</span>
             </div>
         </div>
-    </div>
-    
-    <script src="js/chart.js"></script>
+        <nav class="tabs" role="tablist">
+            <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+            <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
+            <button role="tab" data-tab="device" aria-selected="false">Device</button>
+        </nav>
+    </header>
+
+    <main class="page">
+        <!-- OVERVIEW: one headline answer, then context -->
+        <section id="tab-overview" class="tab-panel" role="tabpanel">
+            <div id="alert-slot"></div>
+            <div class="overview-grid">
+                <article class="card hero-card" id="hero-card">
+                    <div class="skeleton">Waiting for the first reading…</div>
+                </article>
+                <div class="side">
+                    <div class="tiles" id="tiles"></div>
+                    <article class="card relay-card" id="relay-card" hidden>
+                        <div class="card-head"><h2>Relay output</h2><span id="relay-mode" class="muted small"></span></div>
+                        <div class="relay-body">
+                            <div>
+                                <div id="relay-state" class="relay-state">—</div>
+                                <div id="relay-info" class="muted small"></div>
+                            </div>
+                            <button type="button" id="relay-toggle" class="btn">Switch</button>
+                        </div>
+                    </article>
+                </div>
+                <article class="card trend-card">
+                    <div class="card-head">
+                        <h2 id="trend-title">Trend</h2>
+                        <div class="segmented" role="group" aria-label="Chart range">
+                            <button type="button" data-range="live">Live</button>
+                            <button type="button" data-range="24h">24 h</button>
+                        </div>
+                    </div>
+                    <div id="trend-chart" class="chart"></div>
+                    <div class="chart-foot">
+                        <div id="trend-summary" class="summary-row"></div>
+                        <span id="trend-caption" class="muted small"></span>
+                    </div>
+                </article>
+                <details class="card events-card" id="events-card">
+                    <summary>
+                        <h2>Events</h2>
+                        <span id="events-summary" class="muted small"></span>
+                    </summary>
+                    <ul id="events-list" class="events"></ul>
+                </details>
+            </div>
+        </section>
+
+        <!-- SETTINGS -->
+        <section id="tab-settings" class="tab-panel" role="tabpanel" hidden>
+            <form id="config-form" novalidate>
+                <article class="card">
+                    <div class="card-head"><h2>Sensor</h2></div>
+                    <div class="field">
+                        <label for="active-plugin">Sensor type</label>
+                        <select id="active-plugin" name="active_plugin"></select>
+                        <small class="hint">Changing the sensor type restarts the device.</small>
+                    </div>
+                    <div id="plugin-params" class="field-grid"></div>
+                </article>
+
+                <article class="card">
+                    <div class="card-head"><h2>Alerts</h2></div>
+                    <p class="muted small">Limits use the unit of the main reading (<b class="limit-unit">%</b>). Changes apply immediately, no restart needed.</p>
+                    <div class="alert-rows">
+                        <div class="alert-row">
+                            <label class="switch"><input type="checkbox" id="limit-low-on" data-switch="limit_low_on"><span class="slider" aria-hidden="true"></span><span class="switch-label">Low alert <b class="switch-state"></b></span></label>
+                            <div class="input-unit"><input type="number" step="any" id="limit-low" name="limit_low" aria-label="Low alert limit"><span class="limit-unit">%</span></div>
+                            <small class="hint">Alert when the reading drops below this value.</small>
+                        </div>
+                        <div class="alert-row">
+                            <label class="switch"><input type="checkbox" id="limit-high-on" data-switch="limit_high_on"><span class="slider" aria-hidden="true"></span><span class="switch-label">High alert <b class="switch-state"></b></span></label>
+                            <div class="input-unit"><input type="number" step="any" id="limit-high" name="limit_high" aria-label="High alert limit"><span class="limit-unit">%</span></div>
+                            <small class="hint">Alert when the reading rises above this value.</small>
+                        </div>
+                        <div class="alert-row">
+                            <label for="limit-hysteresis" class="row-label">Clear margin</label>
+                            <div class="input-unit"><input type="number" step="any" min="0" id="limit-hysteresis" name="limit_hysteresis" placeholder="0"><span class="limit-unit">%</span></div>
+                            <small class="hint">How far back inside the limit the reading must return before an alert clears. Stops flapping around the limit.</small>
+                        </div>
+                    </div>
+                    <div id="limit-error" class="field-error" hidden></div>
+
+                    <fieldset id="relay-mode-group" class="choices">
+                        <legend>Relay output</legend>
+                        <label class="choice"><input type="radio" name="relay_mode" value="manual"><span><b>Manual</b><small>Switched from the Overview page or from Home Assistant (MQTT).</small></span></label>
+                        <label class="choice"><input type="radio" name="relay_mode" value="on_alarm"><span><b>On during an alert</b><small>E.g. start a pump or a siren while a limit is exceeded.</small></span></label>
+                        <label class="choice"><input type="radio" name="relay_mode" value="off_alarm"><span><b>Off during an alert</b><small>E.g. cut a pump when the tank runs low (dry-run protection).</small></span></label>
+                    </fieldset>
+                    <div id="relay-mode-warning" class="field-warning" hidden>Both alerts are off, so the relay will stay off.</div>
+                </article>
+
+                <article class="card">
+                    <div class="card-head"><h2>Device &amp; Home Assistant</h2></div>
+                    <div class="field-grid">
+                        <div class="field">
+                            <label for="device-name">Display name</label>
+                            <input type="text" id="device-name" name="device_name" placeholder="e.g. Rainwater tank">
+                            <small class="hint">Shown here and in Home Assistant.</small>
+                        </div>
+                        <div class="field">
+                            <label for="mqtt-host">MQTT broker</label>
+                            <input type="text" id="mqtt-host" name="mqtt_host" placeholder="192.168.0.10" required>
+                        </div>
+                        <div class="field">
+                            <label for="mqtt-port">Port</label>
+                            <input type="number" id="mqtt-port" name="mqtt_port" placeholder="1883" required>
+                        </div>
+                        <div class="field">
+                            <label for="mqtt-user">Username</label>
+                            <input type="text" id="mqtt-user" name="mqtt_user" autocomplete="off">
+                        </div>
+                        <div class="field">
+                            <label for="mqtt-pass">Password</label>
+                            <input type="password" id="mqtt-pass" name="mqtt_pass" autocomplete="new-password">
+                        </div>
+                        <div class="field">
+                            <label for="mqtt-device">MQTT device id</label>
+                            <input type="text" id="mqtt-device" name="mqtt_device" placeholder="rainwater_tank" required>
+                        </div>
+                        <div class="field">
+                            <label for="mqtt-topic">State topic</label>
+                            <input type="text" id="mqtt-topic" name="mqtt_topic">
+                            <small class="hint">Filled in from the device id.</small>
+                        </div>
+                    </div>
+                </article>
+
+                <div id="save-bar" class="save-bar" hidden>
+                    <span id="save-text">Unsaved changes</span>
+                    <div>
+                        <button type="button" id="discard-btn" class="btn ghost">Discard</button>
+                        <button type="submit" class="btn primary">Save</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- DEVICE -->
+        <section id="tab-device" class="tab-panel" role="tabpanel" hidden>
+            <article class="card">
+                <div class="card-head"><h2>Status</h2></div>
+                <dl id="device-info" class="info-grid"></dl>
+            </article>
+            <article class="card">
+                <div class="card-head"><h2>Firmware update</h2></div>
+                <p class="muted small">Install a <code>firmware.bin</code> built for this board. It includes this web interface. Settings are kept.</p>
+                <div class="upload-row">
+                    <label class="btn file-btn">
+                        <input type="file" id="upload-file" accept=".bin">Choose file…
+                    </label>
+                    <span id="upload-name" class="upload-name muted">No file chosen</span>
+                    <button type="button" id="upload-btn" class="btn primary" disabled>Install</button>
+                </div>
+                <div class="actions">
+                    <progress id="upload-progress" max="100" value="0" hidden></progress>
+                    <span id="upload-status" class="muted small"></span>
+                </div>
+            </article>
+            <article class="card">
+                <details>
+                    <summary><h2>System log</h2></summary>
+                    <div id="log-container" class="log"></div>
+                </details>
+            </article>
+            <article class="card danger-zone">
+                <div class="card-head"><h2>Maintenance</h2></div>
+                <div class="actions">
+                    <button type="button" id="restart-btn" class="btn">Restart</button>
+                    <button type="button" id="reset-btn" class="btn danger">Factory reset…</button>
+                </div>
+                <small class="hint">Factory reset erases WiFi, MQTT and sensor settings. The device then opens its setup access point.</small>
+            </article>
+        </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" hidden></div>
+
     <script src="js/api.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/views.js"></script>
     <script src="js/websocket.js"></script>
     <script src="js/main.js"></script>
 </body>

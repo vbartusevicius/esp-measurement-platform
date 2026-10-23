@@ -47,6 +47,8 @@ class Logger
     private:
         LogBuffer buffer;
         bool debugEnabled = false;
+        unsigned long errorCount = 0;
+        unsigned long warningCount = 0;
 
         void log(const char* level, const String& message);
 
@@ -62,6 +64,8 @@ class Logger
         void debug(const String& message);
         const LogBuffer& getBuffer() const;
         size_t size() const;
+        unsigned long errors() const { return this->errorCount; }
+        unsigned long warnings() const { return this->warningCount; }
 };
 
 #endif

@@ -28,9 +28,7 @@ jobs:
         run: pio run -e nodemcu
 
       - name: Build v1 board (XIAO ESP32-C6)
-        run: |
-          pio run -e xiao_c6
-          pio run -e xiao_c6 -t buildfs
+        run: pio run -e xiao_c6
 
   test:
     runs-on: ubuntu-latest

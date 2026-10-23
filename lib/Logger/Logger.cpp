@@ -36,11 +36,13 @@ void Logger::info(const String& message)
 
 void Logger::warning(const String& message)
 {
+    this->warningCount++;
     this->log("WARN", message);
 }
 
 void Logger::error(const String& message)
 {
+    this->errorCount++;
     this->log("ERROR", message);
 }
 

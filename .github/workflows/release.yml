@@ -32,9 +32,6 @@ jobs:
       - name: Build firmware
         run: pio run -e nodemcu
 
-      - name: Build LittleFS image (web UI)
-        run: pio run -e nodemcu -t buildfs
-
       - name: Publish GitHub release with binaries
         uses: softprops/action-gh-release@v2
         with:
@@ -42,5 +39,4 @@ jobs:
           name: ${{ env.VERSION }}
           files: |
             .pio/build/nodemcu/firmware.bin
-            .pio/build/nodemcu/littlefs.bin
           generate_release_notes: true

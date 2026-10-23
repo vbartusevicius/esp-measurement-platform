@@ -5,6 +5,34 @@
 
 RadiationCounterPlugin* RadiationCounterPlugin::instance = nullptr;
 
+// Common GM tubes: CPM per uSv/h and dead time. Published factors spread by
+// +-20 % between batches and sources (Co-60 vs Cs-137 calibration), so these
+// are the most widely used community values; calibrate against a reference
+// instrument when accuracy matters. Dead time "0" = not published, correction off.
+//   J305:    0.00812 uSv/h per CPM, 180 us (IoT-devices GGreg20_V3 notes)
+//   M4011:   0.0065 uSv/h per CPM (DIYGeiger; radmon.org)
+//   SBM-20 / STS-5: 0.0057 uSv/h per CPM (RH Geiger list), 190 us (datasheet)
+//   SI-29BG: 122 CPM per uSv/h, batch dependent (DIYGeiger)
+//   SBM-19:  0.0021 uSv/h per CPM (RH Geiger list)
+//   LND 712: 108 CPM per uSv/h (DIYGeiger), 90 us (LND datasheet)
+//   SI-3BG:  0.631578 uSv/h per CPM (radmon.org list), high-range tube
+struct TubeModel {
+    const char* id;
+    const char* factor;
+    const char* deadTimeUs;
+};
+
+static const TubeModel TUBES[] = {
+    {"j305", "123.1", "180"},
+    {"m4011", "153.8", "0"},
+    {"sbm20", "175.4", "190"},
+    {"sts5", "175.4", "190"},
+    {"si29bg", "122", "0"},
+    {"sbm19", "476.2", "0"},
+    {"lnd712", "108", "90"},
+    {"si3bg", "1.58", "0"},
+};
+
 IRAM_ATTR void RadiationCounterPlugin::radiationISR()
 {
     if (instance) instance->onRadiationClick();
@@ -29,11 +57,17 @@ void RadiationCounterPlugin::setup(HAL* hal, Storage* storage, Logger* logger, L
     this->buttonCounter = 0;
     this->radCalc.reset();
 
-    this->tubeFactor = this->storage->getParameter(PARAM_TUBE_FACTOR, "120").toFloat();
+    this->tubeFactor = this->storage->getParameter(PARAM_TUBE_FACTOR, "123.1").toFloat();
     this->graphSpanSeconds = this->storage->getParameter(PARAM_GRAPH_RESOLUTION, "600").toInt();
-    this->deadTimeUs = this->storage->getParameter(PARAM_DEAD_TIME_US, "0").toFloat();
+    this->deadTimeUs = this->storage->getParameter(PARAM_DEAD_TIME_US, "180").toFloat();
     this->alertThresholdUsvH = this->storage->getParameter(PARAM_ALERT_THRESHOLD, "0.3").toFloat();
     this->totalCounts = 0;
+    this->startedAt = millis();
+    this->lastPulseAt = 0;
+    this->pulseSeen = false;
+    this->lastClicks = 0;
+    this->doseTrend.reset();
+    this->doseExtremes.reset();
 
     this->hal->pinMode(CNT_PIN, INPUT);
 
@@ -85,19 +119,41 @@ void RadiationCounterPlugin::loop()
     this->clickCounter = 0;
     interrupts();
 
+    unsigned long now = millis();
     this->totalCounts += (unsigned long)clicks;
+    this->lastClicks = clicks;
+    if (clicks > 0) {
+        this->lastPulseAt = now;
+        this->pulseSeen = true;
+    }
     this->radCalc.calculate(clicks, this->tubeFactor, this->deadTimeUs);
     this->radCalc.aggregateGraph(this->graphSpanSeconds);
+    if (this->warmedUp()) {
+        this->doseTrend.add(this->radCalc.getDose(), now);
+        this->doseExtremes.update(this->radCalc.getDose(), now);
+    }
 }
 
 // --- Parameters ---
 
 void RadiationCounterPlugin::getParameterDefs(std::vector<ParameterDef>& defs) const
 {
-    defs.push_back({PARAM_TUBE_FACTOR, "Tube Factor (CPM/uSv/h)", "120", ParameterDef::NUMBER, false});
-    defs.push_back({PARAM_DEAD_TIME_US, "Tube Dead Time (us, 0=off)", "0", ParameterDef::NUMBER, false});
+    defs.push_back({PARAM_TUBE_MODEL, "Geiger tube", "j305", ParameterDef::SELECT, false,
+                    "j305=J305 (glass, 107 mm);m4011=M4011 (glass, 88 mm);sbm20=SBM-20 / СБМ-20;sts5=STS-5 / СТС-5;"
+                    "si29bg=SI-29BG / СИ-29БГ;sbm19=SBM-19 / СБМ-19;lnd712=LND 712 (end window);si3bg=SI-3BG / СИ-3БГ (high range);"
+                    "custom=Other / custom"});
+    defs.push_back({PARAM_TUBE_FACTOR, "Tube Factor (CPM/uSv/h)", "123.1", ParameterDef::NUMBER, false});
+    defs.push_back({PARAM_DEAD_TIME_US, "Tube Dead Time (us, 0=off)", "180", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_ALERT_THRESHOLD, "Alert Threshold (uSv/h avg)", "0.3", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_GRAPH_RESOLUTION, "Graph Bar Seconds", "600", ParameterDef::NUMBER, false});
+}
+
+void RadiationCounterPlugin::getParameterPresets(std::vector<ParameterPreset>& presets) const
+{
+    for (const TubeModel& tube : TUBES) {
+        presets.push_back({PARAM_TUBE_MODEL, tube.id, PARAM_TUBE_FACTOR, tube.factor});
+        presets.push_back({PARAM_TUBE_MODEL, tube.id, PARAM_DEAD_TIME_US, tube.deadTimeUs});
+    }
 }
 
 // --- Stats ---
@@ -107,13 +163,53 @@ void RadiationCounterPlugin::getStats(std::vector<StatEntry>& entries) const
     int cpm = this->radCalc.getCPM();
     float dose = this->radCalc.getDose();
     float avg = this->radCalc.getDoseAvg5m();
-    entries.push_back({"CPM", String(cpm), (float)cpm, StatEntry::TEXT, true});
-    entries.push_back({"Dose", String(dose, 2) + " \xC2\xB5Sv/h", dose, StatEntry::TEXT, true});
-    entries.push_back({"Dose 5m avg", String(avg, 2) + " \xC2\xB5Sv/h", avg, StatEntry::TEXT, true});
+    entries.push_back({"CPM", String(cpm), (float)cpm, StatEntry::TEXT, true, "cpm"});
+    entries.push_back({"Dose", String(dose, 2) + " \xC2\xB5Sv/h", dose, StatEntry::TEXT, true, "dose"});
+    entries.push_back({"Dose 5m avg", String(avg, 2) + " \xC2\xB5Sv/h", avg, StatEntry::TEXT, true, "dose_avg_5m"});
     if (avg >= this->alertThresholdUsvH) {
-        entries.push_back({"Alert", "ELEVATED", 1.0f, StatEntry::TEXT, true});
+        entries.push_back({"Alert", "ELEVATED", 1.0f, StatEntry::TEXT, true, "alert"});
     }
-    entries.push_back({"Total Counts", String(this->totalCounts), (float)this->totalCounts, StatEntry::TEXT, false});
+    entries.push_back({"Alert Threshold", String(this->alertThresholdUsvH, 2) + " \xC2\xB5Sv/h", this->alertThresholdUsvH, StatEntry::TEXT, false, "alert_threshold"});
+    entries.push_back({"Total Counts", String(this->totalCounts), (float)this->totalCounts, StatEntry::TEXT, false, "counts_total"});
+}
+
+// --- Screen model (OLED + WebUI) ---
+
+bool RadiationCounterPlugin::warmedUp() const
+{
+    return millis() - this->startedAt >= WARMUP_MS;
+}
+
+bool RadiationCounterPlugin::tubeOk() const
+{
+    // Background gives ~10-30 CPM on a J305, so 5 silent minutes means a dead
+    // tube, missing HV or a broken pulse line.
+    if (this->pulseSeen) return millis() - this->lastPulseAt < TUBE_SILENT_MS;
+    return millis() - this->startedAt < TUBE_SILENT_MS;
+}
+
+bool RadiationCounterPlugin::getScreen(ScreenModel& model) const
+{
+    model.kind = "radiation";
+    model.title = "RAD";
+    model.value = this->radCalc.getDose();
+    model.unit = "uSv/h";
+    model.decimals = 2;
+    model.valid = this->warmedUp() && this->tubeOk();
+    model.scaleMin = 0.0f;
+    model.trend = this->doseTrend.values();
+    model.trendBucketSec = this->doseTrend.getBucketMs() / 1000UL;
+    model.sensorLabel = "TUBE";
+    model.sensorOk = this->tubeOk();
+    model.raw = String(this->lastClicks) + "cps";
+    model.signal = this->totalCounts >= 10000 ? String(this->totalCounts / 1000.0f, 1) + "kp" : String(this->totalCounts) + "p";
+    if (this->doseExtremes.valid()) {
+        model.low24 = this->doseExtremes.min();
+        model.high24 = this->doseExtremes.max();
+    }
+    model.lines.push_back({"CPM", String(this->radCalc.getCPM())});
+    model.lines.push_back({"5M", String(this->radCalc.getDoseAvg5m(), 2)});
+    return true;
 }
 
 // --- MQTT ---

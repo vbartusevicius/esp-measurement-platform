@@ -99,6 +99,15 @@ public:
     const char* c_str() const { return _buf.c_str(); }
     unsigned int length() const { return (unsigned int)_buf.length(); }
     bool isEmpty() const { return _buf.empty(); }
+    int indexOf(char c, unsigned int from = 0) const {
+        size_t pos = _buf.find(c, from);
+        return pos == std::string::npos ? -1 : (int)pos;
+    }
+    String substring(unsigned int from) const { return substring(from, (unsigned int)_buf.size()); }
+    String substring(unsigned int from, unsigned int to) const {
+        if (from >= _buf.size() || to <= from) return String();
+        return String(_buf.substr(from, to - from).c_str());
+    }
     int toInt() const { return atoi(_buf.c_str()); }
     float toFloat() const { return (float)atof(_buf.c_str()); }
     void toUpperCase() {

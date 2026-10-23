@@ -1,71 +1,60 @@
-let socket;
-let reconnectInterval;
-
-function initWebSocket() {
-    connect();
-}
+// Live updates over the WebSocket; falls back to polling /status while it is down.
+let socket = null;
+let reconnectDelay = 1000;
+let pollTimer = null;
 
 function connect() {
-    if (socket) {
-        socket.close();
-    }
-    
     socket = new WebSocket(`ws://${window.location.host}/ws`);
-    
+
     socket.onopen = () => {
-        addLogMessage('WebSocket connected');
-        clearInterval(reconnectInterval);
-        requestStatus();
-        requestLogHistory();
+        reconnectDelay = 1000;
+        stopPolling();
+        sendEvent('request_status');
+        sendEvent('request_logs');
     };
-    
+
     socket.onclose = () => {
-        addLogMessage('WebSocket disconnected');
-        reconnectInterval = setInterval(() => connect(), 5000);
+        startPolling();
+        setTimeout(connect, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 15000);
     };
-    
-    socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-    };
-    
+
     socket.onmessage = (event) => {
+        if (typeof event.data !== 'string') return;
+        let data;
         try {
-            const data = JSON.parse(event.data);
-            handleWebSocketMessage(data);
+            data = JSON.parse(event.data);
         } catch (error) {
-            console.error('Error parsing message:', error);
+            return;
         }
+        if (data.event === 'stats_update') onStatus(data);
+        else if (data.event === 'log_batch') (data.messages || []).forEach(addLogLine);
+        else if (data.event === 'log_update') addLogLine(data.message);
     };
 }
 
-function handleWebSocketMessage(data) {
-    switch (data.event) {
-        case 'log_update':
-            addLogMessage(data.message);
-            break;
-        case 'log_batch':
-            if (data.messages && Array.isArray(data.messages)) {
-                const logContainer = document.getElementById('log-container');
-                data.messages.forEach(message => {
-                    if (message) addLogMessage(message, false);
-                });
-                logContainer.scrollTop = logContainer.scrollHeight;
-            }
-            break;
-        case 'stats_update':
-            updateUI(data);
-            break;
-    }
+function sendEvent(name) {
+    if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ event: name }));
 }
 
 function requestStatus() {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ event: 'request_status' }));
+    if (socket && socket.readyState === WebSocket.OPEN) sendEvent('request_status');
+    else pollStatus();
+}
+
+async function pollStatus() {
+    try {
+        onStatus(await apiGet('/status'));
+    } catch (error) {
+        // still offline: the connection indicator shows the data age
     }
 }
 
-function requestLogHistory() {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ event: 'request_logs' }));
-    }
+function startPolling() {
+    if (!pollTimer) pollTimer = setInterval(pollStatus, 5000);
+}
+
+function stopPolling() {
+    clearInterval(pollTimer);
+    pollTimer = null;
 }

@@ -10,7 +10,14 @@
 #include "../../lib/Plugins/HaDiscovery.cpp"
 #include "../../lib/Core/ButtonLadder.cpp"
 #include "../../lib/Core/RelayOutput.cpp"
+#include "../../lib/Core/LimitMonitor.cpp"
+#include "../../lib/Core/EventLog.cpp"
+#include "../../lib/Core/DeviceMonitor.cpp"
+#include "../../lib/Plugin/TrendBuffer.cpp"
+#include "../../lib/Plugin/RollingExtremes.cpp"
+#include "../../lib/Plugins/AnalogVoltage/AnalogVoltageConverter.cpp"
 
 // Plugin implementations under test
 #include "../../lib/Plugins/DistanceBase/DistancePluginBase.cpp"
 #include "../../lib/Plugins/AnalogDistance/AnalogDistancePlugin.cpp"
+#include "../../lib/Plugins/AnalogVoltage/AnalogVoltagePlugin.cpp"

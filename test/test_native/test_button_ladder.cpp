@@ -73,3 +73,16 @@ TEST(ButtonLadder, PressingBothButtonsDoesNothing)
     ladder.update(IDLE_MV, 40);
     EXPECT_EQ(ladder.update(IDLE_MV, 60), Event::NONE);
 }
+
+TEST(ButtonLadder, LongHoldReportsPortalThenFactoryReset)
+{
+    ButtonLadder ladder;
+    ladder.update(RESET_MV, 0);
+    ladder.update(RESET_MV, 20);
+    EXPECT_EQ(ladder.update(RESET_MV, 5020), Event::RESET_HELD);
+    EXPECT_EQ(ladder.update(RESET_MV, 14000), Event::NONE);
+    EXPECT_EQ(ladder.update(RESET_MV, 15020), Event::RESET_FACTORY);
+    EXPECT_EQ(ladder.update(RESET_MV, 16000), Event::NONE);
+    ladder.update(IDLE_MV, 16020);
+    EXPECT_EQ(ladder.update(IDLE_MV, 16040), Event::NONE);
+}

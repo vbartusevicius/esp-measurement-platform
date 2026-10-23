@@ -29,9 +29,9 @@ MqttClient::MqttClient(Storage* storage, Logger* logger, IMqttContributor* plugi
         this->lastBrokerMessageAt = millis();
         bool on = false;
         if (this->relay && topic == this->relayCommandTopic() && RelayOutput::parseCommand(payload.c_str(), on)) {
-            this->relay->set(on);
-            this->logger->info(String("Relay ") + (on ? "ON" : "OFF") + " (MQTT)");
-            this->publishRelayState();
+            if (this->monitor) this->monitor->commandRelay(on, "MQTT", millis());
+            else this->relay->set(on);
+            this->publishRelayState();   // also corrects HA if the command was refused
         }
     });
 }
@@ -49,6 +49,7 @@ String MqttClient::relayCommandTopic()
 void MqttClient::publishRelayState()
 {
     if (!this->relay) return;
+    this->publishedRelayState = this->relay->isOn() ? 1 : 0;
     this->client.publish(this->relayStateTopic().c_str(), this->relay->isOn() ? "ON" : "OFF", true, 1);
 }
 
@@ -291,6 +292,11 @@ bool MqttClient::run()
     }
 
     bool loopOk = client.loop();
+
+    // Relay switched by a limit rule or the WebUI since the last publish
+    if (this->relay && client.connected() && this->publishedRelayState != (this->relay->isOn() ? 1 : 0)) {
+        this->publishRelayState();
+    }
 
     bool isConnected = client.connected();
 
