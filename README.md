@@ -9,7 +9,7 @@ A 1-DIN rail sensor node and its firmware: tank level (4–20 mA or ultrasonic),
 
 > **Status:** hardware v1 is designed and passes DRC, footprint and fit checks, but no board has been built or tested yet. The firmware builds for both targets and its unit tests pass in CI.
 
-**Contents:** [Hardware](#hardware-v1) · [Screens](#screens) · [Sensors](#sensors) · [Alerts and relay](#alerts-and-relay) · [Setup](#setup) · [Home Assistant and MQTT](#home-assistant-and-mqtt) · [Build, flash, test](#build-flash-test)
+**Contents:** [Hardware](#hardware-v1) · [Screens](#screens) · [Connecting the sensors](#connecting-the-sensors) · [Alerts and relay](#alerts-and-relay) · [Setup](#setup) · [Home Assistant and MQTT](#home-assistant-and-mqtt) · [Build, flash, test](#build-flash-test)
 
 ## Hardware (v1)
 
@@ -100,37 +100,89 @@ Served by the device itself and built per sensor type, following the high-perfor
 - `POST /api/v1/relay?state=on|off` (409 while an alert rule controls the relay), `POST /api/v1/alert/ack`, `POST /api/v1/restart`, `POST /api/v1/reset`, `POST /api/v1/upload` (firmware).
 </details>
 
-## Sensors
+## Connecting the sensors
 
-Pick the sensor in the web UI (**Settings → Sensor**); one is active at a time.
+One sensor is active at a time: choose it in the web UI under **Settings → Sensor type**, fill in its settings and save (the device restarts). The terminal numbers are debossed on the case.
 
-| Plugin | Sensors | v1 terminals | Main reading |
-|---|---|---|---|
-| `analog_distance` | 2-wire 4–20 mA level probes (e.g. SWK-LT100) | `J2.3 +24V`, `J2.4 4-20mA` | Fill %, depth, volume and flow |
-| `ultrasonic_distance` | HC-SR04 / JSN-SR04T | `J2.7 IO2` = TRIG, `J2.6 IO1` = ECHO | Fill %, depth |
-| `analog_voltage` | 0.5–4.5 V pressure transducers, 0–5 V, 0–10 V | `J2.5 0-10V` | Pressure (or any unit) |
-| `radiation_counter` | GM tube boards (CAJOE RadiationD-v1.1, GGreg20_V3) | `J2.6 IO1` = pulse | Dose rate µSv/h, CPM |
+| Terminal | Pole | Use |
+|---|---|---|
+| **J1** (bottom) | 1 GND · 2 VIN | Power in, 9–30 V DC. Use **24 V** for 4–20 mA probes. |
+| **J2** (top) | 1 GND | Sensor ground |
+| | 2 +5V | Sensor supply, 5 V, shared 600 mA budget with the controller |
+| | 3 +24V | Sensor supply: the J1 input voltage after the fuse and reverse-polarity diode (about VIN − 0.5 V) |
+| | 4 4-20mA | 4–20 mA loop input (120 Ω shunt, 50 mA resettable fuse) |
+| | 5 0-10V | Voltage input, 0–10 V |
+| | 6 IO1 | Digital input/output: ultrasonic ECHO, Geiger pulse |
+| | 7 IO2 | Digital input/output: ultrasonic TRIG |
+| **J4** (bottom) | 1 COM · 2 NO · 3 NC | Relay output, 230 VAC ≤ 2 A, fused; see [Alerts and relay](#alerts-and-relay) and the [mains notes](hardware/releases/v1/README.md) |
 
-<details>
-<summary><b>Distance meters</b></summary>
+IO1 and IO2 each have a 330 Ω series resistor, clamp diodes to 3.3 V and a 4.7 kΩ pull-up, so 5 V sensor outputs can connect directly.
 
-- **4–20 mA:** the firmware reads the calibrated voltage across the on-board 120 Ω shunt (4 mA = 0.48 V, 20 mA = 2.40 V). Below 3.6 mA counts as a sensor fault (NAMUR NE43).
-- Works for water, other liquids and bulk solids such as salt. Set the empty and full readings; set **Total Volume** to get volume, flow rate and 24 h usage.
-</details>
+### 1. Ultrasonic distance meter (JSN-SR04T / HC-SR04, plugin `ultrasonic_distance`)
 
-<details>
-<summary><b>Pressure / 0–10 V</b></summary>
+| Sensor pin | Terminal |
+|---|---|
+| VCC (5V) | J2.2 +5V |
+| GND | J2.1 GND |
+| TRIG | J2.7 IO2 |
+| ECHO | J2.6 IO1 |
 
-Set the sensor's output voltage at min and max, the matching values, the unit and a 4-character display title (defaults: 0.5–4.5 V = 0–10 bar). Live-zero sensors (min ≥ 0.3 V) report a fault when the input drops to about 0 V (open wire); any sensor reports one more than 10 % over range. Home Assistant gets a pressure sensor (for pressure units), a voltage diagnostic and connectivity.
-</details>
+- **Sensor type:** Ultrasonic Distance Meter.
+- **Empty Distance (cm):** from the sensor face to the surface of an empty tank (the bottom, or the lowest usable level).
+- **Full Distance (cm):** from the sensor face to the surface of a full tank. Keep it at least 25 cm for the JSN-SR04T: it can't measure closer than about 20–25 cm (the HC-SR04 manages about 2 cm).
+- **Total Volume (L):** optional; adds volume, flow rate and 24 h usage.
+- **Mounting:** point the transducer straight down, away from the walls, the inlet and any pipes, which give false short echoes. Condensation on the transducer face does the same.
+- **Faults:** if no echo arrives, the UI shows a sensor fault with a wiring hint.
 
-<details>
-<summary><b>Radiation counter</b></summary>
+### 2. Analog distance meter (2-wire 4–20 mA level probe, e.g. SWK-LT100, plugin `analog_distance`)
 
-- **Geiger tube:** J305, M4011, SBM-20, STS-5, SI-29BG, SBM-19, LND 712, SI-3BG or custom. Picking one fills in its **Tube Factor** (CPM per µSv/h; J305 123.1, SBM-20 175.4) and **Tube Dead Time** (µs, saturation correction `m = n / (1 - n·τ)`; 0 = off). Both stay editable and the UI shows when they differ from the preset. Published factors vary by ±20 % between batches (sources in `RadiationCounterPlugin.cpp`); calibrate against a reference instrument when accuracy matters.
-- **Alert Threshold:** 5-minute average dose that raises the `alert` flag (HA binary sensor *Elevated Radiation*).
-- A glass tube measures ambient gamma, not radon in the air stream.
-</details>
+| Probe wire | Terminal |
+|---|---|
+| Red (+) | J2.3 +24V |
+| Black (−) | J2.4 4-20mA |
+| Shield, if any | J2.1 GND (at the box end only) |
+
+- **Power:** feed J1 with 24 V. At 20 mA the probe still gets about 20 V; at a 12 V supply it would get only about 8 V, below what most 2-wire transmitters need.
+- **Sensor type:** Analog Distance Meter.
+- **Sensor Range (m):** the probe's full scale, the depth at 20 mA (e.g. 5 m of water).
+- **Empty Reading (cm) / Full Reading (cm):** the depth the probe reports with the tank empty and full. On site, read the probe's depth from the `measured` value (in m) on the MQTT state topic, or from the Overview's *Sensor to surface* tile while **Total Volume** is still empty.
+- **Total Volume (L):** optional, as above.
+- **Mounting:** hang the probe at the bottom of the tank. The probe cable has a vent tube for the atmospheric reference: don't seal or kink the cable end, and keep it dry.
+- **Faults:** below 3.6 mA is a sensor fault (NAMUR NE43), e.g. a broken wire. A short to +24 V trips the 50 mA fuse, which resets about a minute after the fault is gone.
+
+### 3. Pressure sensor, 0–5 V output (plugin `analog_voltage`)
+
+| Sensor wire | Terminal |
+|---|---|
+| Supply + | J2.2 +5V (5 V sensors, e.g. ratiometric 0.5–4.5 V) or J2.3 +24V (sensors rated 9–30 V supply) |
+| GND / − | J2.1 GND |
+| Signal / output | J2.5 0-10V |
+
+- **Sensor type:** Pressure / 0-10 V Sensor.
+- **Settings for a 0–5 V sensor:** Sensor Output at Min (V) = **0**, Sensor Output at Max (V) = **5**, Value at Min = **0**, Value at Max = the sensor's range (e.g. **10**), Unit = **bar** (or psi, kPa…), Decimals and a 4-character Display Title.
+- **Settings for a 0.5–4.5 V sensor (the default):** Sensor Output at Min (V) = 0.5, Sensor Output at Max (V) = 4.5.
+- **Fault detection:** a 0–5 V sensor can't report a broken wire, because 0 V is a valid reading. A 0.5–4.5 V sensor can: the device reports a fault when its input drops near 0 V. Either type reports a fault when the input is more than 10 % over its range.
+- **Accuracy:** a 5 V ratiometric sensor's output scales with the 5 V rail, which is regulated to ±2.5 % and not measured.
+
+### 4. Radiation counter (CAJOE RadiationD-v1.1, plugin `radiation_counter`)
+
+| CAJOE pin (P3 header) | Terminal |
+|---|---|
+| 5V | J2.2 +5V |
+| GND | J2.1 GND |
+| VIN (this is the pulse **output**, despite its name) | J2.6 IO1 |
+
+- **Sensor type:** Radiation Counter Gateway.
+- **Geiger tube:** pick the tube printed on the tube (CAJOE boards usually ship with a J305, some with an M4011). This fills in **Tube Factor** (CPM per µSv/h) and **Tube Dead Time**.
+  - Both stay editable, and the UI shows when they differ from the preset.
+  - Choices: J305, M4011, SBM-20, STS-5, SI-29BG, SBM-19, LND 712, SI-3BG or custom.
+  - Published factors vary by about ±20 % between batches (sources in `RadiationCounterPlugin.cpp`), so calibrate against a reference instrument when accuracy matters.
+- **Alert Threshold (uSv/h avg):** the 5-minute average that raises the alert (Home Assistant: *Elevated Radiation*).
+- **Safety:** the tube runs at about 400 V. Don't touch the tube ends or the high-voltage side of the board while it's powered.
+- **Wiring:** keep the pulse wire short.
+- **Startup:** the first valid reading takes a minute of counting.
+- **Faults:** 5 minutes without a pulse is a fault. Normal background (0.1–0.2 µSv/h) gives about 10–25 CPM on a J305.
+- **What it measures:** a glass tube measures ambient gamma radiation, not radon in the air.
 
 ## Alerts and relay
 
