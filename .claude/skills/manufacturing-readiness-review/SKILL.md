@@ -31,6 +31,7 @@ there are zero FAIL items.
     STL watertightness, number of separate bodies per STL (floating/unattached features), STEP solid
     counts, pairwise interference/gap between parts that assemble together.
   - `python3 .claude/skills/manufacturing-readiness-review/scripts/enclosure_fit_audit.py hardware/releases/v1/enclosure`
+    (and `.../box_enclosure` for the wall-mount box: detected by its `box_base`/`box_lid` files)
     board/component vs base/cover interference, tight clearances, which faces of each board are
     actually restrained, insertion sweeps (can the populated board physically go in?), base/cover overlap.
     Slow (several minutes) because it point-samples; OCC booleans on imported STEP silently return
@@ -122,8 +123,8 @@ Fixed in the follow-up (re-check they stay fixed; regressions are easy):
   J4 order is COM / NO / NC (the only crossing-free route at 2.5 mm relay-net spacing). Check: K1 height vs
   inner wall, RELAY-Power clearance 2.5 mm in layout.py, coil pads in the SELV region, V-0 filament note.
 - YAML 1.1: a bare `NO` in spec.yaml parses as false (broke the J4 legend); quote such labels.
-- PlatformIO Core 6.2.0 breaks the espressif8266 build; CI/Dockerfile.firmware pin 6.1.19 with pioarduino
-  55.03.311 for `xiao_c6`. Verify both `pio run -e nodemcu` and `pio run -e xiao_c6` before ordering.
+- CI/Dockerfile.firmware pin PlatformIO 6.1.19 with pioarduino 55.03.311 for `xiao_c6` (the only firmware
+  target since the NodeMCU/ESP8266 one was removed). Verify `pio run -e xiao_c6` before ordering.
 - Surge: SMAJ33A (53 V clamp) vs SCT2400 (42 V abs max) -> replaced by SMAJ30A (48.4 V clamp) + SCT2601
   (65 V abs max, async: needs the SS36 catch diode D9 and 22 uH per its datasheet table 2).
 - ADC clamps: SS34 (0.5 mA leak, 250 pF) -> BAT54S to GND and +3V3 (2 uA, 10 pF).
@@ -145,3 +146,6 @@ Still open (verify every time):
   KF142R courtyards are trimmed: DRC will not catch overlaps there; check component boxes in 3D instead.
 - The audit script's LED/part heights come from layout `heights`; missing entries fall back to the default.
 - Radiation duct = ambient gamma only (not radon); flat base on a round duct; HV leads in humid air.
+- Wall-mount box (`box_enclosure/`, `mechanical/scripts/build_box_enclosure.py`): reuses the DIN cover's UI
+  front rotated 90 deg about y; the FFC route differs from the DIN case (check the A/B contact side for this
+  fold too), and the button plungers must be unioned AFTER the tab-thinning cuts or they print loose.

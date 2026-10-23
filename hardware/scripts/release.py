@@ -15,7 +15,8 @@ DRC has an error or an unrouted connection, when a part is neither orderable
 nor hand-fit, or when jlc_parts.py finds a JLC part that is not what the
 circuit wants, would not land pin for pin, or is short of stock. Placement
 rotations and centres come from that fit, not from KiCad's footprint origin.
-Enclosure files are copied from mechanical/build/<variant>/ when present.
+Enclosure files are copied from mechanical/build/<variant>/ (1-DIN) and
+mechanical/build/<variant>-box/ (wall-mount box) when present.
 """
 
 import csv
@@ -190,6 +191,9 @@ def main(version, boards=BOARDS):
     if enclosure.exists():
         shutil.copytree(enclosure, root / "enclosure", dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns("fit_*.png", "front_legend.png"))
+    wall_box = REPO / "mechanical/build" / f"{VARIANT}-box"
+    if wall_box.exists():
+        shutil.copytree(wall_box, root / "box_enclosure", dirs_exist_ok=True)
     return 1 if failed else 0
 
 

@@ -2,31 +2,9 @@
 #include "AnalogSensorConverter.h"
 
 // Constants matching AnalogDistancePlugin
-static constexpr float VREF = 3.3f;
 static constexpr float MIN_MA = 4.0f;
 static constexpr float MAX_MA = 20.0f;
-static constexpr float FAULT_MA = 4.17f;
-
-// --- voltageToCurrentMA ---
-
-TEST(AnalogSensorConverter, ZeroVoltageReturnsMinCurrent)
-{
-    float current = AnalogSensorConverter::voltageToCurrentMA(0.0, VREF, MIN_MA, MAX_MA);
-    EXPECT_FLOAT_EQ(current, MIN_MA);
-}
-
-TEST(AnalogSensorConverter, MaxVoltageReturnsMaxCurrent)
-{
-    float current = AnalogSensorConverter::voltageToCurrentMA(VREF, VREF, MIN_MA, MAX_MA);
-    EXPECT_FLOAT_EQ(current, MAX_MA);
-}
-
-TEST(AnalogSensorConverter, MidVoltageReturnsMidCurrent)
-{
-    float current = AnalogSensorConverter::voltageToCurrentMA(VREF / 2.0f, VREF, MIN_MA, MAX_MA);
-    float expected = MIN_MA + (MAX_MA - MIN_MA) / 2.0f;
-    EXPECT_FLOAT_EQ(current, expected);
-}
+static constexpr float FAULT_MA = 3.6f;   // NAMUR NE43
 
 // --- shuntMillivoltsToCurrentMA (v1 board: 120R shunt) ---
 
@@ -88,7 +66,7 @@ TEST(AnalogSensorConverter, ConnectedAboveFaultThreshold)
 
 TEST(AnalogSensorConverter, DisconnectedBelowFaultThreshold)
 {
-    EXPECT_FALSE(AnalogSensorConverter::isSensorConnected(4.0, FAULT_MA));
+    EXPECT_FALSE(AnalogSensorConverter::isSensorConnected(3.5, FAULT_MA));
 }
 
 TEST(AnalogSensorConverter, ConnectedExactlyAtFaultThreshold)

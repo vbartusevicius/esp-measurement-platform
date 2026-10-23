@@ -5,7 +5,7 @@
 #include "DeviceMonitor.h"
 #include "IPlugin.h"
 #include "Logger.h"
-#include "PlatformWiFi.h"
+#include <WiFi.h>
 #include "PluginConfig.h"
 #include "TimeHelper.h"
 #include "Version.h"

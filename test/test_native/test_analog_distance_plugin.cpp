@@ -1,16 +1,17 @@
 #include <gtest/gtest.h>
 #include "AnalogDistancePlugin.h"
+#include "Board.h"
 #include "HAL.h"
 #include "Storage.h"
 #include "Logger.h"
 
 class MockHal : public HAL {
 public:
-    int analogValue = 512;
+    int millivolts = 1440;   // 12 mA across the 120R shunt
     std::vector<std::pair<uint8_t, uint8_t>> pinModes;
 
     void pinMode(uint8_t pin, uint8_t mode) override { pinModes.push_back({pin, mode}); }
-    int analogRead(uint8_t) override { return analogValue; }
+    int analogReadMilliVolts(uint8_t) override { return millivolts; }
     unsigned long millis() override { return FakeHAL::currentMillis; }
 };
 
@@ -39,13 +40,13 @@ TEST_F(AnalogDistancePluginTest, SetupConfiguresAnalogPin)
 {
     plugin.setup(&hal, &storage, &logger, nullptr);
     ASSERT_EQ(hal.pinModes.size(), 1u);
-    EXPECT_EQ(hal.pinModes[0].first, A0);
+    EXPECT_EQ(hal.pinModes[0].first, Board::MA_PIN);
     EXPECT_EQ(hal.pinModes[0].second, INPUT);
 }
 
 TEST_F(AnalogDistancePluginTest, LoopComputesRelativeAndAbsolute)
 {
-    // raw=512 -> 1.65V -> ~12mA -> ~2.5m on a 5m-range sensor
+    // 1440 mV / 120R = 12 mA -> 2.5 m on a 5 m-range sensor
     plugin.setup(&hal, &storage, &logger, nullptr);
     plugin.loop();
 
@@ -61,8 +62,8 @@ TEST_F(AnalogDistancePluginTest, LoopComputesRelativeAndAbsolute)
 
 TEST_F(AnalogDistancePluginTest, SensorDisconnectedBelowFaultCurrent)
 {
-    // raw=0 -> 0V -> 4.0mA < 4.17mA fault threshold
-    hal.analogValue = 0;
+    // open loop: 0 mV -> 0 mA < 3.6 mA NAMUR fault limit
+    hal.millivolts = 0;
     plugin.setup(&hal, &storage, &logger, nullptr);
     plugin.loop();
 
@@ -87,7 +88,7 @@ TEST_F(AnalogDistancePluginTest, FlowRateReportedWhenVolumeConfigured)
 
     plugin.loop();  // inflow rises over time
     FakeHAL::currentMillis = 10000;
-    hal.analogValue = 600;
+    hal.millivolts = 1606;   // 13.4 mA
     plugin.loop();
 
     std::vector<StatEntry> stats;
@@ -117,8 +118,8 @@ TEST_F(AnalogDistancePluginTest, FlowRateHiddenWithoutVolume)
 TEST_F(AnalogDistancePluginTest, ExposesCapabilities)
 {
     EXPECT_NE(plugin.mqtt(), nullptr);
-    EXPECT_NE(plugin.display(), nullptr);
-    EXPECT_EQ(plugin.display()->getDisplayPageCount(), 1);
+    ScreenModel screen;
+    EXPECT_TRUE(plugin.getScreen(screen));   // drawn on the OLED and in the web UI
 }
 
 TEST_F(AnalogDistancePluginTest, PublishIntervalDefaultsToSamplingInterval)
@@ -167,7 +168,7 @@ TEST_F(AnalogDistancePluginTest, ScreenModelShowsVolumeAndFlowWhenConfigured)
 
 TEST_F(AnalogDistancePluginTest, FaultedSensorGivesAnInvalidScreenValue)
 {
-    hal.analogValue = 0;
+    hal.millivolts = 0;
     plugin.setup(&hal, &storage, &logger, nullptr);
     plugin.loop();
 

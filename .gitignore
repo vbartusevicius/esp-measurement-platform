@@ -11,3 +11,5 @@ __pycache__/
 resources/*
 skidl_REPL*
 lib/WebApi/WebAssets.h
+
+lib/Core/BuildVersion.h

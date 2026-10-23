@@ -13,13 +13,13 @@
 #include "MqttClient.h"
 #include "OtaUpdates.h"
 #include "Parameter.h"
-#include "PlatformWiFi.h"
+#include <WiFi.h>
 #include "PluginRegistry.h"
 #include "RelayOutput.h"
 #include "Storage.h"
 #include "Version.h"
-#include "WifiConnector.h"   // before WebApi.h: see the HTTP method note there
 #include "WebApi.h"
+#include "WifiConnector.h"
 
 #include "AnalogDistancePlugin.h"
 #include "AnalogVoltagePlugin.h"
@@ -69,8 +69,6 @@ void refreshDisplay()
 {
     DisplayFrame frame;
     ScreenModel screen;
-    frame.legacy = activePlugin ? activePlugin->display() : nullptr;
-    frame.legacyPage = frame.legacy ? frame.legacy->getCurrentDisplayPage() : 0;
     frame.screen = (activePlugin && activePlugin->getScreen(screen)) ? &screen : nullptr;
     frame.monitor = &monitor;
     frame.mqttConnected = mqttConnected();
@@ -81,13 +79,8 @@ void refreshDisplay()
 // PAGE: dismisses a pending alert first, otherwise cycles the display pages.
 void pagePressed()
 {
-    if (monitor.alertPending()) {
-        monitor.dismissAlert();
-    } else if (display.isPortrait()) {
-        display.nextPage();
-    } else if (IDisplayContributor* contributor = activePlugin ? activePlugin->display() : nullptr) {
-        contributor->nextDisplayPage();
-    }
+    if (monitor.alertPending()) monitor.dismissAlert();
+    else display.nextPage();
     refreshDisplay();
 }
 
@@ -123,9 +116,7 @@ void handleButton(ButtonLadder::Event event)
 void pollButtons()
 {
     if (webApi) webApi->processActions();
-#if defined(BOARD_XIAO_ESP32C6)
     handleButton(buttonLadder.update(hal.analogReadMilliVolts(Board::BUTTON_LADDER_PIN), millis()));
-#endif
 }
 
 void updateNetworkLed(bool portal)
@@ -169,7 +160,7 @@ void selectPlugin()
 void runSetupPortal()
 {
     taskManager.scheduleFixedRate(1000, [] { updateNetworkLed(true); });
-    display.configWizardFirstStep(wifi->getAppName());
+    display.showSetupPortal(wifi->getAppName());
     taskManager.scheduleFixedRate(1000, [] {
         if (WiFi.status() == WL_CONNECTED) {
             // Full setup (Web API, MQTT, OTA, measurements) runs with a clean state.
@@ -200,9 +191,7 @@ void setup()
     relay.begin(&hal, Board::RELAY_PIN);   // relay off before anything else
     Serial.begin(115200);
     delay(500);
-#if defined(ESP32)
     analogSetAttenuation(ADC_11db);   // 0..3.3 V range for the 4-20 mA, 0-10 V and button inputs
-#endif
 
     storage.begin();
     monitor.begin(&storage, &logger, &relay);

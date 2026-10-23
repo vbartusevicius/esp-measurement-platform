@@ -12,11 +12,7 @@ class HAL
         virtual void digitalWrite(uint8_t pin, uint8_t val) { ::digitalWrite(pin, val); }
         virtual int digitalRead(uint8_t pin) { return ::digitalRead(pin); }
         virtual int analogRead(uint8_t pin) { return ::analogRead(pin); }
-#if defined(ESP32)
         virtual int analogReadMilliVolts(uint8_t pin) { return ::analogReadMilliVolts(pin); }
-#else
-        virtual int analogReadMilliVolts(uint8_t pin) { return this->analogRead(pin) * 3300L / 1023L; }
-#endif
         virtual unsigned long pulseIn(uint8_t pin, uint8_t state, unsigned long timeout) { return ::pulseIn(pin, state, timeout); }
         virtual void delayMicroseconds(unsigned int us) { ::delayMicroseconds(us); }
         virtual unsigned long millis() { return ::millis(); }

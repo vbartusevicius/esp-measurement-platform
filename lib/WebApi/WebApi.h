@@ -1,14 +1,6 @@
 #ifndef WEB_API_H
 #define WEB_API_H
 
-// ESP8266: WiFiManager pulls in ESP8266WebServer, which declares the same
-// HTTP_GET/HTTP_POST names as ESPAsyncWebServer. If it was included first,
-// tell the async server to reuse its enum. Include WifiConnector.h before this
-// header in files that need both (only main.cpp).
-#ifdef ESP8266WEBSERVER_H
-#define WEBSERVER_H
-#endif
-
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
@@ -36,6 +28,7 @@ class WebApi {
         unsigned long lastLogSequence = 0;
         bool mqttConnected = false;
         unsigned long restartAt = 0;
+        const char* uploadRejected = nullptr;   // why the current upload was refused before flashing
         static constexpr size_t MAX_CONFIG_BODY_SIZE = 2048;
         static constexpr size_t MAX_LOG_LINES_PER_MESSAGE = 15;
 

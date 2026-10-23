@@ -69,7 +69,8 @@ void ConfigJson::writeConfig(JsonDocument& doc, const Storage& storage, const IP
     doc["mqtt_host"] = storage.getParameter(Parameter::MQTT_HOST, "");
     doc["mqtt_port"] = storage.getParameter(Parameter::MQTT_PORT, "1883");
     doc["mqtt_user"] = storage.getParameter(Parameter::MQTT_USER, "");
-    doc["mqtt_pass"] = storage.getParameter(Parameter::MQTT_PASS, "");
+    // Never send the stored password to the browser, only whether one is set.
+    doc["mqtt_pass_set"] = storage.getParameter(Parameter::MQTT_PASS, "").length() > 0;
     doc["mqtt_device"] = storage.getParameter(Parameter::MQTT_DEVICE, "");
     doc["mqtt_topic"] = storage.getParameter(Parameter::MQTT_TOPIC, "");
 

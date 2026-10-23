@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <MQTT.h>
 #include "HaDiscovery.h"
-#include "PlatformWiFi.h"
+#include <WiFi.h>
 
 class DeviceMonitor;
 class IMqttContributor;

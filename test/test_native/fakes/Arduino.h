@@ -16,17 +16,16 @@ typedef bool boolean;
 #define OUTPUT 1
 #define INPUT_PULLUP 2
 
-#define A0 0
-#define D0 16
-#define D1 5
-#define D2 4
-#define D3 0
-#define D4 2
-#define D5 14
-#define D6 12
-#define D7 13
-#define D8 15
-#define LED_BUILTIN 2
+// Seeed XIAO ESP32-C6 pin names -> GPIO
+#define D0 0
+#define D1 1
+#define D2 2
+#define D3 21
+#define D4 22
+#define D5 23
+#define D6 16
+#define D7 17
+#define D8 19
 
 #define DEC 10
 #define HEX 16
@@ -51,11 +50,14 @@ inline void pinMode(uint8_t, uint8_t) {}
 inline void digitalWrite(uint8_t, uint8_t) {}
 inline int  digitalRead(uint8_t) { return LOW; }
 inline int  analogRead(uint8_t) { return FakeHAL::nextAnalogRead; }
+inline int  analogReadMilliVolts(uint8_t) { return FakeHAL::nextAnalogRead; }
 inline unsigned long pulseIn(uint8_t, uint8_t, unsigned long = 1000000) {
     return FakeHAL::nextPulseIn;
 }
 inline void attachInterrupt(uint8_t, void (*)(), int) {}
 inline void detachInterrupt(uint8_t) {}
+inline void noInterrupts() {}
+inline void interrupts() {}
 inline uint8_t digitalPinToInterrupt(uint8_t pin) { return pin; }
 
 inline double dtostrf(double val, signed char width, unsigned char prec, char* sout) {
@@ -117,6 +119,7 @@ public:
     String operator+(const String& rhs) const { return String((_buf + rhs._buf).c_str()); }
     String operator+(const char* rhs) const { return String((_buf + (rhs ? rhs : "")).c_str()); }
     String& operator+=(const String& rhs) { _buf += rhs._buf; return *this; }
+    bool concat(const char* s) { if (s) _buf += s; return true; }
     bool operator==(const String& rhs) const { return _buf == rhs._buf; }
     bool operator!=(const String& rhs) const { return _buf != rhs._buf; }
 
@@ -140,7 +143,7 @@ inline FakeSerial Serial;
 class EspClass {
 public:
     uint32_t freeHeap = 65536;
-    uint32_t getChipId() { return 0xABCDEF; }
+    uint64_t getEfuseMac() { return 0xABCDEF000000ULL; }
     void restart() {}
     uint32_t getFreeHeap() { return freeHeap; }
 };

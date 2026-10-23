@@ -3,7 +3,7 @@
 From the host:
     python3 hardware/scripts/build.py             # full build + release + tests for v1
     python3 hardware/scripts/build.py --eda       # circuits + placement/routing + board renders
-    python3 hardware/scripts/build.py --cad       # 1-DIN enclosure + plugin accessories + 3D renders
+    python3 hardware/scripts/build.py --cad       # 1-DIN enclosure, wall-mount box, accessories + 3D renders
     python3 hardware/scripts/build.py --release   # package hardware/releases/v1/
     python3 hardware/scripts/build.py --test      # run full EDA + CAD pytest suites
 """
@@ -60,6 +60,7 @@ def run_eda(boards, *, fresh=False, do_release=False, do_test=False):
 
 def run_cad(*, do_test=False):
     sys.path.insert(0, str(REPO / "mechanical/scripts"))
+    import build_box_enclosure
     import build_distance_pod
     import build_enclosure
     import build_radiation_duct
@@ -67,12 +68,15 @@ def run_cad(*, do_test=False):
     import front_legend
     import legend_color_model
     import render_assembly3d
+    import render_box
 
     build_enclosure.export_parts(REPO / "mechanical/build" / build_enclosure.VARIANT)
     fit_drawing.main()
     front_legend.main()
     legend_color_model.main()
     render_assembly3d.main()
+    build_box_enclosure.export_parts()
+    render_box.main()
     build_radiation_duct.main()
     build_distance_pod.main()
     if do_test:
@@ -81,6 +85,7 @@ def run_cad(*, do_test=False):
             "mechanical/tests/test_enclosure_probe.py",
             "mechanical/tests/test_front_legend.py",
             "mechanical/tests/test_accessories.py",
+            "mechanical/tests/test_box_enclosure.py",
             "-q", "-p", "no:cacheprovider",
         ], cwd=REPO, check=True)
 
@@ -112,6 +117,7 @@ def run_variant_on_host(variant, args):
         docker_run(variant, "cad",
                    "python3 -m pytest mechanical/tests/test_enclosure_probe.py "
                    "mechanical/tests/test_front_legend.py mechanical/tests/test_accessories.py "
+                   "mechanical/tests/test_box_enclosure.py "
                    "-q -p no:cacheprovider --tb=short")
 
 

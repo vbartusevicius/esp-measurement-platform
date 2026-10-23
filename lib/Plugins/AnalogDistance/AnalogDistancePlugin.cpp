@@ -21,18 +21,8 @@ void AnalogDistancePlugin::loadPluginConfig()
 
 float AnalogDistancePlugin::readSensor()
 {
-    int rawValue;
-    float voltage;
-    float current;
-    if (SHUNT_OHMS > 0.0f) {
-        rawValue = this->hal->analogReadMilliVolts(ANALOG_PIN);
-        voltage = rawValue / 1000.0f;
-        current = AnalogSensorConverter::shuntMillivoltsToCurrentMA(rawValue, SHUNT_OHMS);
-    } else {
-        rawValue = this->hal->analogRead(ANALOG_PIN);
-        voltage = (rawValue / 1023.0) * VOLTAGE_REF;
-        current = AnalogSensorConverter::voltageToCurrentMA(voltage, VOLTAGE_REF, MIN_CURRENT_MA, MAX_CURRENT_MA);
-    }
+    const int millivolts = this->hal->analogReadMilliVolts(ANALOG_PIN);
+    const float current = AnalogSensorConverter::shuntMillivoltsToCurrentMA(millivolts, SHUNT_OHMS);
     this->sensorConnected = AnalogSensorConverter::isSensorConnected(current, FAULT_CURRENT_MA);
     this->lastSignal = String(current, 1) + "mA";
     float distance = 0.0;
@@ -41,7 +31,7 @@ float AnalogDistancePlugin::readSensor()
         distance = AnalogSensorConverter::currentToDistance(current, MIN_CURRENT_MA, MAX_CURRENT_MA, this->sensorRange);
     }
 
-    this->logger->debug("Analog read: raw=" + String(rawValue) + " V=" + String(voltage, 2) +
+    this->logger->debug("Analog read: mV=" + String(millivolts) +
                        " mA=" + String(current, 2) + " dist=" + String(distance, 3) + "m" +
                        " sensor=" + String(this->sensorConnected ? "ok" : "fault"));
     return distance;

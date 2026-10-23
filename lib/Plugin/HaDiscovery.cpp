@@ -1,6 +1,6 @@
 #include "HaDiscovery.h"
 #include "Board.h"
-#include "PlatformWiFi.h"
+#include <WiFi.h>
 #include "Version.h"
 
 void HaDiscovery::publish(MQTTClient& client, const HaDiscoveryContext& ctx, const HaEntity& entity,

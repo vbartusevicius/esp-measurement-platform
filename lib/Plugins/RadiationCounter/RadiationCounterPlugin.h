@@ -3,14 +3,13 @@
 
 #include <vector>
 #include "Board.h"
-#include "IDisplayContributor.h"
 #include "IMqttContributor.h"
 #include "IPlugin.h"
 #include "RadiationCalculator.h"
 #include "RollingExtremes.h"
 #include "TrendBuffer.h"
 
-class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public IDisplayContributor
+class RadiationCounterPlugin : public IPlugin, public IMqttContributor
 {
     public:
         static constexpr const char* PARAM_TUBE_MODEL = "tube_model";
@@ -20,7 +19,6 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
         static constexpr const char* PARAM_ALERT_THRESHOLD = "alert_dose_usv_h";
 
         static constexpr int CNT_PIN = Board::PULSE_PIN;
-        static constexpr int BTN_PIN = Board::PAGE_BUTTON_PIN;
 
     private:
         HAL* hal;
@@ -58,11 +56,6 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
         // Chart capability for the web UI
         bool getChartData(std::vector<float>& points, int& spanSeconds) const override;
 
-    private:
-
-        // Button page counter
-        volatile int buttonCounter;
-
     public:
         const char* getId() const override;
         const char* getName() const override;
@@ -79,27 +72,17 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
         void publishMqtt(MQTTClient& client, const String& baseTopic) override;
         void publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx) override;
 
-        int getDisplayPageCount() const override;
-        int renderDisplayPage(U8G2& u8g2, int page, int width, int height) const override;
-
-        int getCurrentDisplayPage() const override;
-        void nextDisplayPage() override;
         int getSamplingInterval() const override;
         int getPublishInterval() const override;
 
         IMqttContributor* mqtt() override { return this; }
-        IDisplayContributor* display() override { return this; }
 
-        // Interrupt handlers (called from ISR context)
+        // Interrupt handler (called from ISR context)
         void onRadiationClick();
-        void onButtonClick();
 
     private:
         static RadiationCounterPlugin* instance;
         static IRAM_ATTR void radiationISR();
-        static IRAM_ATTR void buttonISR();
-
-        void renderGraphPage(U8G2& u8g2, int width, int height) const;
 };
 
 #endif

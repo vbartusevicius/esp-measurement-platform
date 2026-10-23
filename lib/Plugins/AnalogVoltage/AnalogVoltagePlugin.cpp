@@ -1,5 +1,4 @@
 #include "AnalogVoltagePlugin.h"
-#include <U8g2lib.h>
 #include <cstring>
 #include "AnalogVoltageConverter.h"
 #include "HAL.h"
@@ -135,14 +134,4 @@ void AnalogVoltagePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, con
     };
     HaDiscovery::publish(client, ctx, value, deviceName);
     for (const HaEntity& entity : diagnostics) HaDiscovery::publish(client, ctx, entity, deviceName);
-}
-
-int AnalogVoltagePlugin::renderDisplayPage(U8G2& u8g2, int page, int width, int height) const
-{
-    u8g2.setFont(u8g2_font_6x12_mf);
-    String text = this->sensorConnected ? String(this->value, this->decimals) + " " + this->unit : String("Sensor fault");
-    u8g2.drawStr(0, 12, text.c_str());
-    u8g2.setFont(u8g2_font_5x7_tr);
-    u8g2.drawStr(0, 22, (String(this->inputVolts, 2) + " V").c_str());
-    return 24;
 }

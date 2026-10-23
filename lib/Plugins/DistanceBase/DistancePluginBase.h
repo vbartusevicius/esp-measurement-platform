@@ -3,7 +3,6 @@
 
 #include "IPlugin.h"
 #include "IMqttContributor.h"
-#include "IDisplayContributor.h"
 #include "LevelFilter.h"
 #include "FlowRateCalculator.h"
 #include "DailyUsageTracker.h"
@@ -11,7 +10,7 @@
 #include "RollingExtremes.h"
 #include <vector>
 
-class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisplayContributor
+class DistancePluginBase : public IPlugin, public IMqttContributor
 {
     public:
         static constexpr const char* PARAM_DISTANCE_EMPTY = "distance_empty";
@@ -75,13 +74,9 @@ class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisp
 
         void publishMqtt(MQTTClient& client, const String& baseTopic) override;
 
-        int getDisplayPageCount() const override;
-        int renderDisplayPage(U8G2& u8g2, int page, int width, int height) const override;
-
         int getSamplingInterval() const override;
 
         IMqttContributor* mqtt() override { return this; }
-        IDisplayContributor* display() override { return this; }
 };
 
 #endif

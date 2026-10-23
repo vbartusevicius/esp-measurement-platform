@@ -1,4 +1,4 @@
-// App state, tabs, Overview/History/Device rendering and the settings form.
+// App state, tabs, Overview/Device rendering and the settings form.
 const STALE_AFTER_MS = 10000;      // status is broadcast every 2 s
 const LIVE_SETTINGS = ['limit_low', 'limit_high', 'limit_low_on', 'limit_high_on', 'limit_hysteresis', 'relay_mode'];
 
@@ -482,7 +482,8 @@ async function loadConfig(pluginId) {
     set('mqtt-host', config.mqtt_host);
     set('mqtt-port', config.mqtt_port || '1883');
     set('mqtt-user', config.mqtt_user);
-    set('mqtt-pass', config.mqtt_pass);
+    $('mqtt-pass').value = '';   // the device never sends the stored password
+    $('mqtt-pass').placeholder = config.mqtt_pass_set ? 'Unchanged (leave empty to keep)' : 'No password';
     set('mqtt-device', config.mqtt_device);
     set('mqtt-topic', config.mqtt_topic);
     set('limit-low', config.limit_low);

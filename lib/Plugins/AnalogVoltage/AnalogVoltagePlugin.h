@@ -3,14 +3,13 @@
 
 #include <vector>
 #include "Board.h"
-#include "IDisplayContributor.h"
 #include "IMqttContributor.h"
 #include "IPlugin.h"
 #include "RollingExtremes.h"
 #include "TrendBuffer.h"
 
 // Pressure (or any linear voltage) sensor on the 0-10 V input.
-class AnalogVoltagePlugin : public IPlugin, public IMqttContributor, public IDisplayContributor
+class AnalogVoltagePlugin : public IPlugin, public IMqttContributor
 {
     public:
         static constexpr const char* PARAM_VOLTAGE_MIN = "voltage_min";
@@ -64,11 +63,7 @@ class AnalogVoltagePlugin : public IPlugin, public IMqttContributor, public IDis
         void publishMqtt(MQTTClient& client, const String& baseTopic) override;
         void publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx) override;
 
-        int getDisplayPageCount() const override { return 1; }
-        int renderDisplayPage(U8G2& u8g2, int page, int width, int height) const override;
-
         IMqttContributor* mqtt() override { return this; }
-        IDisplayContributor* display() override { return this; }
 };
 
 #endif

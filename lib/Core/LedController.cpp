@@ -1,9 +1,7 @@
 #include "LedController.h"
-#include "HAL.h"
-#include "Board.h"
-
-#if defined(BOARD_XIAO_ESP32C6)
 #include <Adafruit_NeoPixel.h>
+#include "Board.h"
+#include "HAL.h"
 
 namespace
 {
@@ -12,32 +10,16 @@ namespace
     constexpr uint8_t LED_SENS = 2;
     constexpr uint8_t LEVEL = 24;   // keeps the three LEDs well inside the 600 mA 5 V budget
     constexpr unsigned long REFRESH_MS = 50;
+    constexpr unsigned long SENS_FLASH_MS = 60;
     Adafruit_NeoPixel pixels(3, Board::LED_DATA_PIN, NEO_GRB + NEO_KHZ800);
-}
-#endif
-
-LedController::LedController()
-{
-    this->hal = nullptr;
-    this->lastState = false;
-    this->lastBlink = 0;
-    this->blinkDuration = 25;
-    this->pendingClick = false;
-    this->netState = NetState::OFFLINE;
-    this->lastRefresh = 0;
 }
 
 void LedController::begin(HAL* hal)
 {
     this->hal = hal;
-#if defined(BOARD_XIAO_ESP32C6)
-    this->blinkDuration = 60;
     pixels.begin();
     pixels.clear();
     pixels.show();
-#else
-    this->hal->pinMode(LED_BUILTIN, OUTPUT);
-#endif
 }
 
 void LedController::click()
@@ -58,30 +40,18 @@ LedController::NetState LedController::netStateFor(bool wifiConnected, bool mqtt
 
 void LedController::run()
 {
-    unsigned long now = this->hal->millis();
-
+    const unsigned long now = this->hal->millis();
     if (this->pendingClick) {
-        this->lastBlink = now;
+        this->sensFlashAt = now;
+        this->sensOn = true;
         this->pendingClick = false;
-        this->lastState = true;
-    } else if ((this->lastBlink + this->blinkDuration) <= now) {
-        this->lastState = false;
+    } else if (now - this->sensFlashAt >= SENS_FLASH_MS) {
+        this->sensOn = false;
     }
-
-#if defined(BOARD_XIAO_ESP32C6)
-    this->refreshRgb(now);
-#else
-    this->hal->digitalWrite(LED_BUILTIN, this->lastState ? LOW : HIGH);  // active low
-#endif
-}
-
-void LedController::refreshRgb(unsigned long now)
-{
-#if defined(BOARD_XIAO_ESP32C6)
     if (now - this->lastRefresh < REFRESH_MS) return;
     this->lastRefresh = now;
 
-    bool heartbeat = (now % 2000) < 120;
+    const bool heartbeat = (now % 2000) < 120;
     pixels.setPixelColor(LED_STATUS, heartbeat ? pixels.Color(0, LEVEL, 0) : pixels.Color(0, 2, 0));
 
     uint32_t net = 0;
@@ -92,9 +62,6 @@ void LedController::refreshRgb(unsigned long now)
         case NetState::MQTT:    net = pixels.Color(0, LEVEL, 0); break;
     }
     pixels.setPixelColor(LED_NET, net);
-    pixels.setPixelColor(LED_SENS, this->lastState ? pixels.Color(LEVEL, LEVEL, LEVEL) : 0);
+    pixels.setPixelColor(LED_SENS, this->sensOn ? pixels.Color(LEVEL, LEVEL, LEVEL) : 0);
     pixels.show();
-#else
-    (void)now;
-#endif
 }

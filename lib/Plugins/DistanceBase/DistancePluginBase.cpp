@@ -1,5 +1,4 @@
 #include "DistancePluginBase.h"
-#include <U8g2lib.h>
 #include "HAL.h"
 #include "Storage.h"
 
@@ -174,48 +173,7 @@ void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const HaDisc
     HaDiscovery::publish(client, ctx, connected, deviceName);
 }
 
-// --- Display ---
-
-int DistancePluginBase::getDisplayPageCount() const { return 1; }
-
 int DistancePluginBase::getSamplingInterval() const
 {
     return this->samplingIntervalSec;
-}
-
-int DistancePluginBase::renderDisplayPage(U8G2& u8g2, int page, int width, int height) const
-{
-    // Progress bar
-    const int barHeight = 16;
-    const char* label = "N/A";
-    int boxWidth = 0;
-    char percentStr[8];
-
-    if (this->sensorConnected) {
-        boxWidth = (width - 2) * this->relativeDistance;
-        snprintf(percentStr, sizeof(percentStr), "%.0f%%", this->relativeDistance * 100);
-        label = percentStr;
-    }
-
-    u8g2.drawFrame(0, 0, width, barHeight);
-    u8g2.drawBox(1, 1, boxWidth, barHeight - 2);
-
-    u8g2.setFontMode(1);
-    u8g2.setDrawColor(2);
-    u8g2.setFont(u8g2_font_5x7_tr);
-    int strW = u8g2.getStrWidth(label);
-    u8g2.drawStr((width - strW) / 2, u8g2.getAscent() + (barHeight - u8g2.getAscent()) / 2 - 1, label);
-
-    // Sensor status
-    int cursorY = barHeight;
-    u8g2.setDrawColor(1);
-    u8g2.setFontMode(0);
-    const char* sensorGlyph = this->sensorConnected ? "[+]" : "[ ]";
-    u8g2.setFont(u8g2_font_5x7_tr);
-    u8g2.drawStr(0, cursorY + 8, "Sensor:");
-    int gw = u8g2.getStrWidth(sensorGlyph);
-    u8g2.drawStr((width / 2) - gw, cursorY + 8, sensorGlyph);
-    cursorY += 8;
-
-    return cursorY;
 }

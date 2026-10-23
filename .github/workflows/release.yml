@@ -5,6 +5,11 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+# A newer commit on the same branch (or PR) cancels the run still in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -26,17 +31,27 @@ jobs:
       - name: Generate release version (YYYY.MM.DD.HHMM, UTC)
         run: echo "VERSION=v$(date -u +'%Y.%m.%d.%H%M')" >> "$GITHUB_ENV"
 
-      - name: Stamp firmware version
-        run: sed -i 's/#define FW_VERSION ".*"/#define FW_VERSION "'"$VERSION"'"/' lib/Core/Version.h
-
       - name: Build firmware
-        run: pio run -e nodemcu
+        run: FW_VERSION="$VERSION" pio run -e xiao_c6   # tools/version.py puts it into the image
+
+      # firmware.bin: the app only, for Device -> Firmware update in the web UI.
+      # firmware-full-usb.bin: bootloader + partition table + OTA data + app merged by
+      # the platform (firmware.factory.bin), flashed at 0x0 into an empty board.
+      - name: Name the binaries
+        run: |
+          mkdir dist
+          cp .pio/build/xiao_c6/firmware.bin dist/firmware.bin
+          cp .pio/build/xiao_c6/firmware.factory.bin dist/firmware-full-usb.bin
 
       - name: Publish GitHub release with binaries
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.VERSION }}
           name: ${{ env.VERSION }}
-          files: |
-            .pio/build/nodemcu/firmware.bin
+          body: |
+            | File | Use |
+            |---|---|
+            | `firmware.bin` | Update a running device: web UI -> **Device -> Firmware update**. Settings are kept. |
+            | `firmware-full-usb.bin` | Empty or bricked XIAO ESP32-C6 over USB, at offset `0x0`: `esptool --chip esp32c6 write-flash 0x0 firmware-full-usb.bin` or the browser flasher at https://espressif.github.io/esptool-js/. Erases saved settings. |
+          files: dist/*.bin
           generate_release_notes: true

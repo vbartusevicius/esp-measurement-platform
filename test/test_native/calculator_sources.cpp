@@ -21,3 +21,5 @@
 #include "../../lib/Plugins/DistanceBase/DistancePluginBase.cpp"
 #include "../../lib/Plugins/AnalogDistance/AnalogDistancePlugin.cpp"
 #include "../../lib/Plugins/AnalogVoltage/AnalogVoltagePlugin.cpp"
+#include "../../lib/Plugins/UltrasonicDistance/UltrasonicDistancePlugin.cpp"
+#include "../../lib/Plugins/RadiationCounter/RadiationCounterPlugin.cpp"

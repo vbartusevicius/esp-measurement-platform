@@ -10,7 +10,6 @@ class Storage;
 class Logger;
 class LedController;
 class IMqttContributor;
-class IDisplayContributor;
 
 struct ParameterDef {
     const char* key;
@@ -42,9 +41,9 @@ struct StatEntry {
     float numericValue;
 };
 
-// Core plugin contract: identity, lifecycle, parameters and readings.
-// Optional capabilities are exposed through mqtt()/display() so that
-// plugins don't have to depend on the MQTT or display libraries.
+// Core plugin contract: identity, lifecycle, parameters and readings. MQTT is
+// an optional capability (mqtt()) so plugins don't depend on the MQTT library;
+// the OLED draws plugins from getScreen().
 class IPlugin
 {
     public:
@@ -70,9 +69,8 @@ class IPlugin
         virtual int getSamplingInterval() const { return 10; }
         virtual int getPublishInterval() const { return this->getSamplingInterval(); }
 
-        // Optional capabilities: nullptr if not supported.
+        // Optional capability: nullptr if not supported.
         virtual IMqttContributor* mqtt() { return nullptr; }
-        virtual IDisplayContributor* display() { return nullptr; }
 };
 
 #endif

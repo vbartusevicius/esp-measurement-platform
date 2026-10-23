@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include "DeviceMonitor.h"
-#include "PlatformWiFi.h"
+#include <WiFi.h>
 
 // Layout follows mechanical/scripts/oled_page1_bitmap.py (64x128 portrait).
 

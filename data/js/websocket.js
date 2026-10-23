@@ -4,7 +4,8 @@ let reconnectDelay = 1000;
 let pollTimer = null;
 
 function connect() {
-    socket = new WebSocket(`ws://${window.location.host}/ws`);
+    const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';   // e.g. behind an HTTPS reverse proxy
+    socket = new WebSocket(`${scheme}://${window.location.host}${window.location.pathname.replace(/[^/]*$/, '')}ws`);
 
     socket.onopen = () => {
         reconnectDelay = 1000;
@@ -29,7 +30,6 @@ function connect() {
         }
         if (data.event === 'stats_update') onStatus(data);
         else if (data.event === 'log_batch') (data.messages || []).forEach(addLogLine);
-        else if (data.event === 'log_update') addLogLine(data.message);
     };
 }
 

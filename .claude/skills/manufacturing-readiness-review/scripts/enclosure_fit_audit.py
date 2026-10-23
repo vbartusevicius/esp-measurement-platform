@@ -20,6 +20,10 @@ false clashes - confirm against the datasheet height before reporting.
 Run in the CAD container from the repo root:
   docker run --rm -v "$PWD":/work -w /work <cad-image> \
     "python3 .claude/skills/manufacturing-readiness-review/scripts/enclosure_fit_audit.py hardware/releases/v1/enclosure"
+A directory with box_base/box_lid files is audited as the wall-mount box
+(mechanical/scripts/build_box_enclosure.py: UI board rotated to face +x, main
+board dropped in along -x before the lid); the panel check (6) is then covered
+by the OLED panel envelope in check 1.
 """
 
 import sys
@@ -95,18 +99,37 @@ def vol(a, b, pitch=0.2):
     return max(boolean, float(hits * step.prod()))
 
 
+def box_layout():
+    """Board slabs, parts and insertion sweeps of the wall-mount box."""
+    import build_box_enclosure as bx
+
+    def ui_box(s):
+        a, b = bx.point_to_box(s["x0"], s["y0"], s["z0"]), bx.point_to_box(s["x1"], s["y1"], s["z1"])
+        return dict(s, ref="ui PCB", x0=min(a[0], b[0]), x1=max(a[0], b[0]), y0=min(a[1], b[1]), y1=max(a[1], b[1]),
+                    z0=min(a[2], b[2]), z1=max(a[2], b[2]))
+    boards = {"main": [dict(s, ref="main PCB") for s in ef.board_slabs("main")],
+              "ui": [ui_box(s) for s in ef.board_slabs("ui")]}
+    return boards, bx.MAIN_PARTS + bx.ui_parts_box(), (("from +x (front, before the lid)", (1, 0, 0)),)
+
+
 def main(encl_dir):
     encl = Path(encl_dir)
-    base = cq.importers.importStep(str(encl / "base.step"))
-    cover = cq.importers.importStep(str(encl / "cover.step"))
-    shells = {"base": base, "cover": cover}
-    for name, shell in shells.items():
-        MESH[id(shell)] = read_stl(encl / f"{name}.stl")
+    wall_box = (encl / "box_base.step").exists()
+    names = {"base": "box_base", "cover": "box_lid"} if wall_box else {"base": "base", "cover": "cover"}
+    shells = {}
+    for name, stem in names.items():
+        shells[name] = cq.importers.importStep(str(encl / f"{stem}.step"))
+        MESH[id(shells[name])] = read_stl(encl / f"{stem}.stl")
+    base, cover = shells["base"], shells["cover"]
 
-    boards = {}
-    for board in ef.SPEC["variants"][ef.VARIANT]["boards"]:
-        boards[board] = [dict(s, ref=f"{board} PCB") for s in ef.board_slabs(board)]
-    parts = ef.part_boxes()
+    if wall_box:
+        boards, parts, sweeps = box_layout()
+    else:
+        boards = {}
+        for board in ef.SPEC["variants"][ef.VARIANT]["boards"]:
+            boards[board] = [dict(s, ref=f"{board} PCB") for s in ef.board_slabs(board)]
+        parts = ef.part_boxes()
+        sweeps = (("from -x (left, open side)", (-1, 0, 0)), ("from +z (front, before cover)", (0, 0, 1)))
 
     print("== 1. Interference (board slabs + component boxes vs printed parts) ==")
     clashes = 0
@@ -146,7 +169,7 @@ def main(encl_dir):
 
     print("\n== 4. Assemblability sweeps of the main board + its parts into the base ==")
     main_items = boards["main"] + [p for p in parts if p["board"] == "main"]
-    for label, vec in (("from -x (left, open side)", (-1, 0, 0)), ("from +z (front, before cover)", (0, 0, 1))):
+    for label, vec in sweeps:
         blocked = False
         for t in (0.0, 1.0, 3.0, 8.0, 15.0, 30.0):
             hits = [f"{b['ref']}:{v:.1f}" for b in main_items
@@ -158,7 +181,9 @@ def main(encl_dir):
     print("\n== 6. Display panel (real outline from spec front_ui.display.part) seating in the cover ==")
     import re
     m = re.search(r"\(([\d.]+) x ([\d.]+) x ([\d.]+) mm", ef.SPEC["front_ui"]["display"]["part"])
-    if m:
+    if wall_box:
+        print("  covered by the OLED panel envelope in check 1")
+    elif m:
         w, h, t = map(float, m.groups())
         mod = ef.oled_module()
         inner = ef.TOTAL_D - ef.WALL

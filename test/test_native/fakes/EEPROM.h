@@ -3,7 +3,7 @@
 #include "Arduino.h"
 #include <vector>
 
-// In-memory stand-in for the ESP8266 EEPROM sector. The backing store is
+// In-memory stand-in for the ESP32 EEPROM (NVS-backed) sector. The backing store is
 // static so it survives begin()/end() cycles, like real flash does.
 class FakeEEPROM {
     static std::vector<uint8_t>& store() {

@@ -8,13 +8,11 @@
 #include "StatusJson.h"
 #include "Storage.h"
 #include "WebAssets.h"
-#if defined(ESP32)
 #include <Update.h>
+#include "FirmwareImage.h"
+#include "Parameter.h"
+
 static String updateError() { return String(Update.errorString()); }
-#else
-#include <Updater.h>
-static String updateError() { return String(Update.getErrorString()); }
-#endif
 
 static void sendJson(AsyncWebServerRequest* request, JsonDocument& doc)
 {
@@ -62,11 +60,7 @@ void WebApi::setupStaticFiles()
                 request->send(304);
                 return;
             }
-#if defined(ESP32)
             AsyncWebServerResponse *response = request->beginResponse(200, asset->mime, asset->gzip, asset->length);
-#else
-            AsyncWebServerResponse *response = request->beginResponse_P(200, asset->mime, asset->gzip, asset->length);
-#endif
             response->addHeader("Content-Encoding", "gzip");
             response->addHeader("ETag", WEB_ASSETS_ETAG);
             response->addHeader("Cache-Control", "no-cache");
@@ -168,7 +162,10 @@ void WebApi::handleConfigBody(AsyncWebServerRequest* request, uint8_t* data, siz
         return;
     }
     for (JsonPair kv : doc.as<JsonObject>()) {
-        this->storage->saveParameter(kv.key().c_str(), kv.value().as<String>());
+        String value = kv.value().as<String>();
+        // The UI never receives the password, so an empty field means "keep it".
+        if (value.length() == 0 && strcmp(kv.key().c_str(), Parameter::MQTT_PASS) == 0) continue;
+        this->storage->saveParameter(kv.key().c_str(), value);
     }
     this->logger->info("Configuration saved");
     this->pendingLimitsReload = true;
@@ -199,6 +196,10 @@ void WebApi::setupUploadEndpoint()
 {
     server.on("/api/v1/upload", HTTP_POST,
         [this](AsyncWebServerRequest *request) {
+            if (this->uploadRejected) {
+                sendResult(request, 400, this->uploadRejected);
+                return;
+            }
             const bool ok = !Update.hasError();
             AsyncWebServerResponse *response = request->beginResponse(
                 ok ? 200 : 500, "application/json",
@@ -222,32 +223,26 @@ void WebApi::handleUpload(AsyncWebServerRequest* request, const String& filename
                           size_t index, uint8_t* data, size_t len, bool final)
 {
     if (index == 0) {
-#if defined(ESP32)
-        const uint32_t maxBlock = ESP.getMaxAllocHeap();
-#else
-        const uint32_t maxBlock = ESP.getMaxFreeBlockSize();
-#endif
         // The web UI is part of firmware.bin, so firmware is the only target.
         this->logger->info(String("Upload started: ") + filename +
                            " free=" + String(ESP.getFreeHeap()) +
-                           " maxBlock=" + String(maxBlock));
+                           " maxBlock=" + String(ESP.getMaxAllocHeap()));
+        this->uploadRejected = FirmwareImage::problem(FirmwareImage::classify(data, len));
+        if (this->uploadRejected) {
+            this->logger->error(String("Upload refused: ") + this->uploadRejected);
+            return;
+        }
 
         // Free the websocket buffers: Update.begin() needs 4 KB contiguous.
         ws.closeAll();
         ws.enable(false);
 
-#if defined(ESP32)
-        const size_t maxSize = UPDATE_SIZE_UNKNOWN;   // the target partition bounds the image
-#else
-        const size_t maxSize = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-        Update.runAsync(true);
-#endif
-        if (!Update.begin(maxSize, U_FLASH)) {
+        if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) {   // the OTA partition bounds the image
             this->logger->error("Update.begin failed: " + updateError());
         }
     }
 
-    if (Update.hasError()) return;
+    if (this->uploadRejected || Update.hasError()) return;
 
     if (len && Update.write(data, len) != len) {
         this->logger->error("Upload write failed: " + updateError());

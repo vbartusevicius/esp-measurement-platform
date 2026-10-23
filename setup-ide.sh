@@ -7,43 +7,38 @@
 set -e
 
 PLATFORMIO_CORE_DIR="${PLATFORMIO_CORE_DIR:-$HOME/.platformio}"
-TOOLCHAIN_DIR="$PLATFORMIO_CORE_DIR/packages/toolchain-xtensa"
+TOOLCHAIN_DIR="$PLATFORMIO_CORE_DIR/packages/toolchain-riscv32-esp"
+
+echo "Generating compile_commands.json..."
+pio run -e xiao_c6 -t compiledb
 
 if [ ! -d "$TOOLCHAIN_DIR" ]; then
-    echo "Error: Toolchain not found at $TOOLCHAIN_DIR"
-    echo "Run 'pio run' first to install dependencies."
+    echo "Error: toolchain not found at $TOOLCHAIN_DIR"
     exit 1
 fi
 
-# Detect GCC version inside the toolchain
-GCC_VERSION=$(ls "$TOOLCHAIN_DIR/lib/gcc/xtensa-lx106-elf/" | head -1)
+# The cross compiler knows its own C/C++ system include directories.
+SYSTEM_INCLUDES=$("$TOOLCHAIN_DIR/bin/riscv32-esp-elf-g++" -xc++ -E -v - </dev/null 2>&1 \
+    | sed -n '/#include <...> search starts here:/,/End of search list./p' | grep '^ ' | sed 's/^ */    - -isystem/')
 
-echo "Generating compile_commands.json..."
-pio run -e nodemcu -t compiledb
-
-echo "Generating .clangd with toolchain paths (GCC $GCC_VERSION)..."
+echo "Generating .clangd with the riscv32-esp toolchain paths..."
 cat > .clangd <<EOF
-# Firmware sources: xtensa cross-compiler flags from compile_commands.json
+# Firmware sources: riscv32-esp cross-compiler flags from compile_commands.json
 If:
   PathExclude: test/.*
 CompileFlags:
   CompilationDatabase: .
   Add:
+    - --target=riscv32-unknown-elf
     - -Wno-unused-command-line-argument
-    - -Wno-attributes
-    - -isystem${TOOLCHAIN_DIR}/xtensa-lx106-elf/include/c++/${GCC_VERSION}
-    - -isystem${TOOLCHAIN_DIR}/xtensa-lx106-elf/include/c++/${GCC_VERSION}/xtensa-lx106-elf
-    - -isystem${TOOLCHAIN_DIR}/xtensa-lx106-elf/include/c++/${GCC_VERSION}/backward
-    - -isystem${TOOLCHAIN_DIR}/lib/gcc/xtensa-lx106-elf/${GCC_VERSION}/include
-    - -isystem${TOOLCHAIN_DIR}/lib/gcc/xtensa-lx106-elf/${GCC_VERSION}/include-fixed
-    - -isystem${TOOLCHAIN_DIR}/xtensa-lx106-elf/include
-    - --target=xtensa
+    - -Wno-unknown-warning-option
+${SYSTEM_INCLUDES}
   Remove:
-    - -mlongcalls
-    - -mtext-section-literals
-    - -free
-    - -fipa-pta
-    - -falign-functions=4
+    - -march=*
+    - -mabi=*
+    - -fno-tree-switch-conversion
+    - -fstrict-volatile-bitfields
+    - -fno-shrink-wrap
 EOF
 # Note: native tests use test/compile_flags.txt instead of this file.
 

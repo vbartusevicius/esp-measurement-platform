@@ -1,10 +1,5 @@
 #include "AnalogSensorConverter.h"
 
-float AnalogSensorConverter::voltageToCurrentMA(float voltage, float vRef, float minCurrentMA, float maxCurrentMA)
-{
-    return minCurrentMA + (voltage / vRef) * (maxCurrentMA - minCurrentMA);
-}
-
 float AnalogSensorConverter::shuntMillivoltsToCurrentMA(int millivolts, float shuntOhms)
 {
     if (shuntOhms <= 0.0f || millivolts <= 0) {

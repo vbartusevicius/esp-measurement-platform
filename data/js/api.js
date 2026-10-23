@@ -1,4 +1,4 @@
-const API_BASE = '/api/v1';
+const API_BASE = 'api/v1';   // relative, so the UI also works behind a reverse-proxy path
 
 async function apiGet(path) {
     const response = await fetch(API_BASE + path, { cache: 'no-store' });
@@ -44,9 +44,11 @@ function uploadBinary() {
     };
     xhr.onload = () => {
         progress.hidden = true;
+        let reason = '';
+        try { reason = JSON.parse(xhr.responseText).message || ''; } catch (e) { /* not JSON */ }
         status.textContent = xhr.status === 200
             ? 'Installed. The device is restarting, this page reconnects by itself.'
-            : `Upload failed (HTTP ${xhr.status}).`;
+            : `Upload failed: ${reason || `HTTP ${xhr.status}`}.`;
     };
     xhr.onerror = () => {
         progress.hidden = true;

@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main, master ]
 
+# A newer commit on the same branch (or PR) cancels the run still in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,16 +24,32 @@ jobs:
         with:
           python-version: "3.x"
 
-      # 6.2.0 fails the espressif8266 build ("can't create .pio/build/...o");
-      # pioarduino 55.03.311 for the C6 needs >= 6.1.19.
+      # pioarduino 55.03.311 for the C6 needs >= 6.1.19; pinned for reproducible builds.
       - name: Install PlatformIO
         run: pip install platformio==6.1.19
 
-      - name: Build NodeMCU (ESP8266)
-        run: pio run -e nodemcu
-
       - name: Build v1 board (XIAO ESP32-C6)
         run: pio run -e xiao_c6
+
+      - name: Name the binaries
+        run: |
+          mkdir dist
+          cp .pio/build/xiao_c6/firmware.bin dist/firmware.bin
+          cp .pio/build/xiao_c6/firmware.factory.bin dist/firmware-full-usb.bin
+
+      - name: Upload web UI update image
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-update
+          path: dist/firmware.bin
+          if-no-files-found: error
+
+      - name: Upload full USB image
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-full-usb
+          path: dist/firmware-full-usb.bin
+          if-no-files-found: error
 
   test:
     runs-on: ubuntu-latest
