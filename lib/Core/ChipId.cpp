@@ -1,5 +1,4 @@
 #include "ChipId.h"
-#include "PlatformWiFi.h"
 
 String ChipId::get()
 {

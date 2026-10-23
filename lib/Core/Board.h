@@ -29,10 +29,6 @@ namespace Board
     constexpr int ECHO_PIN = IO1_PIN;
     constexpr int PULSE_PIN = IO1_PIN;
     constexpr int PAGE_BUTTON_PIN = -1;     // buttons are on the ADC ladder
-
-    constexpr bool HAS_RELAY = true;
-    constexpr bool HAS_BUTTON_LADDER = true;
-    constexpr bool HAS_RGB_STATUS_LEDS = true;
 #else
     constexpr const char* MODEL = "ESP8266";
 
@@ -46,10 +42,7 @@ namespace Board
     constexpr int V0_10_PIN = A0;           // shared with ANALOG_PIN; 0-3.3 V (NodeMCU on-board divider), add a divider for 5/10 V sensors
     constexpr float V0_10_DIVIDER = 1.0f;
 
-    constexpr int RELAY_PIN = -1;
-    constexpr bool HAS_RELAY = false;
-    constexpr bool HAS_BUTTON_LADDER = false;
-    constexpr bool HAS_RGB_STATUS_LEDS = false;
+    constexpr int RELAY_PIN = -1;           // no relay: RelayOutput stays unavailable
 #endif
 }
 

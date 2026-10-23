@@ -50,6 +50,12 @@ void LedController::setNetworkState(NetState state)
     this->netState = state;
 }
 
+LedController::NetState LedController::netStateFor(bool wifiConnected, bool mqttConnected, bool portalActive)
+{
+    if (wifiConnected) return mqttConnected ? NetState::MQTT : NetState::WIFI;
+    return portalActive ? NetState::PORTAL : NetState::OFFLINE;
+}
+
 void LedController::run()
 {
     unsigned long now = this->hal->millis();

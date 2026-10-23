@@ -1,7 +1,9 @@
 #include "RadiationCounterPlugin.h"
-#include <ArduinoJson.h>
-#include "HaDiscovery.h"
+#include <U8g2lib.h>
 #include "HAL.h"
+#include "LedController.h"
+#include "Logger.h"
+#include "Storage.h"
 
 RadiationCounterPlugin* RadiationCounterPlugin::instance = nullptr;
 
@@ -18,19 +20,20 @@ RadiationCounterPlugin* RadiationCounterPlugin::instance = nullptr;
 //   SI-3BG:  0.631578 uSv/h per CPM (radmon.org list), high-range tube
 struct TubeModel {
     const char* id;
+    const char* label;
     const char* factor;
     const char* deadTimeUs;
 };
 
 static const TubeModel TUBES[] = {
-    {"j305", "123.1", "180"},
-    {"m4011", "153.8", "0"},
-    {"sbm20", "175.4", "190"},
-    {"sts5", "175.4", "190"},
-    {"si29bg", "122", "0"},
-    {"sbm19", "476.2", "0"},
-    {"lnd712", "108", "90"},
-    {"si3bg", "1.58", "0"},
+    {"j305", "J305 (glass, 107 mm)", "123.1", "180"},
+    {"m4011", "M4011 (glass, 88 mm)", "153.8", "0"},
+    {"sbm20", "SBM-20 / СБМ-20", "175.4", "190"},
+    {"sts5", "STS-5 / СТС-5", "175.4", "190"},
+    {"si29bg", "SI-29BG / СИ-29БГ", "122", "0"},
+    {"sbm19", "SBM-19 / СБМ-19", "476.2", "0"},
+    {"lnd712", "LND 712 (end window)", "108", "90"},
+    {"si3bg", "SI-3BG / СИ-3БГ (high range)", "1.58", "0"},
 };
 
 IRAM_ATTR void RadiationCounterPlugin::radiationISR()
@@ -62,7 +65,7 @@ void RadiationCounterPlugin::setup(HAL* hal, Storage* storage, Logger* logger, L
     this->deadTimeUs = this->storage->getParameter(PARAM_DEAD_TIME_US, "180").toFloat();
     this->alertThresholdUsvH = this->storage->getParameter(PARAM_ALERT_THRESHOLD, "0.3").toFloat();
     this->totalCounts = 0;
-    this->startedAt = millis();
+    this->startedAt = this->hal->millis();
     this->lastPulseAt = 0;
     this->pulseSeen = false;
     this->lastClicks = 0;
@@ -119,7 +122,7 @@ void RadiationCounterPlugin::loop()
     this->clickCounter = 0;
     interrupts();
 
-    unsigned long now = millis();
+    unsigned long now = this->hal->millis();
     this->totalCounts += (unsigned long)clicks;
     this->lastClicks = clicks;
     if (clicks > 0) {
@@ -138,22 +141,20 @@ void RadiationCounterPlugin::loop()
 
 void RadiationCounterPlugin::getParameterDefs(std::vector<ParameterDef>& defs) const
 {
-    defs.push_back({PARAM_TUBE_MODEL, "Geiger tube", "j305", ParameterDef::SELECT, false,
-                    "j305=J305 (glass, 107 mm);m4011=M4011 (glass, 88 mm);sbm20=SBM-20 / СБМ-20;sts5=STS-5 / СТС-5;"
-                    "si29bg=SI-29BG / СИ-29БГ;sbm19=SBM-19 / СБМ-19;lnd712=LND 712 (end window);si3bg=SI-3BG / СИ-3БГ (high range);"
-                    "custom=Other / custom"});
+    defs.push_back({PARAM_TUBE_MODEL, "Geiger tube", "j305", ParameterDef::SELECT, false});
     defs.push_back({PARAM_TUBE_FACTOR, "Tube Factor (CPM/uSv/h)", "123.1", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_DEAD_TIME_US, "Tube Dead Time (us, 0=off)", "180", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_ALERT_THRESHOLD, "Alert Threshold (uSv/h avg)", "0.3", ParameterDef::NUMBER, false});
     defs.push_back({PARAM_GRAPH_RESOLUTION, "Graph Bar Seconds", "600", ParameterDef::NUMBER, false});
 }
 
-void RadiationCounterPlugin::getParameterPresets(std::vector<ParameterPreset>& presets) const
+void RadiationCounterPlugin::getParameterChoices(std::vector<ParameterChoice>& choices) const
 {
     for (const TubeModel& tube : TUBES) {
-        presets.push_back({PARAM_TUBE_MODEL, tube.id, PARAM_TUBE_FACTOR, tube.factor});
-        presets.push_back({PARAM_TUBE_MODEL, tube.id, PARAM_DEAD_TIME_US, tube.deadTimeUs});
+        choices.push_back({PARAM_TUBE_MODEL, tube.id, tube.label,
+                           {{PARAM_TUBE_FACTOR, tube.factor}, {PARAM_DEAD_TIME_US, tube.deadTimeUs}}});
     }
+    choices.push_back({PARAM_TUBE_MODEL, "custom", "Other / custom", {}});
 }
 
 // --- Stats ---
@@ -163,29 +164,30 @@ void RadiationCounterPlugin::getStats(std::vector<StatEntry>& entries) const
     int cpm = this->radCalc.getCPM();
     float dose = this->radCalc.getDose();
     float avg = this->radCalc.getDoseAvg5m();
-    entries.push_back({"CPM", String(cpm), (float)cpm, StatEntry::TEXT, true, "cpm"});
-    entries.push_back({"Dose", String(dose, 2) + " \xC2\xB5Sv/h", dose, StatEntry::TEXT, true, "dose"});
-    entries.push_back({"Dose 5m avg", String(avg, 2) + " \xC2\xB5Sv/h", avg, StatEntry::TEXT, true, "dose_avg_5m"});
+    entries.push_back({"cpm", "CPM", String(cpm), (float)cpm});
+    entries.push_back({"dose", "Dose", String(dose, 2) + " \xC2\xB5Sv/h", dose});
+    entries.push_back({"dose_avg_5m", "Dose 5m avg", String(avg, 2) + " \xC2\xB5Sv/h", avg});
     if (avg >= this->alertThresholdUsvH) {
-        entries.push_back({"Alert", "ELEVATED", 1.0f, StatEntry::TEXT, true, "alert"});
+        entries.push_back({"alert", "Alert", "ELEVATED", 1.0f});
     }
-    entries.push_back({"Alert Threshold", String(this->alertThresholdUsvH, 2) + " \xC2\xB5Sv/h", this->alertThresholdUsvH, StatEntry::TEXT, false, "alert_threshold"});
-    entries.push_back({"Total Counts", String(this->totalCounts), (float)this->totalCounts, StatEntry::TEXT, false, "counts_total"});
+    entries.push_back({"alert_threshold", "Alert Threshold", String(this->alertThresholdUsvH, 2) + " \xC2\xB5Sv/h", this->alertThresholdUsvH});
+    entries.push_back({"counts_total", "Total Counts", String(this->totalCounts), (float)this->totalCounts});
 }
 
 // --- Screen model (OLED + WebUI) ---
 
 bool RadiationCounterPlugin::warmedUp() const
 {
-    return millis() - this->startedAt >= WARMUP_MS;
+    return this->hal->millis() - this->startedAt >= WARMUP_MS;
 }
 
 bool RadiationCounterPlugin::tubeOk() const
 {
     // Background gives ~10-30 CPM on a J305, so 5 silent minutes means a dead
     // tube, missing HV or a broken pulse line.
-    if (this->pulseSeen) return millis() - this->lastPulseAt < TUBE_SILENT_MS;
-    return millis() - this->startedAt < TUBE_SILENT_MS;
+    const unsigned long now = this->hal->millis();
+    if (this->pulseSeen) return now - this->lastPulseAt < TUBE_SILENT_MS;
+    return now - this->startedAt < TUBE_SILENT_MS;
 }
 
 bool RadiationCounterPlugin::getScreen(ScreenModel& model) const
@@ -217,64 +219,23 @@ bool RadiationCounterPlugin::getScreen(ScreenModel& model) const
 void RadiationCounterPlugin::publishMqtt(MQTTClient& client, const String& baseTopic)
 {
     JsonDocument doc;
-    String json;
-
     doc["cpm"] = this->radCalc.getCPM();
     doc["dose"] = this->radCalc.getDose();
     doc["dose_avg_5m"] = this->radCalc.getDoseAvg5m();
     doc["counts_total"] = this->totalCounts;
     doc["alert"] = this->radCalc.getDoseAvg5m() >= this->alertThresholdUsvH;
-    serializeJson(doc, json);
-
-    client.publish(baseTopic.c_str(), json.c_str(), false, 0);
+    HaDiscovery::publishJson(client, baseTopic, doc);
 }
 
 void RadiationCounterPlugin::publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx)
 {
-    const String& deviceId = ctx.deviceId;
-    const String& stateTopic = ctx.stateTopic;
-
-    auto publishSensor = [&](const char* objectId, const char* name, const char* valueTemplate,
-                             const char* unit, const char* icon) {
-        JsonDocument doc;
-        doc["state_topic"] = stateTopic;
-        doc["value_template"] = valueTemplate;
-        doc["name"] = name;
-        doc["unique_id"] = deviceId + "_" + objectId;
-        if (unit) doc["unit_of_measurement"] = unit;
-        if (icon) doc["icon"] = icon;
-        doc["state_class"] = "measurement";
-
-        JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr("ESP Radiation Counter"));
-        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
-
-        String json;
-        serializeJson(doc, json);
-        client.publish(("homeassistant/sensor/" + deviceId + "/" + objectId + "/config").c_str(), json.c_str(), true, 1);
+    static const HaEntity entities[] = {
+        {"sensor", "cpm", "cpm", "CPM", "{{ value_json.cpm | int }}", "CPM", nullptr, "mdi:counter", true, false},
+        {"sensor", "dose", "dose", "Dose Rate", "{{ (value_json.dose | float) | round(2) }}", "\xC2\xB5Sv/h", nullptr, "mdi:radioactive", true, false},
+        {"sensor", "dose_avg", "dose_avg", "Dose Rate 5m Average", "{{ (value_json.dose_avg_5m | float) | round(2) }}", "\xC2\xB5Sv/h", nullptr, "mdi:radioactive", true, false},
+        {"binary_sensor", "alert", "radiation_alert", "Elevated Radiation", "{{ 'ON' if value_json.alert else 'OFF' }}", nullptr, nullptr, "mdi:alert", false, false},
     };
-
-    publishSensor("cpm", "CPM", "{{ value_json.cpm | int }}", "CPM", "mdi:counter");
-    publishSensor("dose", "Dose Rate", "{{ (value_json.dose | float) | round(2) }}", "\xC2\xB5Sv/h", "mdi:radioactive");
-    publishSensor("dose_avg", "Dose Rate 5m Average", "{{ (value_json.dose_avg_5m | float) | round(2) }}", "\xC2\xB5Sv/h", "mdi:radioactive");
-
-    // Elevated radiation alert (binary sensor)
-    {
-        JsonDocument doc;
-        doc["state_topic"] = stateTopic;
-        doc["value_template"] = "{{ 'ON' if value_json.alert else 'OFF' }}";
-        doc["name"] = "Elevated Radiation";
-        doc["unique_id"] = deviceId + "_radiation_alert";
-        doc["icon"] = "mdi:alert";
-
-        JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr("ESP Radiation Counter"));
-        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
-
-        String json;
-        serializeJson(doc, json);
-        client.publish(("homeassistant/binary_sensor/" + deviceId + "/alert/config").c_str(), json.c_str(), true, 1);
-    }
+    for (const HaEntity& entity : entities) HaDiscovery::publish(client, ctx, entity, ctx.nameOr("ESP Radiation Counter"));
 }
 
 bool RadiationCounterPlugin::getChartData(std::vector<float>& points, int& spanSeconds) const

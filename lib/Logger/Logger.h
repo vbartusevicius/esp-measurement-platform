@@ -63,7 +63,6 @@ class Logger
         void error(const String& message);
         void debug(const String& message);
         const LogBuffer& getBuffer() const;
-        size_t size() const;
         unsigned long errors() const { return this->errorCount; }
         unsigned long warnings() const { return this->warningCount; }
 };

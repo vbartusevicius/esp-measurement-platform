@@ -1,4 +1,6 @@
 #include "PluginRegistry.h"
+#include <cstring>
+#include "IPlugin.h"
 
 void PluginRegistry::add(IPlugin* plugin)
 {
@@ -15,18 +17,7 @@ IPlugin* PluginRegistry::get(const char* id) const
     return nullptr;
 }
 
-IPlugin* PluginRegistry::getFirst() const
-{
-    if (this->plugins.empty()) return nullptr;
-    return this->plugins[0];
-}
-
 const std::vector<IPlugin*>& PluginRegistry::getAll() const
 {
     return this->plugins;
-}
-
-size_t PluginRegistry::count() const
-{
-    return this->plugins.size();
 }

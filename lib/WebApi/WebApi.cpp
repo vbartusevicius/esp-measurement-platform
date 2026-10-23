@@ -1,10 +1,12 @@
 #include "WebApi.h"
-#include <cmath>
-#include "Parameter.h"
-#include "ChipId.h"
-#include "TimeHelper.h"
-#include "Version.h"
-#include "PlatformWiFi.h"
+#include "ConfigJson.h"
+#include "DeviceMonitor.h"
+#include "IPlugin.h"
+#include "Logger.h"
+#include "PluginRegistry.h"
+#include "RelayOutput.h"
+#include "StatusJson.h"
+#include "Storage.h"
 #include "WebAssets.h"
 #if defined(ESP32)
 #include <Update.h>
@@ -14,19 +16,32 @@ static String updateError() { return String(Update.errorString()); }
 static String updateError() { return String(Update.getErrorString()); }
 #endif
 
-static float rounded(float v) { return roundf(v * 100.0f) / 100.0f; }
-
-WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry, ResetCallback resetCallback)
-    : server(80), ws("/ws") {
-    this->storage = storage;
-    this->logger = logger;
-    this->activePlugin = plugin;
-    this->registry = registry;
-    this->resetCallback = resetCallback;
-    this->lastLogSequence = 0;
+static void sendJson(AsyncWebServerRequest* request, JsonDocument& doc)
+{
+    AsyncResponseStream* response = request->beginResponseStream("application/json");
+    serializeJson(doc, *response);
+    request->send(response);
 }
 
-void WebApi::begin() {
+static void sendResult(AsyncWebServerRequest* request, int code, const char* message = nullptr)
+{
+    JsonDocument doc;
+    doc["status"] = code < 400 ? "ok" : "error";
+    if (message) doc["message"] = message;
+    String body;
+    serializeJson(doc, body);
+    request->send(code, "application/json", body);
+}
+
+WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry,
+               DeviceMonitor* monitor, ResetCallback resetCallback)
+    : server(80), ws("/ws"), storage(storage), logger(logger), activePlugin(plugin),
+      registry(registry), monitor(monitor), resetCallback(resetCallback)
+{
+}
+
+void WebApi::begin()
+{
     this->setupWebSocket();
     this->setupApiEndpoints();
     this->setupUploadEndpoint();
@@ -36,7 +51,8 @@ void WebApi::begin() {
     this->logger->info("Web server started");
 }
 
-void WebApi::setupStaticFiles() {
+void WebApi::setupStaticFiles()
+{
     // The web UI is compiled into the firmware (tools/embed_web.py): gzipped,
     // with one ETag per build so browsers revalidate instead of re-downloading.
     for (size_t i = 0; i < WEB_ASSET_COUNT; i++) {
@@ -66,226 +82,121 @@ void WebApi::setupStaticFiles() {
     });
 }
 
-void WebApi::setupApiEndpoints() {
-    // GET /api/v1/plugins - list available plugins
+void WebApi::setupApiEndpoints()
+{
     server.on("/api/v1/plugins", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
-        JsonArray arr = doc["plugins"].to<JsonArray>();
-
-        for (auto* p : this->registry->getAll()) {
-            JsonObject obj = arr.add<JsonObject>();
-            obj["id"] = p->getId();
-            obj["name"] = p->getName();
-            obj["active"] = (p == this->activePlugin);
-        }
-
-        serializeJson(doc, *response);
-        request->send(response);
+        ConfigJson::writePlugins(doc, *this->registry, this->activePlugin);
+        sendJson(request, doc);
     });
 
-    // GET /api/v1/config - returns core + plugin config + parameter definitions
+    // ?plugin=<id> lists that plugin's parameters (sensor dropdown before saving)
     server.on("/api/v1/config", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        AsyncResponseStream *response = request->beginResponseStream("application/json");
-        JsonDocument doc;
-
-        // Find which plugin to get parameters for
-        IPlugin* pluginToInspect = this->activePlugin;
+        IPlugin* inspected = this->activePlugin;
         if (request->hasParam("plugin")) {
-            String pId = request->getParam("plugin")->value();
-            IPlugin* reqP = this->registry->get(pId.c_str());
-            if (reqP) pluginToInspect = reqP;
+            IPlugin* requested = this->registry->get(request->getParam("plugin")->value().c_str());
+            if (requested) inspected = requested;
         }
-
-        // Core values
-        doc["active_plugin"] = this->activePlugin ? this->activePlugin->getId() : "";
-        doc["chip_id"] = ChipId::get();
-        doc["device_name"] = this->storage->getParameter(Parameter::DEVICE_NAME, "");
-        doc["mqtt_host"] = this->storage->getParameter(Parameter::MQTT_HOST, "");
-        doc["mqtt_port"] = this->storage->getParameter(Parameter::MQTT_PORT, "1883");
-        doc["mqtt_user"] = this->storage->getParameter(Parameter::MQTT_USER, "");
-        doc["mqtt_pass"] = this->storage->getParameter(Parameter::MQTT_PASS, "");
-        doc["mqtt_device"] = this->storage->getParameter(Parameter::MQTT_DEVICE, "");
-        doc["mqtt_topic"] = this->storage->getParameter(Parameter::MQTT_TOPIC, "");
-        doc["firmware_version"] = FW_VERSION;
-        doc["limit_low"] = this->storage->getParameter(Parameter::LIMIT_LOW, "");
-        doc["limit_high"] = this->storage->getParameter(Parameter::LIMIT_HIGH, "");
-        doc["limit_hysteresis"] = this->storage->getParameter(Parameter::LIMIT_HYSTERESIS, "");
-        if (this->monitor) {
-            doc["limit_low_on"] = this->monitor->limitEnabled(Parameter::LIMIT_LOW_ON, Parameter::LIMIT_LOW) ? "1" : "0";
-            doc["limit_high_on"] = this->monitor->limitEnabled(Parameter::LIMIT_HIGH_ON, Parameter::LIMIT_HIGH) ? "1" : "0";
-        }
-        doc["relay_mode"] = this->storage->getParameter(Parameter::RELAY_MODE, "manual");
-        doc["relay_available"] = this->monitor && this->monitor->relayAvailable();
-
-        // Plugin parameter values and definitions
-        std::vector<ParameterDef> defs;
-        std::vector<ParameterPreset> presets;
-        if (pluginToInspect) {
-            pluginToInspect->getParameterDefs(defs);
-            pluginToInspect->getParameterPresets(presets);
-        }
-        
-        JsonArray paramDefs = doc["plugin_params"].to<JsonArray>();
-
-        for (auto& def : defs) {
-            JsonObject obj = paramDefs.add<JsonObject>();
-            obj["key"] = def.key;
-            obj["label"] = def.label;
-            obj["default"] = def.defaultValue;
-            obj["type"] = def.type == ParameterDef::NUMBER ? "number" :
-                          def.type == ParameterDef::PASSWORD ? "password" :
-                          def.type == ParameterDef::SELECT ? "select" : "text";
-            if (def.options) {
-                // "value=Label;value=Label" -> [{value, label}]
-                JsonArray options = obj["options"].to<JsonArray>();
-                String all = def.options;
-                int start = 0;
-                while (start < (int)all.length()) {
-                    int end = all.indexOf(';', start);
-                    if (end < 0) end = all.length();
-                    String item = all.substring(start, end);
-                    int eq = item.indexOf('=');
-                    JsonObject option = options.add<JsonObject>();
-                    option["value"] = eq < 0 ? item : item.substring(0, eq);
-                    option["label"] = eq < 0 ? item : item.substring(eq + 1);
-                    start = end + 1;
-                }
-            }
-            for (auto& preset : presets) {
-                if (strcmp(preset.param, def.key) == 0) obj["presets"][preset.option][preset.key] = preset.value;
-            }
-            obj["required"] = def.required;
-            obj["value"] = this->storage->getParameter(def.key, def.defaultValue);
-        }
-
-        serializeJson(doc, *response);
-        request->send(response);
-    });
-
-    // POST /api/v1/config - save all parameters
-    server.on("/api/v1/config", HTTP_POST, [](AsyncWebServerRequest *request) {},
-    nullptr,
-    [this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-        if (total > MAX_CONFIG_BODY_SIZE) {
-            if (index + len == total) {
-                request->send(413, "application/json", "{\"status\":\"error\",\"message\":\"Payload too large\"}");
-            }
-            return;
-        }
-
-        if (index == 0) {
-            request->_tempObject = malloc(total + 1);
-            if (!request->_tempObject) {
-                request->send(500, "application/json", "{\"status\":\"error\",\"message\":\"Out of memory\"}");
-                return;
-            }
-        }
-
-        if (!request->_tempObject) return;
-        memcpy((uint8_t*)request->_tempObject + index, data, len);
-
-        if (index + len == total) {
-            char* jsonData = (char*)request->_tempObject;
-            jsonData[total] = '\0';
-
-            JsonDocument jsonDoc;
-            DeserializationError error = deserializeJson(jsonDoc, jsonData);
-
-            if (!error) {
-                JsonObject obj = jsonDoc.as<JsonObject>();
-                for (JsonPair kv : obj) {
-                    String key = kv.key().c_str();
-                    String value = kv.value().as<String>();
-                    this->storage->saveParameter(key.c_str(), value);
-                }
-                this->logger->info("Configuration saved");
-                this->pendingLimitsReload = true;
-                request->send(200, "application/json", "{\"status\":\"ok\"}");
-            } else {
-                this->logger->error("Failed to parse config JSON");
-                request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Invalid JSON\"}");
-            }
-
-            // _tempObject is freed in the AsyncWebServerRequest destructor
-        }
-    });
-
-    // GET /api/v1/status
-    server.on("/api/v1/status", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        AsyncResponseStream *response = request->beginResponseStream("application/json");
         JsonDocument doc;
-        this->fillStatus(doc);
-        serializeJson(doc, *response);
-        request->send(response);
+        ConfigJson::writeConfig(doc, *this->storage, this->activePlugin, inspected, this->monitor);
+        sendJson(request, doc);
+    });
+
+    server.on("/api/v1/config", HTTP_POST, [](AsyncWebServerRequest *request) {}, nullptr,
+        [this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+            this->handleConfigBody(request, data, len, index, total);
+        });
+
+    server.on("/api/v1/status", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        JsonDocument doc;
+        this->writeStatus(doc);
+        sendJson(request, doc);
+    });
+
+    server.on("/api/v1/chart", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        JsonDocument doc;
+        StatusJson::writeChart(doc, this->activePlugin);
+        sendJson(request, doc);
     });
 
     // POST /api/v1/relay?state=on|off - manual relay control
     server.on("/api/v1/relay", HTTP_POST, [this](AsyncWebServerRequest *request) {
-        if (!this->monitor || !this->monitor->relayAvailable()) {
-            request->send(404, "application/json", "{\"status\":\"error\",\"message\":\"No relay on this board\"}");
-            return;
-        }
-        if (this->monitor->limits().relayMode() != LimitMonitor::RelayMode::MANUAL) {
-            request->send(409, "application/json", "{\"status\":\"error\",\"message\":\"Relay follows the limit rule\"}");
-            return;
-        }
-        String state = request->hasParam("state") ? request->getParam("state")->value() : String();
-        bool on = false;
-        if (!RelayOutput::parseCommand(state.c_str(), on)) {
-            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"state must be on or off\"}");
-            return;
-        }
-        this->pendingRelay = on ? 1 : 0;
-        request->send(200, "application/json", "{\"status\":\"ok\"}");
+        this->handleRelay(request);
     });
 
-    // POST /api/v1/display?action=page|dismiss - same as the PAGE button
-    server.on("/api/v1/display", HTTP_POST, [this](AsyncWebServerRequest *request) {
-        String action = request->hasParam("action") ? request->getParam("action")->value() : String();
-        if (action == "page") this->pendingPage = true;
-        else if (action == "dismiss") this->pendingDismiss = true;
-        else {
-            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"action must be page or dismiss\"}");
-            return;
-        }
-        request->send(200, "application/json", "{\"status\":\"ok\"}");
+    // Same as the PAGE button while an alert is shown
+    server.on("/api/v1/alert/ack", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        this->pendingAlertAck = true;
+        sendResult(request, 200);
     });
 
-    // GET /api/v1/chart - history chart data (plugins that support it)
-    server.on("/api/v1/chart", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        AsyncResponseStream *response = request->beginResponseStream("application/json");
-        JsonDocument doc;
-
-        std::vector<float> points;
-        int spanSeconds = 0;
-        if (this->activePlugin && this->activePlugin->getChartData(points, spanSeconds) && !points.empty()) {
-            JsonArray arr = doc["points"].to<JsonArray>();
-            for (float v : points) arr.add(rounded(v));
-            doc["span_seconds"] = spanSeconds;
-            ScreenModel screen;
-            doc["unit"] = this->activePlugin->getScreen(screen) ? screen.unit : "";
-        }
-
-        serializeJson(doc, *response);
-        request->send(response);
-    });
-
-    // POST /api/v1/restart
     server.on("/api/v1/restart", HTTP_POST, [](AsyncWebServerRequest *request) {
-        request->send(200, "application/json", "{\"status\":\"restarting\"}");
+        sendResult(request, 200, "Restarting");
         delay(500);
         ESP.restart();
     });
 
-    // POST /api/v1/reset
     server.on("/api/v1/reset", HTTP_POST, [this](AsyncWebServerRequest *request) {
-        request->send(200, "application/json", "{\"status\":\"resetting\"}");
+        sendResult(request, 200, "Resetting");
         this->resetCallback();
     });
 }
 
-void WebApi::setupUploadEndpoint() {
+void WebApi::handleConfigBody(AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total)
+{
+    if (total > MAX_CONFIG_BODY_SIZE) {
+        if (index + len == total) sendResult(request, 413, "Payload too large");
+        return;
+    }
+    if (index == 0) {
+        request->_tempObject = malloc(total + 1);   // freed by the AsyncWebServerRequest destructor
+        if (!request->_tempObject) {
+            sendResult(request, 500, "Out of memory");
+            return;
+        }
+    }
+    if (!request->_tempObject) return;
+    memcpy((uint8_t*)request->_tempObject + index, data, len);
+    if (index + len != total) return;
+
+    char* body = (char*)request->_tempObject;
+    body[total] = '\0';
+    JsonDocument doc;
+    if (deserializeJson(doc, body)) {
+        this->logger->error("Failed to parse config JSON");
+        sendResult(request, 400, "Invalid JSON");
+        return;
+    }
+    for (JsonPair kv : doc.as<JsonObject>()) {
+        this->storage->saveParameter(kv.key().c_str(), kv.value().as<String>());
+    }
+    this->logger->info("Configuration saved");
+    this->pendingLimitsReload = true;
+    sendResult(request, 200);
+}
+
+void WebApi::handleRelay(AsyncWebServerRequest* request)
+{
+    if (!this->monitor || !this->monitor->relayAvailable()) {
+        sendResult(request, 404, "No relay on this board");
+        return;
+    }
+    if (this->monitor->limits().relayMode() != LimitMonitor::RelayMode::MANUAL) {
+        sendResult(request, 409, "Relay follows the limit rule");
+        return;
+    }
+    bool on = false;
+    String state = request->hasParam("state") ? request->getParam("state")->value() : String();
+    if (!RelayOutput::parseCommand(state.c_str(), on)) {
+        sendResult(request, 400, "state must be on or off");
+        return;
+    }
+    this->pendingRelay = on ? 1 : 0;
+    sendResult(request, 200);
+}
+
+void WebApi::setupUploadEndpoint()
+{
     server.on("/api/v1/upload", HTTP_POST,
         [this](AsyncWebServerRequest *request) {
             const bool ok = !Update.hasError();
@@ -308,7 +219,8 @@ void WebApi::setupUploadEndpoint() {
 }
 
 void WebApi::handleUpload(AsyncWebServerRequest* request, const String& filename,
-                          size_t index, uint8_t* data, size_t len, bool final) {
+                          size_t index, uint8_t* data, size_t len, bool final)
+{
     if (index == 0) {
 #if defined(ESP32)
         const uint32_t maxBlock = ESP.getMaxAllocHeap();
@@ -324,15 +236,13 @@ void WebApi::handleUpload(AsyncWebServerRequest* request, const String& filename
         ws.closeAll();
         ws.enable(false);
 
-        const int command = U_FLASH;
 #if defined(ESP32)
         const size_t maxSize = UPDATE_SIZE_UNKNOWN;   // the target partition bounds the image
 #else
         const size_t maxSize = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
         Update.runAsync(true);
 #endif
-
-        if (!Update.begin(maxSize, command)) {
+        if (!Update.begin(maxSize, U_FLASH)) {
             this->logger->error("Update.begin failed: " + updateError());
         }
     }
@@ -353,7 +263,8 @@ void WebApi::handleUpload(AsyncWebServerRequest* request, const String& filename
     }
 }
 
-void WebApi::setupWebSocket() {
+void WebApi::setupWebSocket()
+{
     ws.onEvent([this](AsyncWebSocket *server, AsyncWebSocketClient *client,
                 AwsEventType type, void *arg, uint8_t *data, size_t len) {
         switch (type) {
@@ -366,8 +277,7 @@ void WebApi::setupWebSocket() {
             case WS_EVT_DATA:
                 this->handleWebSocketMessage(client, arg, data, len);
                 break;
-            case WS_EVT_PONG:
-            case WS_EVT_ERROR:
+            default:
                 break;
         }
     });
@@ -375,230 +285,113 @@ void WebApi::setupWebSocket() {
     server.addHandler(&ws);
 }
 
-void WebApi::handleWebSocketMessage(AsyncWebSocketClient* client, void* arg, uint8_t* data, size_t len) {
+void WebApi::handleWebSocketMessage(AsyncWebSocketClient* client, void* arg, uint8_t* data, size_t len)
+{
     AwsFrameInfo *info = (AwsFrameInfo*)arg;
-    if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-        char* cstr = new char[len + 1];
-        memcpy(cstr, data, len);
-        cstr[len] = 0;
+    if (!info->final || info->index != 0 || info->len != len || info->opcode != WS_TEXT) return;
 
-        JsonDocument doc;
-        DeserializationError error = deserializeJson(doc, cstr);
-        delete[] cstr;
+    JsonDocument doc;
+    if (deserializeJson(doc, (const char*)data, len)) return;
 
-        if (error) return;
-
-        if (doc["event"] == "request_status") {
-            this->broadcastStats();
-        } else if (doc["event"] == "request_logs") {
-            this->sendLogHistory(client);
-        }
+    if (doc["event"] == "request_status") {
+        this->broadcastStats();
+    } else if (doc["event"] == "request_logs") {
+        this->sendLogHistory(client);
     }
 }
 
-void WebApi::broadcastStats() {
-    if (ws.count() == 0) return;
+void WebApi::writeStatus(JsonDocument& doc)
+{
+    StatusJson::write(doc, {this->activePlugin, this->logger, this->monitor, this->storage, this->mqttConnected});
+}
+
+void WebApi::broadcastStats()
+{
     // Skip the update if a client's send queue is still backed up: piling
     // messages onto a slow client drops frames and starves async TCP.
-    if (!ws.availableForWriteAll()) return;
+    if (ws.count() == 0 || !ws.availableForWriteAll()) return;
 
     JsonDocument doc;
     doc["event"] = "stats_update";
-    this->fillStatus(doc);
+    this->writeStatus(doc);
 
     String message;
     serializeJson(doc, message);
     ws.textAll(message);
 }
 
-static void addNumber(JsonObject obj, const char* key, float value)
+void WebApi::processActions()
 {
-    if (std::isnan(value)) obj[key] = nullptr;
-    else obj[key] = value;
-}
-
-void WebApi::fillStatus(JsonDocument& doc) {
-    doc["chip_id"] = ChipId::get();
-    doc["active_plugin"] = this->activePlugin ? this->activePlugin->getId() : "";
-    doc["active_plugin_name"] = this->activePlugin ? this->activePlugin->getName() : "None";
-    doc["wifi_network"] = WiFi.SSID();
-    doc["wifi_signal"] = String(WiFi.RSSI());
-    doc["ip_address"] = WiFi.localIP().toString();
-    doc["free_heap"] = ESP.getFreeHeap();
-    doc["mqtt_connected"] = this->mqttConnected;
-    doc["firmware_version"] = FW_VERSION;
-    doc["errors"] = this->logger->errors();
-    doc["warnings"] = this->logger->warnings();
-
-    char uptimeBuf[32];
-    TimeHelper::getUptime(uptimeBuf);
-    doc["uptime"] = uptimeBuf;
-    doc["uptime_s"] = millis() / 1000UL;
-
-    // Plugin-specific stats as structured array
-    std::vector<StatEntry> entries;
-    if (this->activePlugin) {
-        this->activePlugin->getStats(entries);
-    }
-
-    JsonArray statsArr = doc["stats"].to<JsonArray>();
-    for (auto& e : entries) {
-        JsonObject obj = statsArr.add<JsonObject>();
-        obj["label"] = e.label;
-        obj["value"] = e.value;
-        obj["numeric"] = e.numericValue;
-        obj["render"] = e.render == StatEntry::PROGRESS ? "progress" : "text";
-        obj["primary"] = e.primary;
-        obj["key"] = e.key;
-    }
-
-    // Primary-measurement view shared with the OLED pages
-    ScreenModel screen;
-    if (this->activePlugin && this->activePlugin->getScreen(screen)) {
-        JsonObject s = doc["screen"].to<JsonObject>();
-        s["kind"] = screen.kind;
-        s["title"] = screen.title;
-        addNumber(s, "value", screen.value);
-        s["text"] = screen.format(screen.value);
-        s["unit"] = screen.unit;
-        s["decimals"] = screen.decimals;
-        s["valid"] = screen.valid;
-        addNumber(s, "scale_min", screen.scaleMin);
-        addNumber(s, "scale_max", screen.scaleMax);
-        s["trend_bucket_s"] = screen.trendBucketSec;
-        JsonArray trend = s["trend"].to<JsonArray>();
-        for (float v : screen.trend) trend.add(rounded(v));
-        JsonArray lines = s["lines"].to<JsonArray>();
-        for (auto& line : screen.lines) {
-            JsonObject l = lines.add<JsonObject>();
-            l["label"] = line.label;
-            l["value"] = line.value;
-        }
-        s["sensor_label"] = screen.sensorLabel;
-        s["sensor_ok"] = screen.sensorOk;
-        s["raw"] = screen.raw;
-        s["signal"] = screen.signal;
-        addNumber(s, "low_24h", screen.low24);
-        addNumber(s, "high_24h", screen.high24);
-    }
-
-    if (this->monitor) {
-        const LimitMonitor& limits = this->monitor->limits();
-        JsonObject lim = doc["limits"].to<JsonObject>();
-        addNumber(lim, "low", limits.low());
-        addNumber(lim, "high", limits.high());
-        lim["state"] = LimitMonitor::stateName(limits.state());
-        lim["alert"] = limits.alertPending();
-        lim["trips"] = limits.trips();
-
-        JsonObject relay = doc["relay"].to<JsonObject>();
-        relay["available"] = this->monitor->relayAvailable();
-        relay["on"] = this->monitor->relayOn();
-        relay["activations"] = this->monitor->relayActivations();
-        relay["mode"] = LimitMonitor::modeName(limits.relayMode());
-
-        const EventLog& events = this->monitor->events();
-        JsonArray arr = doc["events"].to<JsonArray>();
-        for (size_t i = 0; i < events.size(); i++) {
-            const EventLog::Entry& e = events.newest(i);
-            JsonObject obj = arr.add<JsonObject>();
-            obj["t"] = e.uptimeSec;
-            obj["title"] = e.title;
-            obj["detail"] = e.detail;
-        }
-    }
-
-    if (this->display) {
-        JsonObject d = doc["display"].to<JsonObject>();
-        d["portrait"] = this->display->isPortrait();
-        d["page"] = this->display->getPage();
-        d["pages"] = this->display->isPortrait() ? Display::PORTRAIT_PAGES : 1;
-    }
-}
-
-void WebApi::setDevice(DeviceMonitor* monitor, Display* display, ActionCallback pagePress) {
-    this->monitor = monitor;
-    this->display = display;
-    this->pagePress = pagePress;
-}
-
-void WebApi::processActions() {
+    if (!this->monitor) return;
     if (this->pendingLimitsReload) {
         this->pendingLimitsReload = false;
-        if (this->monitor) this->monitor->loadLimits();
+        this->monitor->loadLimits();
     }
     int relay = this->pendingRelay;
     if (relay >= 0) {
         this->pendingRelay = -1;
-        if (this->monitor) this->monitor->commandRelay(relay == 1, "WEB UI", millis());
+        this->monitor->commandRelay(relay == 1, "WEB UI", millis());
     }
-    if (this->pendingDismiss) {
-        this->pendingDismiss = false;
-        if (this->monitor) this->monitor->dismissAlert();
-    }
-    if (this->pendingPage) {
-        this->pendingPage = false;
-        if (this->pagePress) this->pagePress();
+    if (this->pendingAlertAck) {
+        this->pendingAlertAck = false;
+        this->monitor->dismissAlert();
     }
 }
 
-void WebApi::broadcastLogs() {
-    if (ws.count() == 0) return;
-    if (!ws.availableForWriteAll()) return;
+void WebApi::broadcastLogs()
+{
+    if (ws.count() == 0 || !ws.availableForWriteAll()) return;
 
-    const auto& logs = this->logger->getBuffer();
+    const LogBuffer& logs = this->logger->getBuffer();
     unsigned long total = logs.total();
 
     // Nothing new since the last broadcast (sequence numbers survive buffer wrap)
     if (total <= this->lastLogSequence) return;
 
-    JsonDocument logsDoc;
-    logsDoc["event"] = "log_batch";
-    JsonArray arr = logsDoc["messages"].to<JsonArray>();
+    JsonDocument doc;
+    doc["event"] = "log_batch";
+    JsonArray arr = doc["messages"].to<JsonArray>();
 
     unsigned long firstSeq = logs.firstSequence();
     size_t startIdx = this->lastLogSequence > firstSeq ? (size_t)(this->lastLogSequence - firstSeq) : 0;
     if (logs.size() - startIdx > MAX_LOG_LINES_PER_MESSAGE) {
         startIdx = logs.size() - MAX_LOG_LINES_PER_MESSAGE;
     }
-    for (size_t i = startIdx; i < logs.size(); i++) {
-        arr.add(logs[i]);
-    }
+    for (size_t i = startIdx; i < logs.size(); i++) arr.add(logs[i]);
     this->lastLogSequence = total;
 
     String message;
-    serializeJson(logsDoc, message);
+    serializeJson(doc, message);
     ws.textAll(message);
 }
 
-void WebApi::sendLogHistory(AsyncWebSocketClient* client) {
-    const auto& logs = this->logger->getBuffer();
+void WebApi::sendLogHistory(AsyncWebSocketClient* client)
+{
+    const LogBuffer& logs = this->logger->getBuffer();
     if (logs.empty()) return;
 
-    JsonDocument logsDoc;
-    logsDoc["event"] = "log_batch";
-    JsonArray arr = logsDoc["messages"].to<JsonArray>();
+    JsonDocument doc;
+    doc["event"] = "log_batch";
+    JsonArray arr = doc["messages"].to<JsonArray>();
 
     // Only the most recent lines: the whole buffer serialises to several KB,
     // and doc + String + the async copy would peak at ~3x that on a ~40 KB heap.
-    size_t startIdx = logs.size() > MAX_LOG_LINES_PER_MESSAGE
-        ? logs.size() - MAX_LOG_LINES_PER_MESSAGE : 0;
-    for (size_t i = startIdx; i < logs.size(); i++) {
-        arr.add(logs[i]);
-    }
+    size_t startIdx = logs.size() > MAX_LOG_LINES_PER_MESSAGE ? logs.size() - MAX_LOG_LINES_PER_MESSAGE : 0;
+    for (size_t i = startIdx; i < logs.size(); i++) arr.add(logs[i]);
 
     String response;
-    serializeJson(logsDoc, response);
+    serializeJson(doc, response);
     client->text(response);
 }
 
-void WebApi::run(bool mqttConnected) {
+void WebApi::run(bool mqttConnected)
+{
     if (this->restartAt && (long)(millis() - this->restartAt) >= 0) {
         ESP.restart();
     }
 
     this->mqttConnected = mqttConnected;
     ws.cleanupClients();
-    broadcastStats();
-    broadcastLogs();
+    this->broadcastStats();
+    this->broadcastLogs();
 }

@@ -1,6 +1,7 @@
 #include "DistancePluginBase.h"
-#include <ArduinoJson.h>
-#include "HaDiscovery.h"
+#include <U8g2lib.h>
+#include "HAL.h"
+#include "Storage.h"
 
 void DistancePluginBase::setup(HAL* hal, Storage* storage, Logger* logger, LedController* led)
 {
@@ -42,24 +43,25 @@ void DistancePluginBase::loop()
     float raw = this->readSensor();
     this->lastRawDistance = raw;
 
+    const unsigned long now = this->hal->millis();
     this->distFilter.process(raw, this->avgSampleCount, this->deadbandM,
-                             this->snapAfterSamples, this->maxRateMPerMin, millis());
+                             this->snapAfterSamples, this->maxRateMPerMin, now);
     this->measuredDistance = this->distFilter.getFiltered();
     this->relativeDistance = this->computeRelative(this->measuredDistance, this->emptyDistM, this->fullDistM);
     this->absoluteDistance = this->computeAbsolute(this->measuredDistance, this->emptyDistM, this->fullDistM);
 
     if (this->sensorConnected) {
         float percent = this->relativeDistance * 100.0f;
-        this->levelTrend.add(percent, millis());
-        this->levelExtremes.update(percent, millis());
-        this->levelHistory.add(percent, millis());
+        this->levelTrend.add(percent, now);
+        this->levelExtremes.update(percent, now);
+        this->levelHistory.add(percent, now);
     }
 
     // Volume-derived metrics (uses raw float precision, no rounding)
     if (this->totalVolume > 0) {
         this->currentVolume = this->relativeDistance * this->totalVolume;
-        this->flowCalc.update(this->currentVolume, millis());
-        this->usageTracker.update(this->currentVolume, millis());
+        this->flowCalc.update(this->currentVolume, now);
+        this->usageTracker.update(this->currentVolume, now);
     }
 }
 
@@ -80,22 +82,20 @@ void DistancePluginBase::getParameterDefs(std::vector<ParameterDef>& defs) const
 
 void DistancePluginBase::getStats(std::vector<StatEntry>& entries) const
 {
-    entries.push_back({"Level", String(this->relativeDistance * 100, 1) + "%", this->relativeDistance, StatEntry::PROGRESS, true, "level"});
-    entries.push_back({"Depth", String(this->absoluteDistance, 2) + " m", this->absoluteDistance, StatEntry::TEXT, true, "depth"});
+    entries.push_back({"level", "Level", String(this->relativeDistance * 100, 1) + "%", this->relativeDistance});
+    entries.push_back({"depth", "Depth", String(this->absoluteDistance, 2) + " m", this->absoluteDistance});
     if (this->totalVolume > 0) {
-        entries.push_back({"Volume", String(this->currentVolume, 0) + " L", this->currentVolume, StatEntry::TEXT, true, "volume"});
-        entries.push_back({"Capacity", String(this->totalVolume, 0) + " L", this->totalVolume, StatEntry::TEXT, false, "capacity"});
+        entries.push_back({"volume", "Volume", String(this->currentVolume, 0) + " L", this->currentVolume});
+        entries.push_back({"capacity", "Capacity", String(this->totalVolume, 0) + " L", this->totalVolume});
     }
-    entries.push_back({"Distance", String(this->measuredDistance, 3) + " m", this->measuredDistance, StatEntry::TEXT, false, "distance"});
-    entries.push_back({"Raw", String(this->lastRawDistance, 3) + " m", this->lastRawDistance, StatEntry::TEXT, false, "raw"});
-    entries.push_back({"Sensor", this->sensorConnected ? "Connected" : "Disconnected", this->sensorConnected ? 1.0f : 0.0f, StatEntry::TEXT, false, "sensor"});
+    entries.push_back({"distance", "Distance", String(this->measuredDistance, 3) + " m", this->measuredDistance});
+    entries.push_back({"raw", "Raw", String(this->lastRawDistance, 3) + " m", this->lastRawDistance});
+    entries.push_back({"sensor", "Sensor", this->sensorConnected ? "Connected" : "Disconnected", this->sensorConnected ? 1.0f : 0.0f});
     if (this->totalVolume > 0) {
         float rate = this->flowCalc.getRate();
-        String rateStr = (rate >= 0 ? "+" : "") + String(rate, 2) + " L/min";
-        entries.push_back({"Flow Rate", rateStr, rate, StatEntry::TEXT, true, "flow_rate"});
-
+        entries.push_back({"flow_rate", "Flow Rate", (rate >= 0 ? "+" : "") + String(rate, 2) + " L/min", rate});
         float usage = this->usageTracker.getUsageLiters();
-        entries.push_back({"Usage 24h", String(usage, 1) + " L", usage, StatEntry::TEXT, false, "usage_24h"});
+        entries.push_back({"usage_24h", "Usage 24h", String(usage, 1) + " L", usage});
     }
 }
 
@@ -144,8 +144,6 @@ bool DistancePluginBase::getChartData(std::vector<float>& points, int& spanSecon
 void DistancePluginBase::publishMqtt(MQTTClient& client, const String& baseTopic)
 {
     JsonDocument doc;
-    String json;
-
     doc["relative"] = this->relativeDistance;
     doc["absolute"] = this->absoluteDistance;
     doc["measured"] = this->measuredDistance;
@@ -156,99 +154,24 @@ void DistancePluginBase::publishMqtt(MQTTClient& client, const String& baseTopic
         doc["flow_rate"] = this->flowCalc.getRate();
         doc["usage_24h"] = this->usageTracker.getUsageLiters();
     }
-    serializeJson(doc, json);
-
-    client.publish(baseTopic.c_str(), json.c_str(), false, 0);
+    HaDiscovery::publishJson(client, baseTopic, doc);
 }
 
 void DistancePluginBase::publishCommonHaSensors(MQTTClient& client, const HaDiscoveryContext& ctx)
 {
-    const String& deviceId = ctx.deviceId;
-    const String& stateTopic = ctx.stateTopic;
+    static const HaEntity volumeEntities[] = {
+        {"sensor", "volume", "volume", "Volume", "{{ value_json.volume | round(0) }}", "L", "volume", "mdi:cube-outline", true, false},
+        {"sensor", "usage_24h", "usage_24h", "Usage 24h", "{{ value_json.usage_24h | round(1) }}", "L", "volume", "mdi:chart-bar", true, false},
+        {"sensor", "flow_rate", "flow_rate", "Flow Rate", "{{ value_json.flow_rate | round(2) }}", "L/min", "volume_flow_rate", "mdi:swap-vertical", true, false},
+    };
+    static const HaEntity connected =
+        {"binary_sensor", "connected", "sensor_connected", "Sensor", "{{ 'ON' if value_json.connected else 'OFF' }}", nullptr, "connectivity", nullptr, false, true};
 
+    const char* deviceName = ctx.nameOr(this->getDeviceName());
     if (this->totalVolume > 0) {
-        // Volume sensor (L)
-        {
-            JsonDocument doc;
-            doc["state_topic"] = stateTopic;
-            doc["value_template"] = "{{ value_json.volume | round(0) }}";
-            doc["unit_of_measurement"] = "L";
-            doc["device_class"] = "volume";
-            doc["name"] = "Volume";
-            doc["unique_id"] = deviceId + "_volume";
-            doc["icon"] = "mdi:cube-outline";
-            doc["state_class"] = "measurement";
-
-            JsonObject device = doc["device"].to<JsonObject>();
-            HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
-            HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
-
-            String json;
-            serializeJson(doc, json);
-            client.publish(("homeassistant/sensor/" + deviceId + "/volume/config").c_str(), json.c_str(), true, 1);
-        }
-
-        // Usage over the last 24 h (L)
-        {
-            JsonDocument doc;
-            doc["state_topic"] = stateTopic;
-            doc["value_template"] = "{{ value_json.usage_24h | round(1) }}";
-            doc["unit_of_measurement"] = "L";
-            doc["device_class"] = "volume";
-            doc["name"] = "Usage 24h";
-            doc["unique_id"] = deviceId + "_usage_24h";
-            doc["icon"] = "mdi:chart-bar";
-            doc["state_class"] = "measurement";
-
-            JsonObject device = doc["device"].to<JsonObject>();
-            HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
-            HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
-
-            String json;
-            serializeJson(doc, json);
-            client.publish(("homeassistant/sensor/" + deviceId + "/usage_24h/config").c_str(), json.c_str(), true, 1);
-        }
-
-        // Flow rate sensor (L/min)
-        {
-            JsonDocument doc;
-            doc["state_topic"] = stateTopic;
-            doc["value_template"] = "{{ value_json.flow_rate | round(2) }}";
-            doc["unit_of_measurement"] = "L/min";
-            doc["device_class"] = "volume_flow_rate";
-            doc["name"] = "Flow Rate";
-            doc["unique_id"] = deviceId + "_flow_rate";
-            doc["icon"] = "mdi:swap-vertical";
-            doc["state_class"] = "measurement";
-
-            JsonObject device = doc["device"].to<JsonObject>();
-            HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
-            HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
-
-            String json;
-            serializeJson(doc, json);
-            client.publish(("homeassistant/sensor/" + deviceId + "/flow_rate/config").c_str(), json.c_str(), true, 1);
-        }
+        for (const HaEntity& entity : volumeEntities) HaDiscovery::publish(client, ctx, entity, deviceName);
     }
-
-    // Sensor connectivity (binary sensor, diagnostics)
-    {
-        JsonDocument doc;
-        doc["state_topic"] = stateTopic;
-        doc["value_template"] = "{{ 'ON' if value_json.connected else 'OFF' }}";
-        doc["device_class"] = "connectivity";
-        doc["name"] = "Sensor";
-        doc["unique_id"] = deviceId + "_sensor_connected";
-        doc["entity_category"] = "diagnostic";
-
-        JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
-        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
-
-        String json;
-        serializeJson(doc, json);
-        client.publish(("homeassistant/binary_sensor/" + deviceId + "/connected/config").c_str(), json.c_str(), true, 1);
-    }
+    HaDiscovery::publish(client, ctx, connected, deviceName);
 }
 
 // --- Display ---

@@ -10,7 +10,7 @@ class PluginConfig
     public:
         // true when an active plugin is selected and all required core
         // (MQTT) and plugin parameters are present in storage.
-        static bool isComplete(Storage& storage, IPlugin* plugin);
+        static bool isComplete(const Storage& storage, const IPlugin* plugin);
 };
 
 #endif

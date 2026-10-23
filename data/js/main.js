@@ -116,10 +116,14 @@ function renderAlerts(s) {
         slot.appendChild(alertCard('warn', 'warn', 'Connection to the device lost',
             `The values below are from ${formatDuration((Date.now() - state.lastUpdate) / 1000)} ago. This page keeps retrying.`));
     }
-    if (!screen) {
-        slot.appendChild(alertCard('warn', 'info', 'No sensor selected', 'Choose the sensor type in Settings to start measuring.'));
-        return;
+    if (s.configured === false) {
+        const link = el('a', 'btn', 'Open Settings');
+        link.href = '#settings';
+        slot.appendChild(alertCard('warn', 'info', screen ? 'Setup not finished' : 'No sensor selected',
+            screen ? 'Some required sensor or MQTT settings are missing.' : 'Choose the sensor type in Settings to start measuring.',
+            '', link));
     }
+    if (!screen) return;
     if (!screen.sensor_ok) {
         const age = lastEventAge(s, ['SENSOR FAULT']);
         slot.appendChild(alertCard('alarm', 'plug', 'Sensor fault', FAULT_HINTS[s.active_plugin] || 'Check the sensor wiring.',
@@ -256,7 +260,7 @@ function renderEventsCard(s) {
 
 async function acknowledgeAlert() {
     try {
-        await apiPost('/display?action=dismiss');
+        await apiPost('/alert/ack');
         showToast('Alert acknowledged. It stays listed until the reading is back within limits.');
         setTimeout(requestStatus, 300);
     } catch (error) {

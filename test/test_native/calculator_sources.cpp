@@ -7,7 +7,7 @@
 #include "../../lib/Plugin/FlowRateCalculator.cpp"
 #include "../../lib/Plugin/LevelFilter.cpp"
 #include "../../lib/Plugin/DailyUsageTracker.cpp"
-#include "../../lib/Plugins/HaDiscovery.cpp"
+#include "../../lib/Plugin/HaDiscovery.cpp"
 #include "../../lib/Core/ButtonLadder.cpp"
 #include "../../lib/Core/RelayOutput.cpp"
 #include "../../lib/Core/LimitMonitor.cpp"

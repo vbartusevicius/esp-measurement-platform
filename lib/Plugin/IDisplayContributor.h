@@ -1,7 +1,7 @@
 #ifndef IDISPLAY_CONTRIBUTOR_H
 #define IDISPLAY_CONTRIBUTOR_H
 
-#include <U8g2lib.h>
+class U8G2;
 
 // Capability interface for plugins that render display pages.
 class IDisplayContributor

@@ -1,8 +1,8 @@
 #include "UltrasonicDistancePlugin.h"
-#include <ArduinoJson.h>
-#include "HaDiscovery.h"
-#include "UltrasonicDistanceCalculator.h"
+#include <cmath>
 #include "HAL.h"
+#include "Logger.h"
+#include "UltrasonicDistanceCalculator.h"
 
 const char* UltrasonicDistancePlugin::getId() const { return "ultrasonic_distance"; }
 const char* UltrasonicDistancePlugin::getName() const { return "Ultrasonic Distance Meter"; }
@@ -61,27 +61,10 @@ void UltrasonicDistancePlugin::addPluginParameterDefs(std::vector<ParameterDef>&
 
 void UltrasonicDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx)
 {
-    const String& deviceId = ctx.deviceId;
-    const String& stateTopic = ctx.stateTopic;
-
-    {
-        JsonDocument doc;
-        doc["state_topic"] = stateTopic;
-        doc["value_template"] = "{{ ((value_json.relative | float) * 100) | round(2) }}";
-        doc["unit_of_measurement"] = "%";
-        doc["name"] = "ESP Ultrasonic Distance";
-        doc["unique_id"] = deviceId + "_distance";
-        doc["object_id"] = "esp_ultrasonic_distance";
-
-        JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
-        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
-
-        String json;
-        serializeJson(doc, json);
-        client.publish(("homeassistant/sensor/" + deviceId + "/config").c_str(), json.c_str(), true, 1);
-    }
-
-    // Flow rate sensor (L/min)
+    // Legacy entity (topic without object id, fixed object_id) kept for existing installs.
+    static const HaEntity level =
+        {"sensor", "", "distance", "ESP Ultrasonic Distance", "{{ ((value_json.relative | float) * 100) | round(2) }}", "%", nullptr, nullptr, false, false};
+    HaDiscovery::publish(client, ctx, level, ctx.nameOr(this->getDeviceName()),
+                         [](JsonDocument& doc, const HaDiscoveryContext&) { doc["object_id"] = "esp_ultrasonic_distance"; });
     this->publishCommonHaSensors(client, ctx);
 }

@@ -3,10 +3,6 @@
 
 // Layout: magic (4B) | count (2B) | count x { keyLen (1B) | valLen (1B) | key | value }
 
-Storage::Storage()
-{
-}
-
 void Storage::begin()
 {
     this->load();
@@ -85,12 +81,17 @@ bool Storage::persist()
     return ok;
 }
 
-Storage::Entry* Storage::find(const char* name)
+const Storage::Entry* Storage::find(const char* name) const
 {
-    for (auto& e : this->entries) {
+    for (const Entry& e : this->entries) {
         if (e.key == name) return &e;
     }
     return nullptr;
+}
+
+Storage::Entry* Storage::find(const char* name)
+{
+    return const_cast<Entry*>(static_cast<const Storage*>(this)->find(name));
 }
 
 void Storage::saveParameter(const char* name, const String& value)
@@ -105,13 +106,13 @@ void Storage::saveParameter(const char* name, const String& value)
     this->persist();
 }
 
-String Storage::getParameter(const char* name, String defaultValue)
+String Storage::getParameter(const char* name, String defaultValue) const
 {
-    Entry* existing = this->find(name);
+    const Entry* existing = this->find(name);
     return existing ? existing->value : defaultValue;
 }
 
-bool Storage::hasParameter(const char* name)
+bool Storage::hasParameter(const char* name) const
 {
     return this->find(name) != nullptr;
 }

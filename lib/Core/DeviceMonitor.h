@@ -4,11 +4,11 @@
 #include <Arduino.h>
 #include "EventLog.h"
 #include "LimitMonitor.h"
-#include "ScreenModel.h"
 
-class Storage;
 class Logger;
 class RelayOutput;
+class Storage;
+struct ScreenModel;
 
 // Device-level state shared by the OLED, WebUI and MQTT: MIN/MAX limits and
 // the relay rule, relay ownership, and the short event log.
@@ -18,7 +18,7 @@ class DeviceMonitor
         void begin(Storage* storage, Logger* logger, RelayOutput* relay);
         void loadLimits();
         // Effective on/off state of an alert ("limit_low_on" / "limit_high_on").
-        bool limitEnabled(const char* switchKey, const char* valueKey);
+        bool limitEnabled(const char* switchKey, const char* valueKey) const;
 
         // Call after every plugin sample.
         void evaluate(const ScreenModel& model, unsigned long nowMs);
@@ -51,7 +51,7 @@ class DeviceMonitor
         bool mqttUp = false;
 
         void applyRelay(bool on, const char* source, unsigned long nowMs);
-        float readLimit(const char* key);
+        float readLimit(const char* key) const;
 };
 
 #endif

@@ -56,8 +56,3 @@ const LogBuffer& Logger::getBuffer() const
 {
     return this->buffer;
 }
-
-size_t Logger::size() const
-{
-    return this->buffer.size();
-}

@@ -1,8 +1,9 @@
 #ifndef PLUGIN_REGISTRY_H
 #define PLUGIN_REGISTRY_H
 
-#include "IPlugin.h"
 #include <vector>
+
+class IPlugin;
 
 class PluginRegistry
 {
@@ -12,9 +13,7 @@ class PluginRegistry
     public:
         void add(IPlugin* plugin);
         IPlugin* get(const char* id) const;
-        IPlugin* getFirst() const;
         const std::vector<IPlugin*>& getAll() const;
-        size_t count() const;
 };
 
 #endif

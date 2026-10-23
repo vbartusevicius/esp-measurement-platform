@@ -1,8 +1,6 @@
 #ifndef TIME_HELPER_H
 #define TIME_HELPER_H
 
-#include <Arduino.h>
-
 class TimeHelper
 {
     public:

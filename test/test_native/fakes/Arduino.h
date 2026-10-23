@@ -135,3 +135,13 @@ public:
     void print(const String&) {}
 };
 inline FakeSerial Serial;
+
+// Like the real cores, Arduino.h provides the ESP object.
+class EspClass {
+public:
+    uint32_t freeHeap = 65536;
+    uint32_t getChipId() { return 0xABCDEF; }
+    void restart() {}
+    uint32_t getFreeHeap() { return freeHeap; }
+};
+inline EspClass ESP;

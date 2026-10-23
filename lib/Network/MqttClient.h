@@ -1,12 +1,16 @@
 #ifndef MY_MQTT_CLIENT_H
 #define MY_MQTT_CLIENT_H
 
+#include <Arduino.h>
 #include <MQTT.h>
-#include "Storage.h"
-#include "Logger.h"
-#include "IMqttContributor.h"
-#include "RelayOutput.h"
-#include "DeviceMonitor.h"
+#include "HaDiscovery.h"
+#include "PlatformWiFi.h"
+
+class DeviceMonitor;
+class IMqttContributor;
+class Logger;
+class RelayOutput;
+class Storage;
 
 class MqttClient
 {
@@ -17,6 +21,7 @@ class MqttClient
         RelayOutput* relay = nullptr;
         DeviceMonitor* monitor = nullptr;
         int publishedRelayState = -1;
+        WiFiClient network;
         MQTTClient client;
         String deviceId;
         String pluginId;
@@ -37,6 +42,7 @@ class MqttClient
         String relayCommandTopic();
         void publishRelayState();
         void publishRelayHaConfig();
+        HaDiscoveryContext haContext(const String& stateTopic);
         void publishStatus();
         void publishSystemHaConfig();
         void publishHomeAssistantAutoconfig();

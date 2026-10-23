@@ -1,8 +1,6 @@
 #ifndef RELAY_OUTPUT_H
 #define RELAY_OUTPUT_H
 
-#include <Arduino.h>
-
 class HAL;
 
 // K1 changeover relay. Always off after boot (the driver's 10k base pull-down

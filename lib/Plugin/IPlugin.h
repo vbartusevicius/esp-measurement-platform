@@ -18,28 +18,31 @@ struct ParameterDef {
     const char* defaultValue;
     enum Type { TEXT, NUMBER, PASSWORD, SELECT } type;
     bool required;
-    const char* options = nullptr;   // SELECT: "value=Label;value=Label"
 };
 
-// Values a SELECT option fills into other parameters (e.g. a tube model sets
-// the tube factor). The web UI applies them; the user can still override.
-struct ParameterPreset {
-    const char* param;    // the SELECT parameter
-    const char* option;   // its option value
-    const char* key;      // parameter to fill
+// One option of a SELECT parameter. Choosing it fills known values into other
+// parameters (e.g. a tube model sets the tube factor); the web UI applies the
+// fills and the user can still override them.
+struct ParameterFill {
+    const char* key;
     const char* value;
 };
 
-struct StatEntry {
+struct ParameterChoice {
+    const char* param;                  // the SELECT parameter
+    const char* value;
     const char* label;
-    String value;
-    float numericValue;
-    enum Render { TEXT, PROGRESS } render;
-    bool primary;
-    const char* key = "";   // stable machine name for the web UI (labels are for humans)
+    std::vector<ParameterFill> fills;
 };
 
-// Core plugin contract: identity, lifecycle, parameters and stats.
+struct StatEntry {
+    const char* key;      // stable machine name for the web UI
+    const char* label;    // human label
+    String value;         // formatted, with unit
+    float numericValue;
+};
+
+// Core plugin contract: identity, lifecycle, parameters and readings.
 // Optional capabilities are exposed through mqtt()/display() so that
 // plugins don't have to depend on the MQTT or display libraries.
 class IPlugin
@@ -54,21 +57,20 @@ class IPlugin
         virtual void loop() = 0;
 
         virtual void getParameterDefs(std::vector<ParameterDef>& defs) const = 0;
-        virtual void getParameterPresets(std::vector<ParameterPreset>& presets) const {}
+        virtual void getParameterChoices(std::vector<ParameterChoice>& choices) const {}
 
         virtual void getStats(std::vector<StatEntry>& entries) const = 0;
-
-        virtual int getSamplingInterval() const { return 10; }
-
-        virtual int getPublishInterval() const { return this->getSamplingInterval(); }
-
-        // Optional history chart capability for the web UI. Default: unsupported.
-        virtual bool getChartData(std::vector<float>& points, int& spanSeconds) const { return false; }
 
         // Primary-measurement view for the OLED pages and the WebUI.
         virtual bool getScreen(ScreenModel& model) const { return false; }
 
-        // Optional capabilities — return nullptr if not supported.
+        // Stored history for the web UI chart. Default: none.
+        virtual bool getChartData(std::vector<float>& points, int& spanSeconds) const { return false; }
+
+        virtual int getSamplingInterval() const { return 10; }
+        virtual int getPublishInterval() const { return this->getSamplingInterval(); }
+
+        // Optional capabilities: nullptr if not supported.
         virtual IMqttContributor* mqtt() { return nullptr; }
         virtual IDisplayContributor* display() { return nullptr; }
 };

@@ -2,7 +2,8 @@
 #define WIFI_CONNECTOR_H
 
 #include <WiFiManager.h>
-#include "Logger.h"
+
+class Logger;
 
 class WifiConnector
 {

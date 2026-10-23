@@ -1,8 +1,6 @@
 #ifndef LED_CONTROLLER_H
 #define LED_CONTROLLER_H
 
-#include <Arduino.h>
-
 class HAL;
 
 // NodeMCU: built-in LED flashes on every sample. v1 board: three SK6805
@@ -29,6 +27,8 @@ class LedController
         void run();
         void click();
         void setNetworkState(NetState state);
+
+        static NetState netStateFor(bool wifiConnected, bool mqttConnected, bool portalActive);
 };
 
 #endif

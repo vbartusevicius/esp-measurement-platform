@@ -39,7 +39,7 @@ On the v1 board:
 
 ### Limits, alerts and relay rule
 
-*Configuration → Limits & Relay* sets a MIN and/or MAX limit in the unit of the main reading (% for tanks, the configured unit for pressure, µSv/h for radiation), a hysteresis, and the relay rule:
+*Settings → Alerts* sets a MIN and/or MAX limit in the unit of the main reading (% for tanks, the configured unit for pressure, µSv/h for radiation), a hysteresis, and the relay rule:
 
 - `manual`: MQTT and the web UI switch the relay.
 - `on_alarm` / `off_alarm`: the relay follows the alarm, and manual commands are refused. A sensor fault holds the last relay state.
@@ -62,10 +62,10 @@ The web UI is built per sensor type, following the high-performance HMI guidelin
 
 API additions (`GET /api/v1/status` and the WebSocket `stats_update` carry the same fields):
 
-- `screen` (with `kind`: level / pressure / radiation / voltage), `limits`, `relay`, `events`, `display`, `errors`, `warnings` and `uptime_s` in the status; every `stats[]` entry has a stable `key`.
+- `screen` (with `kind`: level / pressure / radiation / voltage), `limits`, `relay`, `events`, `configured` (all required settings present), `errors`, `warnings` and `uptime_s` in the status; `stats[]` entries are `{key, label, value, numeric}`.
 - `GET /api/v1/chart`: 24 h history for every sensor, with `points`, `span_seconds` and `unit`.
 - `POST /api/v1/relay?state=on|off` returns 409 while a limit rule owns the relay.
-- `POST /api/v1/display?action=page|dismiss`.
+- `POST /api/v1/alert/ack` acknowledges the current alert (same as the PAGE button).
 
 Build both targets on any host with Docker (CI-equivalent; PlatformIO Core pinned to 6.1.19: 6.2.0 breaks the ESP8266 build):
 

@@ -1,4 +1,5 @@
 #include "TimeHelper.h"
+#include <Arduino.h>
 
 void TimeHelper::getUptime(char* buffer)
 {

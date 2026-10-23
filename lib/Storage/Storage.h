@@ -18,15 +18,15 @@ class Storage
         std::vector<Entry> entries;
 
         Entry* find(const char* name);
+        const Entry* find(const char* name) const;
         void load();
         bool persist();
 
     public:
-        Storage();
         void begin();
         void saveParameter(const char* name, const String& value);
-        String getParameter(const char* name, String defaultValue = String());
-        bool hasParameter(const char* name);
+        String getParameter(const char* name, String defaultValue = String()) const;
+        bool hasParameter(const char* name) const;
         void reset();
 };
 

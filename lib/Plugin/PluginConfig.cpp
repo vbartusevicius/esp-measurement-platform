@@ -4,7 +4,7 @@
 #include "IPlugin.h"
 #include <vector>
 
-bool PluginConfig::isComplete(Storage& storage, IPlugin* plugin)
+bool PluginConfig::isComplete(const Storage& storage, const IPlugin* plugin)
 {
     // If no plugin is selected, the device is unconfigured
     if (!plugin) return false;

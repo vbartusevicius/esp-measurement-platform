@@ -1,15 +1,13 @@
 #ifndef ANALOG_VOLTAGE_PLUGIN_H
 #define ANALOG_VOLTAGE_PLUGIN_H
 
-#include "IPlugin.h"
-#include "IMqttContributor.h"
-#include "IDisplayContributor.h"
-#include "Storage.h"
-#include "Logger.h"
-#include "Board.h"
-#include "TrendBuffer.h"
-#include "RollingExtremes.h"
 #include <vector>
+#include "Board.h"
+#include "IDisplayContributor.h"
+#include "IMqttContributor.h"
+#include "IPlugin.h"
+#include "RollingExtremes.h"
+#include "TrendBuffer.h"
 
 // Pressure (or any linear voltage) sensor on the 0-10 V input.
 class AnalogVoltagePlugin : public IPlugin, public IMqttContributor, public IDisplayContributor

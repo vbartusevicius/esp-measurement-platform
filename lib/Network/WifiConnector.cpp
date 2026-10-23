@@ -1,4 +1,5 @@
 #include "WifiConnector.h"
+#include "Logger.h"
 
 WifiConnector::WifiConnector(Logger* logger, const String& chipId)
 {

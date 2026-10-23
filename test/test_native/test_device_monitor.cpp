@@ -5,6 +5,7 @@
 #include "Logger.h"
 #include "Parameter.h"
 #include "RelayOutput.h"
+#include "ScreenModel.h"
 #include "Storage.h"
 
 class DeviceMonitorTest : public ::testing::Test {

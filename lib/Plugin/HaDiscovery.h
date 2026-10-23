@@ -1,13 +1,47 @@
 #ifndef HA_DISCOVERY_H
 #define HA_DISCOVERY_H
 
+#include <Arduino.h>
 #include <ArduinoJson.h>
+#include <MQTT.h>
 
-class HaDiscovery
-{
-    public:
-        static void addDeviceInfo(JsonObject& device, const String& deviceId, const char* name);
-        static void addAvailability(JsonDocument& doc, const String& availabilityTopic);
+struct HaDiscoveryContext {
+    String deviceId;
+    String stateTopic;
+    String availabilityTopic;
+    String deviceName;   // user-configured display name; empty = plugin default
+
+    const char* nameOr(const char* fallback) const {
+        return deviceName.isEmpty() ? fallback : deviceName.c_str();
+    }
 };
+
+// One Home Assistant entity. Topic: homeassistant/<component>/<device>/<objectId>/config
+// (no objectId segment when empty). unique_id = <device>_<uniqueSuffix>; both are
+// kept stable so existing HA entities keep their history.
+struct HaEntity {
+    const char* component;        // sensor | binary_sensor | switch
+    const char* objectId;
+    const char* uniqueSuffix;
+    const char* name;
+    const char* valueTemplate;
+    const char* unit;
+    const char* deviceClass;
+    const char* icon;
+    bool measurement;             // state_class: measurement (numeric states only)
+    bool diagnostic;              // entity_category: diagnostic
+};
+
+namespace HaDiscovery
+{
+    // Publishes the retained discovery config. The state topic defaults to
+    // ctx.stateTopic; `extra` may add or override fields (command_topic, ...).
+    // deviceName nullptr = don't rename the HA device (it merges by identifier).
+    void publish(MQTTClient& client, const HaDiscoveryContext& ctx, const HaEntity& entity,
+                 const char* deviceName, void (*extra)(JsonDocument&, const HaDiscoveryContext&) = nullptr);
+
+    // Publishes a JSON payload (measurement state, not retained).
+    void publishJson(MQTTClient& client, const String& topic, JsonDocument& doc);
+}
 
 #endif

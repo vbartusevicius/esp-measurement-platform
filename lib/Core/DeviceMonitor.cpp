@@ -2,6 +2,7 @@
 #include "Logger.h"
 #include "Parameter.h"
 #include "RelayOutput.h"
+#include "ScreenModel.h"
 #include "Storage.h"
 #include <cstdio>
 #include <cstring>
@@ -14,13 +15,13 @@ void DeviceMonitor::begin(Storage* storage, Logger* logger, RelayOutput* relay)
     this->loadLimits();
 }
 
-float DeviceMonitor::readLimit(const char* key)
+float DeviceMonitor::readLimit(const char* key) const
 {
     String text = this->storage->getParameter(key, "");
     return text.isEmpty() ? NAN : text.toFloat();
 }
 
-bool DeviceMonitor::limitEnabled(const char* switchKey, const char* valueKey)
+bool DeviceMonitor::limitEnabled(const char* switchKey, const char* valueKey) const
 {
     String on = this->storage->getParameter(switchKey, "");
     if (on.isEmpty()) return !this->storage->getParameter(valueKey, "").isEmpty();

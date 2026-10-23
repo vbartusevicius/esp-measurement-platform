@@ -1,17 +1,14 @@
 #ifndef RADIATION_COUNTER_PLUGIN_H
 #define RADIATION_COUNTER_PLUGIN_H
 
-#include "IPlugin.h"
-#include "IMqttContributor.h"
-#include "IDisplayContributor.h"
-#include "Storage.h"
-#include "Logger.h"
-#include "LedController.h"
-#include "RadiationCalculator.h"
-#include "Board.h"
-#include "TrendBuffer.h"
-#include "RollingExtremes.h"
 #include <vector>
+#include "Board.h"
+#include "IDisplayContributor.h"
+#include "IMqttContributor.h"
+#include "IPlugin.h"
+#include "RadiationCalculator.h"
+#include "RollingExtremes.h"
+#include "TrendBuffer.h"
 
 class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public IDisplayContributor
 {
@@ -74,7 +71,7 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
         void loop() override;
 
         void getParameterDefs(std::vector<ParameterDef>& defs) const override;
-        void getParameterPresets(std::vector<ParameterPreset>& presets) const override;
+        void getParameterChoices(std::vector<ParameterChoice>& choices) const override;
 
         void getStats(std::vector<StatEntry>& entries) const override;
         bool getScreen(ScreenModel& model) const override;

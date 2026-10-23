@@ -1,9 +1,10 @@
 #include "AnalogVoltagePlugin.h"
-#include <ArduinoJson.h>
+#include <U8g2lib.h>
 #include <cstring>
 #include "AnalogVoltageConverter.h"
-#include "HaDiscovery.h"
 #include "HAL.h"
+#include "Logger.h"
+#include "Storage.h"
 
 static bool isPressureUnit(const char* unit)
 {
@@ -53,9 +54,10 @@ void AnalogVoltagePlugin::loop()
     this->sampled = true;
 
     if (this->sensorConnected) {
-        this->trend.add(this->value, this->hal->millis());
-        this->extremes.update(this->value, this->hal->millis());
-        this->history.add(this->value, this->hal->millis());
+        const unsigned long now = this->hal->millis();
+        this->trend.add(this->value, now);
+        this->extremes.update(this->value, now);
+        this->history.add(this->value, now);
     }
     this->logger->debug("Voltage read: V=" + String(this->inputVolts, 3) + " value=" + String(this->value, this->decimals) +
                         " sensor=" + String(this->sensorConnected ? "ok" : "fault"));
@@ -75,9 +77,9 @@ void AnalogVoltagePlugin::getParameterDefs(std::vector<ParameterDef>& defs) cons
 
 void AnalogVoltagePlugin::getStats(std::vector<StatEntry>& entries) const
 {
-    entries.push_back({"Value", String(this->value, this->decimals) + " " + this->unit, this->value, StatEntry::TEXT, true, "value"});
-    entries.push_back({"Input", String(this->inputVolts, 3) + " V", this->inputVolts, StatEntry::TEXT, false, "voltage"});
-    entries.push_back({"Sensor", this->sensorConnected ? "Connected" : "Disconnected", this->sensorConnected ? 1.0f : 0.0f, StatEntry::TEXT, false, "sensor"});
+    entries.push_back({"value", "Value", String(this->value, this->decimals) + " " + this->unit, this->value});
+    entries.push_back({"voltage", "Input", String(this->inputVolts, 3) + " V", this->inputVolts});
+    entries.push_back({"sensor", "Sensor", this->sensorConnected ? "Connected" : "Disconnected", this->sensorConnected ? 1.0f : 0.0f});
 }
 
 bool AnalogVoltagePlugin::getScreen(ScreenModel& model) const
@@ -118,53 +120,21 @@ void AnalogVoltagePlugin::publishMqtt(MQTTClient& client, const String& baseTopi
     doc["value"] = this->value;
     doc["voltage"] = this->inputVolts;
     doc["connected"] = this->sensorConnected;
-    String json;
-    serializeJson(doc, json);
-    client.publish(baseTopic.c_str(), json.c_str(), false, 0);
+    HaDiscovery::publishJson(client, baseTopic, doc);
 }
 
 void AnalogVoltagePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx)
 {
     const char* deviceName = ctx.nameOr("ESP Pressure Sensor");
-    auto publish = [&](const char* component, const char* objectId, JsonDocument& doc) {
-        doc["state_topic"] = ctx.stateTopic;
-        doc["unique_id"] = ctx.deviceId + "_" + objectId;
-        JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, ctx.deviceId, deviceName);
-        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
-        String json;
-        serializeJson(doc, json);
-        client.publish((String("homeassistant/") + component + "/" + ctx.deviceId + "/" + objectId + "/config").c_str(), json.c_str(), true, 1);
+    const String valueTemplate = "{{ (value_json.value | float) | round(" + String(this->decimals) + ") }}";
+    const HaEntity value = {"sensor", "value", "value", this->title.c_str(), valueTemplate.c_str(), this->unit.c_str(),
+                            isPressureUnit(this->unit.c_str()) ? "pressure" : nullptr, "mdi:gauge", true, false};
+    static const HaEntity diagnostics[] = {
+        {"sensor", "voltage", "voltage", "Sensor Voltage", "{{ (value_json.voltage | float) | round(3) }}", "V", "voltage", nullptr, true, true},
+        {"binary_sensor", "connected", "connected", "Sensor", "{{ 'ON' if value_json.connected else 'OFF' }}", nullptr, "connectivity", nullptr, false, true},
     };
-
-    {
-        JsonDocument doc;
-        doc["name"] = this->title;
-        doc["value_template"] = "{{ (value_json.value | float) | round(" + String(this->decimals) + ") }}";
-        doc["unit_of_measurement"] = this->unit;
-        if (isPressureUnit(this->unit.c_str())) doc["device_class"] = "pressure";
-        doc["state_class"] = "measurement";
-        doc["icon"] = "mdi:gauge";
-        publish("sensor", "value", doc);
-    }
-    {
-        JsonDocument doc;
-        doc["name"] = "Sensor Voltage";
-        doc["value_template"] = "{{ (value_json.voltage | float) | round(3) }}";
-        doc["unit_of_measurement"] = "V";
-        doc["device_class"] = "voltage";
-        doc["state_class"] = "measurement";
-        doc["entity_category"] = "diagnostic";
-        publish("sensor", "voltage", doc);
-    }
-    {
-        JsonDocument doc;
-        doc["name"] = "Sensor";
-        doc["value_template"] = "{{ 'ON' if value_json.connected else 'OFF' }}";
-        doc["device_class"] = "connectivity";
-        doc["entity_category"] = "diagnostic";
-        publish("binary_sensor", "connected", doc);
-    }
+    HaDiscovery::publish(client, ctx, value, deviceName);
+    for (const HaEntity& entity : diagnostics) HaDiscovery::publish(client, ctx, entity, deviceName);
 }
 
 int AnalogVoltagePlugin::renderDisplayPage(U8G2& u8g2, int page, int width, int height) const

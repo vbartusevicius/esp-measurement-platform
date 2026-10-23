@@ -2,11 +2,8 @@
 #define DISTANCE_PLUGIN_BASE_H
 
 #include "IPlugin.h"
-#include <ArduinoJson.h>
 #include "IMqttContributor.h"
 #include "IDisplayContributor.h"
-#include "Storage.h"
-#include "Logger.h"
 #include "LevelFilter.h"
 #include "FlowRateCalculator.h"
 #include "DailyUsageTracker.h"
@@ -64,7 +61,7 @@ class DistancePluginBase : public IPlugin, public IMqttContributor, public IDisp
         virtual void addPluginParameterDefs(std::vector<ParameterDef>& defs) const = 0;
         virtual const char* getDeviceName() const = 0;
 
-        // Home Assistant discovery helpers (flow rate + volume + usage + connectivity)
+        // Home Assistant discovery shared by all distance meters (volume, usage, flow, connectivity)
         void publishCommonHaSensors(MQTTClient& client, const HaDiscoveryContext& ctx);
 
     public:

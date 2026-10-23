@@ -9,7 +9,7 @@ protected:
 TEST_F(LoggerTest, InfoAddsToBuffer)
 {
     logger.info("test message");
-    EXPECT_EQ(logger.size(), 1u);
+    EXPECT_EQ(logger.getBuffer().size(), 1u);
 }
 
 TEST_F(LoggerTest, MultipleLogLevels)
@@ -19,20 +19,20 @@ TEST_F(LoggerTest, MultipleLogLevels)
     logger.error("error");
     logger.debug("debug");
     // debug is suppressed unless explicitly enabled
-    EXPECT_EQ(logger.size(), 3u);
+    EXPECT_EQ(logger.getBuffer().size(), 3u);
 }
 
 TEST_F(LoggerTest, DebugSuppressedByDefault)
 {
     logger.debug("debug");
-    EXPECT_EQ(logger.size(), 0u);
+    EXPECT_EQ(logger.getBuffer().size(), 0u);
 }
 
 TEST_F(LoggerTest, DebugRecordedWhenEnabled)
 {
     logger.setDebugEnabled(true);
     logger.debug("debug");
-    ASSERT_EQ(logger.size(), 1u);
+    ASSERT_EQ(logger.getBuffer().size(), 1u);
     EXPECT_NE(std::string(logger.getBuffer()[0].c_str()).find("DEBUG"), std::string::npos);
 }
 
@@ -69,7 +69,7 @@ TEST_F(LoggerTest, BufferLimitedToMaxEntries)
     for (int i = 0; i < 60; i++) {
         logger.info("msg " + String(i));
     }
-    EXPECT_EQ(logger.size(), 50u);
+    EXPECT_EQ(logger.getBuffer().size(), 50u);
 }
 
 TEST_F(LoggerTest, OldestEntriesDroppedFirst)

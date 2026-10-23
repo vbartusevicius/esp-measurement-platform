@@ -1,12 +1,12 @@
-#include "PlatformWiFi.h"
-#include <ArduinoJson.h>
-#include <algorithm>
 #include "MqttClient.h"
+#include <algorithm>
+#include "DeviceMonitor.h"
+#include "IMqttContributor.h"
+#include "Logger.h"
 #include "Parameter.h"
+#include "RelayOutput.h"
+#include "Storage.h"
 #include "Version.h"
-#include "HaDiscovery.h"
-
-extern WiFiClient network;
 
 MqttClient::MqttClient(Storage* storage, Logger* logger, IMqttContributor* plugin, const char* pluginId, const String& deviceId)
 {
@@ -53,25 +53,26 @@ void MqttClient::publishRelayState()
     this->client.publish(this->relayStateTopic().c_str(), this->relay->isOn() ? "ON" : "OFF", true, 1);
 }
 
+HaDiscoveryContext MqttClient::haContext(const String& stateTopic)
+{
+    HaDiscoveryContext ctx;
+    ctx.deviceId = this->deviceId;
+    ctx.stateTopic = stateTopic;
+    ctx.availabilityTopic = this->availabilityTopic();
+    ctx.deviceName = this->storage->getParameter(Parameter::DEVICE_NAME, "");
+    return ctx;
+}
+
 void MqttClient::publishRelayHaConfig()
 {
     if (!this->relay) return;
-    JsonDocument doc;
-    doc["name"] = "Relay";
-    doc["unique_id"] = this->deviceId + "_relay";
-    doc["state_topic"] = this->relayStateTopic();
-    doc["command_topic"] = this->relayCommandTopic();
-    doc["payload_on"] = "ON";
-    doc["payload_off"] = "OFF";
-    doc["icon"] = "mdi:electric-switch";
-
-    JsonObject device = doc["device"].to<JsonObject>();
-    HaDiscovery::addDeviceInfo(device, this->deviceId, nullptr);
-    HaDiscovery::addAvailability(doc, this->availabilityTopic());
-
-    String json;
-    serializeJson(doc, json);
-    this->client.publish(("homeassistant/switch/" + this->deviceId + "/relay/config").c_str(), json.c_str(), true, 1);
+    static const HaEntity relaySwitch = {"switch", "relay", "relay", "Relay", nullptr, nullptr, nullptr, "mdi:electric-switch", false, false};
+    HaDiscovery::publish(this->client, this->haContext(this->relayStateTopic()), relaySwitch, nullptr,
+                         [](JsonDocument& doc, const HaDiscoveryContext& ctx) {
+                             doc["command_topic"] = ctx.stateTopic + "/set";
+                             doc["payload_on"] = "ON";
+                             doc["payload_off"] = "OFF";
+                         });
 }
 
 String MqttClient::getMqttErrorMessage(int errorCode)
@@ -196,7 +197,7 @@ void MqttClient::begin()
     client.begin(
         this->storage->getParameter(Parameter::MQTT_HOST).c_str(),
         atoi(this->storage->getParameter(Parameter::MQTT_PORT).c_str()),
-        network
+        this->network
     );
 
     this->connectMqtt();
@@ -223,13 +224,7 @@ void MqttClient::publishStatus()
 
 void MqttClient::publishHomeAssistantAutoconfig()
 {
-    HaDiscoveryContext ctx;
-    ctx.deviceId = this->deviceId;
-    ctx.stateTopic = this->getBaseTopic();
-    ctx.availabilityTopic = this->availabilityTopic();
-    ctx.deviceName = this->storage->getParameter(Parameter::DEVICE_NAME, "");
-
-    this->plugin->publishHomeAssistantAutoconfig(this->client, ctx);
+    this->plugin->publishHomeAssistantAutoconfig(this->client, this->haContext(this->getBaseTopic()));
     this->publishSystemHaConfig();
     this->publishRelayHaConfig();
     this->logger->info("Published Home Assistant autodiscovery config");
@@ -239,44 +234,13 @@ void MqttClient::publishHomeAssistantAutoconfig()
 // sensors via shared identifiers).
 void MqttClient::publishSystemHaConfig()
 {
-    String statusTopic = this->diagTopic();
-
-    struct DiagSensorDef {
-        const char* objectId;
-        const char* name;
-        const char* valueTemplate;
-        const char* unit;
-        const char* deviceClass;
-        const char* icon;
-        bool numeric;      // state_class is only valid for numeric states
+    static const HaEntity diagnostics[] = {
+        {"sensor", "heap", "heap", "Free Heap", "{{ value_json.heap | int }}", "B", "data_size", "mdi:memory", true, true},
+        {"sensor", "rssi", "rssi", "WiFi Signal", "{{ value_json.rssi | int }}", "dBm", "signal_strength", nullptr, true, true},
+        {"sensor", "uptime", "uptime", "Uptime", "{{ value_json.uptime_s | int }}", "s", "duration", nullptr, true, true},
     };
-    static const DiagSensorDef defs[] = {
-        {"heap", "Free Heap", "{{ value_json.heap | int }}", "B", "data_size", "mdi:memory", true},
-        {"rssi", "WiFi Signal", "{{ value_json.rssi | int }}", "dBm", "signal_strength", nullptr, true},
-        {"uptime", "Uptime", "{{ value_json.uptime_s | int }}", "s", "duration", nullptr, true},
-    };
-
-    for (auto& def : defs) {
-        JsonDocument doc;
-        doc["state_topic"] = statusTopic;
-        doc["value_template"] = def.valueTemplate;
-        doc["name"] = def.name;
-        doc["unique_id"] = this->deviceId + "_" + def.objectId;
-        if (def.unit) doc["unit_of_measurement"] = def.unit;
-        if (def.deviceClass) doc["device_class"] = def.deviceClass;
-        if (def.icon) doc["icon"] = def.icon;
-        if (def.numeric) doc["state_class"] = "measurement";
-        doc["entity_category"] = "diagnostic";
-
-        JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, this->deviceId, nullptr);
-        HaDiscovery::addAvailability(doc, this->availabilityTopic());
-
-        String json;
-        serializeJson(doc, json);
-        this->client.publish(("homeassistant/sensor/" + this->deviceId + "/" + def.objectId + "/config").c_str(),
-                             json.c_str(), true, 1);
-    }
+    const HaDiscoveryContext ctx = this->haContext(this->diagTopic());
+    for (const HaEntity& entity : diagnostics) HaDiscovery::publish(this->client, ctx, entity, nullptr);
 }
 
 bool MqttClient::run()

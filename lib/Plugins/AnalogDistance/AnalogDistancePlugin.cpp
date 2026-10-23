@@ -1,9 +1,9 @@
 #include "AnalogDistancePlugin.h"
-#include <ArduinoJson.h>
-#include "HaDiscovery.h"
 #include "AnalogDistanceCalculator.h"
 #include "AnalogSensorConverter.h"
 #include "HAL.h"
+#include "Logger.h"
+#include "Storage.h"
 
 const char* AnalogDistancePlugin::getId() const { return "analog_distance"; }
 const char* AnalogDistancePlugin::getName() const { return "Analog Distance Meter"; }
@@ -70,50 +70,10 @@ void AnalogDistancePlugin::addPluginParameterDefs(std::vector<ParameterDef>& def
 
 void AnalogDistancePlugin::publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx)
 {
-    const String& deviceId = ctx.deviceId;
-    const String& stateTopic = ctx.stateTopic;
-
-    // Level sensor (percentage)
-    {
-        JsonDocument doc;
-        doc["state_topic"] = stateTopic;
-        doc["value_template"] = "{{ ((value_json.relative | float) * 100) | round(1) }}";
-        doc["unit_of_measurement"] = "%";
-        doc["name"] = "Level";
-        doc["unique_id"] = deviceId + "_level";
-        doc["icon"] = "mdi:gauge";
-        doc["state_class"] = "measurement";
-
-        JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
-        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
-
-        String json;
-        serializeJson(doc, json);
-        client.publish(("homeassistant/sensor/" + deviceId + "/level/config").c_str(), json.c_str(), true, 1);
-    }
-
-    // Depth sensor (meters)
-    {
-        JsonDocument doc;
-        doc["state_topic"] = stateTopic;
-        doc["value_template"] = "{{ value_json.absolute | round(2) }}";
-        doc["unit_of_measurement"] = "m";
-        doc["name"] = "Depth";
-        doc["unique_id"] = deviceId + "_depth";
-        doc["device_class"] = "distance";
-        doc["icon"] = "mdi:ruler";
-        doc["state_class"] = "measurement";
-
-        JsonObject device = doc["device"].to<JsonObject>();
-        HaDiscovery::addDeviceInfo(device, deviceId, ctx.nameOr(this->getDeviceName()));
-        HaDiscovery::addAvailability(doc, ctx.availabilityTopic);
-
-        String json;
-        serializeJson(doc, json);
-        client.publish(("homeassistant/sensor/" + deviceId + "/depth/config").c_str(), json.c_str(), true, 1);
-    }
-
-    // Flow rate sensor (L/min)
+    static const HaEntity entities[] = {
+        {"sensor", "level", "level", "Level", "{{ ((value_json.relative | float) * 100) | round(1) }}", "%", nullptr, "mdi:gauge", true, false},
+        {"sensor", "depth", "depth", "Depth", "{{ value_json.absolute | round(2) }}", "m", "distance", "mdi:ruler", true, false},
+    };
+    for (const HaEntity& entity : entities) HaDiscovery::publish(client, ctx, entity, ctx.nameOr(this->getDeviceName()));
     this->publishCommonHaSensors(client, ctx);
 }

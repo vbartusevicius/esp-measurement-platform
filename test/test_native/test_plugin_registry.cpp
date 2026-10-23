@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "IPlugin.h"
 #include "PluginRegistry.h"
 
 // Minimal concrete plugin for testing
@@ -29,15 +30,15 @@ protected:
 
 TEST_F(PluginRegistryTest, EmptyRegistryCountIsZero)
 {
-    EXPECT_EQ(registry.count(), 0u);
+    EXPECT_EQ(registry.getAll().size(), 0u);
 }
 
 TEST_F(PluginRegistryTest, AddIncrementsCount)
 {
     registry.add(&pluginA);
-    EXPECT_EQ(registry.count(), 1u);
+    EXPECT_EQ(registry.getAll().size(), 1u);
     registry.add(&pluginB);
-    EXPECT_EQ(registry.count(), 2u);
+    EXPECT_EQ(registry.getAll().size(), 2u);
 }
 
 TEST_F(PluginRegistryTest, GetByIdFindsPlugin)
@@ -55,21 +56,6 @@ TEST_F(PluginRegistryTest, GetByIdReturnsNullForMissing)
 {
     registry.add(&pluginA);
     EXPECT_EQ(registry.get("nonexistent"), nullptr);
-}
-
-TEST_F(PluginRegistryTest, GetFirstReturnsFirstAdded)
-{
-    registry.add(&pluginA);
-    registry.add(&pluginB);
-
-    IPlugin* first = registry.getFirst();
-    ASSERT_NE(first, nullptr);
-    EXPECT_STREQ(first->getId(), "plugin_a");
-}
-
-TEST_F(PluginRegistryTest, GetFirstReturnsNullWhenEmpty)
-{
-    EXPECT_EQ(registry.getFirst(), nullptr);
 }
 
 TEST_F(PluginRegistryTest, GetAllReturnsAllPlugins)

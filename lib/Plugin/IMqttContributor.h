@@ -3,17 +3,7 @@
 
 #include <Arduino.h>
 #include <MQTT.h>
-
-struct HaDiscoveryContext {
-    String deviceId;
-    String stateTopic;
-    String availabilityTopic;
-    String deviceName;   // user-configured display name; empty = plugin default
-
-    const char* nameOr(const char* fallback) const {
-        return deviceName.isEmpty() ? fallback : deviceName.c_str();
-    }
-};
+#include "HaDiscovery.h"
 
 // Capability interface for plugins that publish to MQTT.
 class IMqttContributor
