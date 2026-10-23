@@ -2,12 +2,13 @@
 #define ULTRASONIC_DISTANCE_PLUGIN_H
 
 #include "DistancePluginBase.h"
+#include "Board.h"
 
 class UltrasonicDistancePlugin : public DistancePluginBase
 {
     private:
-        static constexpr int TRIG_PIN = D1;
-        static constexpr int ECHO_PIN = D2;
+        static constexpr int TRIG_PIN = Board::TRIG_PIN;
+        static constexpr int ECHO_PIN = Board::ECHO_PIN;
         static constexpr float ABSOLUTE_TEMP = 273.16;
         static constexpr float CURRENT_TEMP = 15.0;
 

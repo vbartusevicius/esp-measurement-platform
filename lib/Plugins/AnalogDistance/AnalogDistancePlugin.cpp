@@ -21,10 +21,18 @@ void AnalogDistancePlugin::loadPluginConfig()
 
 float AnalogDistancePlugin::readSensor()
 {
-    int rawValue = this->hal->analogRead(ANALOG_PIN);
-    float voltage = (rawValue / 1023.0) * VOLTAGE_REF;
-
-    float current = AnalogSensorConverter::voltageToCurrentMA(voltage, VOLTAGE_REF, MIN_CURRENT_MA, MAX_CURRENT_MA);
+    int rawValue;
+    float voltage;
+    float current;
+    if (SHUNT_OHMS > 0.0f) {
+        rawValue = this->hal->analogReadMilliVolts(ANALOG_PIN);
+        voltage = rawValue / 1000.0f;
+        current = AnalogSensorConverter::shuntMillivoltsToCurrentMA(rawValue, SHUNT_OHMS);
+    } else {
+        rawValue = this->hal->analogRead(ANALOG_PIN);
+        voltage = (rawValue / 1023.0) * VOLTAGE_REF;
+        current = AnalogSensorConverter::voltageToCurrentMA(voltage, VOLTAGE_REF, MIN_CURRENT_MA, MAX_CURRENT_MA);
+    }
     this->sensorConnected = AnalogSensorConverter::isSensorConnected(current, FAULT_CURRENT_MA);
     float distance = 0.0;
 

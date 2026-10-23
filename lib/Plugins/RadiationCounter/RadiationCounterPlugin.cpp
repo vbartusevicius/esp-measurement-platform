@@ -36,11 +36,13 @@ void RadiationCounterPlugin::setup(HAL* hal, Storage* storage, Logger* logger, L
     this->totalCounts = 0;
 
     this->hal->pinMode(CNT_PIN, INPUT);
-    this->hal->pinMode(BTN_PIN, INPUT);
 
     instance = this;
     this->hal->attachInterrupt(this->hal->pinToInterrupt(CNT_PIN), radiationISR, RISING);
-    this->hal->attachInterrupt(this->hal->pinToInterrupt(BTN_PIN), buttonISR, FALLING);
+    if (BTN_PIN >= 0) {
+        this->hal->pinMode(BTN_PIN, INPUT);
+        this->hal->attachInterrupt(this->hal->pinToInterrupt(BTN_PIN), buttonISR, FALLING);
+    }
     logger->info("Radiation counter interrupts attached");
 }
 
@@ -51,6 +53,11 @@ void RadiationCounterPlugin::onRadiationClick()
 }
 
 void RadiationCounterPlugin::onButtonClick()
+{
+    this->buttonCounter++;
+}
+
+void RadiationCounterPlugin::nextDisplayPage()
 {
     this->buttonCounter++;
 }

@@ -5,6 +5,7 @@
 #include "Storage.h"
 #include "Logger.h"
 #include "IMqttContributor.h"
+#include "RelayOutput.h"
 
 class MqttClient
 {
@@ -12,6 +13,7 @@ class MqttClient
         Storage* storage;
         Logger* logger;
         IMqttContributor* plugin;
+        RelayOutput* relay = nullptr;
         MQTTClient client;
         String deviceId;
         String pluginId;
@@ -28,6 +30,10 @@ class MqttClient
         String rootTopic();
         String diagTopic();
         String availabilityTopic();
+        String relayStateTopic();
+        String relayCommandTopic();
+        void publishRelayState();
+        void publishRelayHaConfig();
         void publishStatus();
         void publishSystemHaConfig();
         void publishHomeAssistantAutoconfig();
@@ -36,6 +42,7 @@ class MqttClient
 
     public:
         MqttClient(Storage* storage, Logger* logger, IMqttContributor* plugin, const char* pluginId, const String& deviceId);
+        void setRelay(RelayOutput* relay) { this->relay = relay; }
         void begin();
         bool run();
         void publish();

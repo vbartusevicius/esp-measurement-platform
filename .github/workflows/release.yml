@@ -21,7 +21,7 @@ jobs:
           python-version: "3.x"
 
       - name: Install PlatformIO
-        run: pip install platformio
+        run: pip install platformio==6.1.19
 
       - name: Generate release version (YYYY.MM.DD.HHMM, UTC)
         run: echo "VERSION=v$(date -u +'%Y.%m.%d.%H%M')" >> "$GITHUB_ENV"

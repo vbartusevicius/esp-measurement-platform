@@ -1,22 +1,23 @@
-"""V1 main board (vertical along the left wall of the 1-DIN case, 39.8 x 78.0 mm,
-4 layers, 1.2 mm, two-sided).
+"""V1 main board (vertical along the left wall of the 1-DIN case, 39.8 x 77.4 mm,
+4 layers, 1.2 mm).
 
 Connectors (all JLC-assembled Kefa KF142R-5.08 push-in spring terminals):
   - Bottom shoulder (wire entry facing -y, flush with y=0):
       J1 (KF142R-5.08-2P, 2 poles, SELV domain):
         1 = GND  (DC input ground — on the far side)
         2 = VIN+ (9-30 V DC input, nominal 24 V)
-      --- 6.0 mm reinforced isolation keepout + milled PCB slot ---
-      J4 (KF142R-5.08-3P, 3 poles, 250 V AC / 2 A RELAY domain):
-        1 = NC   (250 V AC / 2 A Relay Normally Closed)
-        2 = COM  (250 V AC / 2 A Relay Common)
-        3 = NO   (250 V AC / 2 A Relay Normally Open)
+      --- 6.0 mm creepage keepout + milled PCB slot ---
+      J4 (KF142R-5.08-3P, 3 poles, RELAY domain, 230 VAC up to 2 A
+          resistive via Omron G6B-2114P; 1.5 A inductive):
+        1 = COM  (Relay Common)
+        2 = NO   (Relay Normally Open)
+        3 = NC   (Relay Normally Closed)
   - Top shoulder (wire entry facing +y, flush with y=81):
       J2 (KF142R-5.08-7P, 7 poles, SELV domain):
         1 = GND    (Sensor ground — on the far side)
         2 = +5V    (Regulated 600 mA sensor supply out)
         3 = +24V   (Protected loop supply out)
-        4 = 4-20mA (Dedicated 4-20 mA loop input, 165R shunt built-in)
+        4 = 4-20mA (Dedicated 4-20 mA loop input, 50 mA PTC + 120R shunt built-in)
         5 = 0-10V  (Dedicated 0-5V / 0.4-4.5V / 0-10V / 2-10V input, 22k/10k divider)
         6 = IO1    (Protected SDA / RX / Radiation PULSE)
         7 = IO2    (Protected SCL / TX)
@@ -69,11 +70,11 @@ def build():
 
     j4 = part("Connector", "Screw_Terminal_01x03", "KF142R-5.08-3P", TERM_3P,
               src(mpn="KF142R-5.08-3P", mfr="Cixi Kefa Elec", lcsc="C475145",
-                  source="Bottom-rear 3-pole 5.08 mm push-in terminal (250 V AC / 2 A isolated): 1=NC, 2=COM, 3=NO"),
+                  source="Bottom-rear 3-pole 5.08 mm push-in terminal (230 VAC relay output): 1=COM, 2=NO, 3=NC"),
               ref="J4")
-    j4[1] += s_io["relay_nc"]
-    j4[2] += s_io["relay_com"]
-    j4[3] += s_io["relay_no"]
+    j4[1] += s_io["relay_com"]
+    j4[2] += s_io["relay_no"]
+    j4[3] += s_io["relay_nc"]
     for net in (s_io["relay_nc"], s_io["relay_com"], s_io["relay_no"]):
         power_flag(net)
 
@@ -111,7 +112,7 @@ def build():
 NET_CLASSES = {
     "SELV": [
         "GND", "+3V3", "BTN_LADDER", "LED_DATA", "I2C_SDA", "I2C_SCL",
-        "MA_TERM", "MA_MCU", "V0_10_TERM", "V0_10_MCU",
+        "MA_TERM", "MA_SHUNT", "MA_MCU", "V0_10_TERM", "V0_10_MCU",
         "IO1_TERM", "IO1_MCU", "IO2_TERM", "IO2_MCU",
         "RELAY_MCU", "RELAY_BASE", "RELAY_COIL_N",
         "BUCK5_SW", "Net-*",

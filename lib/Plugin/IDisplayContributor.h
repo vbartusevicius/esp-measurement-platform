@@ -11,6 +11,7 @@ class IDisplayContributor
 
         virtual int getDisplayPageCount() const = 0;
         virtual int getCurrentDisplayPage() const { return 0; }
+        virtual void nextDisplayPage() {}
         virtual int renderDisplayPage(U8G2& u8g2, int page, int width, int height) const = 0;
 };
 

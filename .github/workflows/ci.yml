@@ -19,11 +19,18 @@ jobs:
         with:
           python-version: "3.x"
 
+      # 6.2.0 fails the espressif8266 build ("can't create .pio/build/...o");
+      # pioarduino 55.03.311 for the C6 needs >= 6.1.19.
       - name: Install PlatformIO
-        run: pip install platformio
+        run: pip install platformio==6.1.19
 
-      - name: Build project
+      - name: Build NodeMCU (ESP8266)
         run: pio run -e nodemcu
+
+      - name: Build v1 board (XIAO ESP32-C6)
+        run: |
+          pio run -e xiao_c6
+          pio run -e xiao_c6 -t buildfs
 
   test:
     runs-on: ubuntu-latest

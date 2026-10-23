@@ -8,6 +8,7 @@
 #include "Logger.h"
 #include "LedController.h"
 #include "RadiationCalculator.h"
+#include "Board.h"
 #include <vector>
 
 class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public IDisplayContributor
@@ -18,8 +19,8 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
         static constexpr const char* PARAM_DEAD_TIME_US = "tube_dead_time_us";
         static constexpr const char* PARAM_ALERT_THRESHOLD = "alert_dose_usv_h";
 
-        static constexpr int CNT_PIN = D2;
-        static constexpr int BTN_PIN = 0;
+        static constexpr int CNT_PIN = Board::PULSE_PIN;
+        static constexpr int BTN_PIN = Board::PAGE_BUTTON_PIN;
 
     private:
         HAL* hal;
@@ -68,6 +69,7 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor, public I
         int renderDisplayPage(U8G2& u8g2, int page, int width, int height) const override;
 
         int getCurrentDisplayPage() const override;
+        void nextDisplayPage() override;
         int getSamplingInterval() const override;
         int getPublishInterval() const override;
 

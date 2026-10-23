@@ -7,7 +7,11 @@
 
 #include <ESPAsyncWebServer.h>
 #include <AsyncWebSocket.h>
+#if defined(ESP32)
+#include <AsyncTCP.h>
+#else
 #include <ESPAsyncTCP.h>
+#endif
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 #include "Logger.h"

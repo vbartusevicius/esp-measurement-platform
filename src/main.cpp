@@ -1,11 +1,14 @@
 #include <Arduino.h>
-#include <ESP8266WiFi.h>
+#include "PlatformWiFi.h"
 #include <ArduinoOTA.h>
 #include <TaskManagerIO.h>
 
+#include "Board.h"
+#include "ButtonLadder.h"
 #include "ChipId.h"
 #include "HAL.h"
 #include "LedController.h"
+#include "RelayOutput.h"
 #include "Logger.h"
 #include "Storage.h"
 #include "Parameter.h"
@@ -30,6 +33,8 @@ Storage storage;
 LedController ledController;
 Display display;
 PluginRegistry registry;
+RelayOutput relay;
+ButtonLadder buttonLadder;
 
 // Plugins
 AnalogDistancePlugin analogDistancePlugin;
@@ -48,6 +53,41 @@ void resetDevice()
     if (wifi) wifi->resetSettings();
     delay(1000);
     ESP.restart();
+}
+
+void pollButtons()
+{
+#if defined(BOARD_XIAO_ESP32C6)
+    switch (buttonLadder.update(hal.analogReadMilliVolts(Board::BUTTON_LADDER_PIN), millis())) {
+        case ButtonLadder::Event::PAGE_PRESSED: {
+            IDisplayContributor* contributor = activePlugin ? activePlugin->display() : nullptr;
+            if (contributor) contributor->nextDisplayPage();
+            break;
+        }
+        case ButtonLadder::Event::RESET_TAPPED:
+            logger.info("RST/WIFI tapped, rebooting");
+            delay(200);
+            ESP.restart();
+            break;
+        case ButtonLadder::Event::RESET_HELD:
+            logger.warning("RST/WIFI held 5 s: factory reset and WiFi setup portal");
+            resetDevice();
+            break;
+        case ButtonLadder::Event::NONE:
+            break;
+    }
+#endif
+}
+
+void updateNetworkLed(bool portal)
+{
+    LedController::NetState state = LedController::NetState::OFFLINE;
+    if (WiFi.status() == WL_CONNECTED) {
+        state = (mqtt && mqtt->isConnected()) ? LedController::NetState::MQTT : LedController::NetState::WIFI;
+    } else if (portal) {
+        state = LedController::NetState::PORTAL;
+    }
+    ledController.setNetworkState(state);
 }
 
 void setupOTA()
@@ -69,13 +109,18 @@ void setupOTA()
 
 void setup()
 {
+    relay.begin(&hal, Board::RELAY_PIN);
     Serial.begin(115200);
     delay(500);
+#if defined(ESP32)
+    analogSetAttenuation(ADC_11db);   // 0..3.3 V range for the 4-20 mA, 0-10 V and button inputs
+#endif
 
     storage.begin();
 
     ledController.begin(&hal);
     display.begin();
+    taskManager.scheduleFixedRate(20, [] { pollButtons(); });
 
     String chipId = ChipId::get();
     logger.info("=== ESP Unified ===");
@@ -104,6 +149,7 @@ void setup()
     taskManager.schedule(repeatMillis(250), [] { wifi->run(); });
 
     if (!wifiConnected) {
+        taskManager.scheduleFixedRate(1000, [] { updateNetworkLed(true); });
         display.configWizardFirstStep(wifi->getAppName());
         // Restart once the portal has saved working credentials so the full
         // setup (Web API, MQTT, OTA, measurements) runs with a clean state.
@@ -128,6 +174,7 @@ void setup()
     IMqttContributor* mqttContributor = activePlugin ? activePlugin->mqtt() : nullptr;
     if (mqttDevice.length() > 0 && mqttContributor) {
         mqtt = new MqttClient(&storage, &logger, mqttContributor, activePlugin->getId(), chipId);
+        if (relay.available()) mqtt->setRelay(&relay);
         mqtt->begin();
     } else {
         logger.warning("MQTT device name not configured, skipping MQTT");
@@ -161,6 +208,7 @@ void setup()
         IDisplayContributor* displayContributor = activePlugin ? activePlugin->display() : nullptr;
         int page = displayContributor ? displayContributor->getCurrentDisplayPage() : 0;
         display.run(displayContributor, page, mqttOk);
+        updateNetworkLed(false);
     });
 
     logger.info("Setup complete. Sampling every " + String(samplingInterval) +

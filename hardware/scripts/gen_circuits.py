@@ -132,11 +132,12 @@ def collect_assembly_parts(variant, spec):
             "source": "AliExpress (1005003749452625) / Panelook / JLX",
         })
         items.append({
-            "item": "OLED mounting tape",
+            "item": "OLED backing foam",
             "qty": 2,
-            "part": "3M VHB / double-sided acrylic foam tape, 1.0 mm thick (2 strips 1.4 x 26 mm; pre-applied on NFP1312-15AY)",
-            "description": "adheres the left/right back edges of the 14.0 x 28.0 mm 64x128 OLED onto the cover's two backing rails",
-            "source": "any (included on back of NFP1312-15AY)",
+            "part": "3.0 mm closed-cell PE double-sided foam tape, 2 strips 1.4 x 26 mm (stacked on the 1.0 mm VHB pre-applied on NFP1312-15AY = 4.0 mm)",
+            "description": "on the UI board front under the left/right back edges of the 14.0 x 28.0 mm OLED; "
+                           "compresses to 3.8 mm and presses the panel face into the cover's 1.0 mm pocket behind the window",
+            "source": "any",
         })
 
     ffc_links = [lk for lk in spec["boards"].get("interconnects", []) if lk.get("type") == "ffc"]
@@ -163,14 +164,18 @@ def collect_assembly_parts(variant, spec):
         "item": "Case base (snap-fit, no screws)",
         "qty": 1,
         "part": "enclosure/base.stl",
-        "description": "PETG or ASA, 0.2 mm layers, rail channel face down",
+        "description": "PETG or ASA, 0.2 mm layers, rail channel face down; slide the populated main board in "
+                       "from the open left side (terminal blocks enter the wall slots), clip THT solder tails to <= 2.5 mm",
         "source": "printed",
     })
     items.append({
         "item": "Case cover (snap-fit, no screws)",
         "qty": 1,
         "part": "enclosure/cover.stl (or cover_embossed.stl / cover_color.3mf)",
-        "description": "PETG or ASA, 0.2 mm layers, front face down",
+        "description": "PETG or ASA, 0.2 mm layers, front face down; the two button bumps stand 0.6 mm proud, so enable "
+                       "supports from the build plate (or set BUTTON_TAB boss_height = 0 for a flat face); "
+                       "buttons are C-shaped spring tabs in the front wall with plungers (no separate parts); "
+                       "slides onto the base from the left",
         "source": "printed",
     })
     return items

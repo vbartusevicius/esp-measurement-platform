@@ -165,4 +165,46 @@
       (pin input line (at 10.16 0 180) (length 2.54) (name "FB" (effects (font (size 1.27 1.27)))) (number "3" (effects (font (size 1.27 1.27)))))
     )
   )
+
+  (symbol "G6B-2114P"
+    (pin_names (offset 0.508))
+    (in_bom yes)
+    (on_board yes)
+    (property "Reference" "K" (at 0 10.16 0) (effects (font (size 1.27 1.27))))
+    (property "Value" "G6B-2114P" (at 0 7.62 0) (effects (font (size 1.27 1.27))))
+    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+    (property "Datasheet" "https://media.digikey.com/pdf/Data%20Sheets/Omron%20PDFs/G6B%20Power%20PCB%20Relay_Rev09.pdf" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+    (symbol "G6B-2114P_0_1"
+      (rectangle (start -7.62 6.35) (end 7.62 -6.35)
+        (stroke (width 0.254) (type default)) (fill (type background))))
+    (symbol "G6B-2114P_1_1"
+      (pin passive line (at -10.16 2.54 0) (length 2.54) (name "COIL+" (effects (font (size 1.27 1.27)))) (number "8" (effects (font (size 1.27 1.27)))))
+      (pin passive line (at -10.16 -2.54 0) (length 2.54) (name "COIL-" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27)))))
+      (pin passive line (at 10.16 5.08 180) (length 2.54) (name "NO_A" (effects (font (size 1.27 1.27)))) (number "3" (effects (font (size 1.27 1.27)))))
+      (pin passive line (at 10.16 2.54 180) (length 2.54) (name "NO_B" (effects (font (size 1.27 1.27)))) (number "4" (effects (font (size 1.27 1.27)))))
+      (pin passive line (at 10.16 -2.54 180) (length 2.54) (name "NC_A" (effects (font (size 1.27 1.27)))) (number "6" (effects (font (size 1.27 1.27)))))
+      (pin passive line (at 10.16 -5.08 180) (length 2.54) (name "NC_B" (effects (font (size 1.27 1.27)))) (number "5" (effects (font (size 1.27 1.27)))))
+    )
+  )
+
+  (symbol "SCT2601"
+    (pin_names (offset 0.508))
+    (in_bom yes)
+    (on_board yes)
+    (property "Reference" "U" (at 0 8.89 0) (effects (font (size 1.27 1.27))))
+    (property "Value" "SCT2601" (at 0 6.35 0) (effects (font (size 1.27 1.27))))
+    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+    (property "Datasheet" "https://atta.szlcsc.com/upload/public/pdf/source/20211220/1E0F1D6AD8B6CAF54CC026709B498DF1.pdf" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+    (symbol "SCT2601_0_1"
+      (rectangle (start -7.62 7.62) (end 7.62 -7.62)
+        (stroke (width 0.254) (type default)) (fill (type background))))
+    (symbol "SCT2601_1_1"
+      (pin power_in line (at -10.16 5.08 0) (length 2.54) (name "VIN" (effects (font (size 1.27 1.27)))) (number "5" (effects (font (size 1.27 1.27)))))
+      (pin input line (at -10.16 2.54 0) (length 2.54) (name "EN" (effects (font (size 1.27 1.27)))) (number "4" (effects (font (size 1.27 1.27)))))
+      (pin power_in line (at -10.16 0 0) (length 2.54) (name "GND" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27)))))
+      (pin power_out line (at 10.16 5.08 180) (length 2.54) (name "SW" (effects (font (size 1.27 1.27)))) (number "6" (effects (font (size 1.27 1.27)))))
+      (pin passive line (at 10.16 2.54 180) (length 2.54) (name "BST" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27)))))
+      (pin input line (at 10.16 0 180) (length 2.54) (name "FB" (effects (font (size 1.27 1.27)))) (number "3" (effects (font (size 1.27 1.27)))))
+    )
+  )
 )

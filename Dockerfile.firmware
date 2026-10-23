@@ -1,0 +1,12 @@
+# Firmware build container (Linux, current PlatformIO Core) for both targets:
+#   docker build -f Dockerfile.firmware -t esp-firmware .
+#   docker run --rm -v "$PWD":/project -v esp-pio:/root/.platformio esp-firmware "pio run -e xiao_c6 && pio run -e xiao_c6 -t buildfs"
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir platformio==6.1.19
+
+WORKDIR /project
+ENTRYPOINT ["/bin/bash", "-c"]

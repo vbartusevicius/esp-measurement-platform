@@ -1,6 +1,41 @@
 # ESP Unified
 
-A unified ESP8266 firmware that combines three sensor projects into a single codebase with a runtime-selectable plugin system.
+A unified ESP8266 / ESP32-C6 firmware that combines three sensor projects into a single codebase with a runtime-selectable plugin system.
+
+## Targets
+
+| Environment | Hardware | Notes |
+|---|---|---|
+| `nodemcu` / `nodemcu_ota` | NodeMCU ESP8266 with sensors wired as described below | original target |
+| `xiao_c6` / `xiao_c6_ota` | ESP Measurement Platform v1 (`hardware/releases/v1`, Seeed XIAO ESP32-C6) | built with the pioarduino platform (Arduino-ESP32 3.x); `-DBOARD_XIAO_ESP32C6` selects `lib/Core/Board.h` |
+
+On the v1 board:
+
+- **Analog Distance (4–20 mA):** probe on `J2.3 (+24V)` / `J2.4`; the firmware reads the calibrated millivolts across the on-board 120 Ω shunt (`analogReadMilliVolts`), so 4 mA = 0.48 V and 20 mA = 2.40 V. Readings below 3.6 mA count as a sensor fault (NAMUR NE43).
+- **Ultrasonic Distance:** `TRIG` → `J2.7 (IO2)`, `ECHO` → `J2.6 (IO1)`.
+- **Radiation Counter:** pulse → `J2.6 (IO1)`.
+- **Display:** 0.96" SSD1312 OLED, 64×128 portrait (U8g2 `SSD1312_128X64_NONAME`, rotated `U8G2_R1`).
+- **Buttons** (one ADC ladder):
+  - PAGE flips display pages.
+  - Tapping RST/WIFI reboots.
+  - Holding RST/WIFI for 5 s does a factory reset and opens the WiFi setup portal.
+- **LEDs:**
+  - STATUS shows a heartbeat.
+  - NET shows the connection state: green = MQTT, amber = WiFi only, blinking blue = setup portal, blinking red = offline.
+  - SENS flashes on every sample.
+- **Relay (`J4`: COM / NO / NC, 230 VAC ≤ 2 A):**
+  - Off at boot.
+  - Home Assistant discovers it as a **Relay** switch.
+  - MQTT command topic: `<device_name>/relay/set` (`ON` / `OFF`).
+  - State topic: `<device_name>/relay`.
+
+Build both targets on any host with Docker (CI-equivalent; PlatformIO Core pinned to 6.1.19: 6.2.0 breaks the ESP8266 build):
+
+```bash
+docker build -f Dockerfile.firmware -t esp-firmware .
+docker run --rm -v "$PWD":/project -v esp-pio:/root/.platformio esp-firmware \
+  "pio run -e xiao_c6 && pio run -e xiao_c6 -t buildfs && pio run -e nodemcu"
+```
 
 ## Supported Plugins
 

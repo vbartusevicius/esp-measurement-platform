@@ -46,7 +46,7 @@ BUTTON_PROTRUSION = (0.5, 2.0)
 LED_HEIGHT = 0.65
 LED_WINDOW_SKIN = 0.6
 LED_SKIN_RANGE = (0.4, 0.8)
-LED_BAFFLE_GAP = 0.2
+LED_BAFFLE_GAP = 0.1  # baffle tube starts this far above the LED top, so board play never presses it on an LED
 
 
 @dataclass
@@ -70,7 +70,7 @@ class UIStackup:
 
     @property
     def baffle_bottom_z(self):
-        return self.board_top_z + LED_BAFFLE_GAP
+        return self.led_top_z + LED_BAFFLE_GAP
 
     @property
     def pocket_depth(self):

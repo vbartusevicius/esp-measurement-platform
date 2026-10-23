@@ -65,8 +65,9 @@ def faces():
 def openings():
     items = []
     for h in ef.button_holes().values():
-        r = be.BUTTON_HOLE / 2
-        items.append(("circle", h["x"] - r, h["y"] - r, h["x"] + r, h["y"] + r))
+        (cx, cy, d), (x0, x1, y0, y1) = be.button_tab_outline(h, be.BUTTON_TAB["slot"])
+        items.append(("circle", cx - d / 2, cy - d / 2, cx + d / 2, cy + d / 2))
+        items.append(("rect", x0, y0, x1, y1))
     for h in ef.led_windows():
         r = be.LED_WINDOW / 2 + LED_RING
         items.append(("led", h["x"] - r, h["y"] - r, h["x"] + r, h["y"] + r))
@@ -101,8 +102,8 @@ def labels():
         Label("J1 PWR/RLY", 0.0, 8.5, 1.7),
 
         # Front protrusion: buttons & status LEDs
-        Label("RST/WIFI", -4.1, 28.6, 1.15),
-        Label("PAGE", 4.1, 28.6, 1.15),
+        Label("RST/WIFI", -4.1, 29.1, 1.15),
+        Label("PAGE", 4.1, 29.1, 1.15),
         Label("STATUS", -4.8, 19.6, 0.85),
         Label("NET", 0.0, 19.6, 0.85),
         Label("SENS", 4.8, 19.6, 0.85),

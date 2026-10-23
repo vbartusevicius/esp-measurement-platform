@@ -20,7 +20,7 @@ din_envelope:
   front_protrusion: { height: 45.0, depth: 17.0, depth_start: 44.0 }
   shoulder_height: 18.0
   max_board_width_inside: 13.8
-  max_board_height_inside: 78.0
+  max_board_height_inside: 77.4
   front_board_max: { width: 13.8, height: 40.5, depth: 15.0 }
   rail: TS35
 
@@ -34,7 +34,7 @@ enclosure:
 
 variants:
   v1:
-    description: "1 DIN (18 mm), two-sided vertical main board + front UI board, 6-pole top sensor bank + 4-pole bottom power/expansion bank"
+    description: "1 DIN (18 mm), vertical main board + front UI board, 7-pole top sensor bank (J2 4P + J5 3P) + bottom 2-pole power (J1) and 3-pole SELV relay (J4)"
     modules: 1
     boards: [main, ui]
 
@@ -43,10 +43,11 @@ boards:
     plane: perpendicular-to-rail
     thickness: 1.2
     x: -4.2
-    y_offset: 1.5
+    y_offset: 1.8
     z_front: 41.9
-    max_outline: { width: 39.8, height: 78.0 }
+    max_outline: { width: 39.8, height: 77.4 }
     isolation:
+      # functional spacing only: K1 (Omron G6S-2F) is a signal relay, SELV loads only
       - { between: [SELV, RELAY], creepage_min: 6.0, bridged_by: [K1] }
   ui:
     plane: parallel-to-front
@@ -78,7 +79,8 @@ terminals:
     poles: 3
     pitch: 5.08
     type: push-in spring (Kefa KF142R-5.08-3P)
-    labels: [NC, COM, NO]
+    labels: ["COM", "NO", "NC"]  # quoted: YAML 1.1 reads a bare NO as false
+    rating: "230 VAC: 2 A resistive / 1.5 A inductive (cos phi 0.4) per Omron G6B-2114P (5 A 250 VAC rated, 3 kVAC / 6 kV coil-contacts); fuse the load circuit at <= 2 A"
   sensor_io:
     board: main
     shoulder: top
@@ -98,8 +100,8 @@ front_ui:
     header_plastic_max: 2.5
     pin_tail: 24.99
   buttons:
-    - { id: prg_rst, label: RST/WIFI, actuator: tactile-B3U-1000P+plunger, actuator_length_mm: 7.0, protrusion_beyond_front: 1.4 }
-    - { id: func, label: PAGE, actuator: tactile-B3U-1000P+plunger, actuator_length_mm: 7.0, protrusion_beyond_front: 1.4 }
+    - { id: prg_rst, label: RST/WIFI, actuator: "B3U-1000P under a front-wall flexure tongue with actuator nub" }
+    - { id: func, label: PAGE, actuator: "B3U-1000P under a front-wall flexure tongue with actuator nub" }
   leds:
     - { id: status, ref: D1, shows: "power & system heartbeat" }
     - { id: net, ref: D2, shows: "WiFi & MQTT connectivity" }
@@ -115,7 +117,7 @@ mcu:
   package: "21 x 17.8 mm, 14 edge pads (2x7, 2.54 mm pitch, 15.24 mm row spacing)"
   board: main
   mounting: "2 x 7 female 2.54 mm headers, 5.0 mm height (+ 2.5 mm pin header plastic + 3.5 mm XIAO = 11.0 mm); 5 V buck and passives underneath"
-  power_feed: "5V pin via TI LM66100 ideal diode from 24V->5V SCT2400 buck; XIAO onboard regulator outputs +3V3 for logic and OLED"
+  power_feed: "5V pin via TI LM66100 ideal diode from 24V->5V SCT2601 buck (60 V rated); XIAO onboard regulator outputs +3V3 for logic and OLED"
 
 checks:
   hole_to_actuator_max_offset: 0.3
@@ -136,7 +138,8 @@ derived:
     ma_sense:
       pin: D1/GPIO1
       net: MA_MCU
-      note: 'ADC1_CH1: 4-20 mA current-loop input (165R shunt, J2.4)'
+      note: 'ADC1_CH1: 4-20 mA current-loop input (50 mA PTC + 120R shunt: 20 mA =
+        2.40 V, J2.4)'
     button_ladder:
       pin: D2/GPIO2
       net: BTN_LADDER
@@ -165,8 +168,8 @@ derived:
     relay_ctrl:
       pin: D8/GPIO19
       net: RELAY_MCU
-      note: Drives Omron G6K-2F-Y 5V SMD changeover relay (J1.3 NC, J1.4 COM, J1.5
-        NO)
+      note: Drives Omron G6B-2114P-US DC5 changeover relay (J4.1 COM, J4.2 NO, J4.3
+        NC; 230 VAC 2 A)
   net_classes:
     main:
       SELV:
@@ -177,6 +180,7 @@ derived:
       - I2C_SDA
       - I2C_SCL
       - MA_TERM
+      - MA_SHUNT
       - MA_MCU
       - V0_10_TERM
       - V0_10_MCU

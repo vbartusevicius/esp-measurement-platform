@@ -27,6 +27,7 @@ PARTS = {
     "TerminalBlock_Kefa_KF142R-5.08-7P": (37.1, 14.2, 11.1),
     "Relay_DPDT_Omron_G6K-2F-Y": (6.5, 10.0, 5.2),
     "Relay_DPDT_Omron_G6S-2F": (7.3, 14.8, 9.2),
+    "Relay_1A1B_Omron_G6B-2114P": (20.0, 10.9, 11.0),
     "Fuse_1812_4532Metric": (4.5, 3.2, 1.2),
     "Phoenix_PST_1,0-2-5,75_R32": (8.55, 2.8, 9.9),
     "LED_SK6805-EC15_1.5x1.5mm": (1.5, 1.5, 0.65),

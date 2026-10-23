@@ -84,10 +84,8 @@ def realistic_part(b, comp):
     fp = comp["footprint"] if comp else ""
     perp = ef.SPEC["boards"][board].get("plane") == "perpendicular-to-rail"
 
-    if ref == "OLED glass":
+    if ref == "OLED panel":
         return [(box(x0, x1, y0, y1, z0, z1), (0.04, 0.06, 0.10))]
-    if ref == "OLED board":
-        return [(box(x0, x1, y0, y1, z0, z1), (0.15, 0.35, 0.22))]
     if board == "ui" and ref in ("D1", "D2", "D3"):
         return [(box(x0 + 0.2, x1 - 0.2, y0 + 0.2, y1 - 0.2, z0, z0 + 0.55), IVORY),
                 (cylinder(cx, cy, z0 + 0.50, z0 + 0.68, 1.1), (0.10, 0.90, 0.25))]
@@ -96,7 +94,7 @@ def realistic_part(b, comp):
         cap_d = 2.2
         return [(box(x0 + 0.2, x1 - 0.2, y0 + 0.2, y1 - 0.2, z0, z0 + base_h * 0.75), PART),
                 (box(x0 + 0.3, x1 - 0.3, y0 + 0.3, y1 - 0.3, z0 + base_h * 0.75, z0 + base_h), SILVER),
-                (cylinder(cx, cy, z0 + base_h, be.STACK.prog_cap_z, cap_d), (0.10, 0.10, 0.12))]
+                (cylinder(cx, cy, z0 + base_h, z1, cap_d * 0.7), (0.10, 0.10, 0.12))]
 
     if "KF142R" in fp:
         if perp:
@@ -214,7 +212,7 @@ def label(text, position):
 
 def oled_pixels_actor(z_offset=0.0):
     win = ef.oled_window()
-    glass = next(b for b in ef.part_boxes() if b["ref"] == "OLED glass")
+    glass = next(b for b in ef.part_boxes() if b["ref"] == "OLED panel")
     rows = oled_bmp.PAGE1_64X128
     h = len(rows)
     w = len(rows[0])

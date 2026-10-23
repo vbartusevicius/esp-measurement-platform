@@ -56,6 +56,7 @@ MODELS_3D = {
     "Relay_DPDT_Omron_G6K-2F-Y": ("Relay_DPDT_Omron_G6K-2F-Y.step", 0),
     "Relay_DPDT_Omron_G6S-2F": ("Relay_DPDT_Omron_G6S-2F.step", 0),
     "Relay_DPDT_Omron_G6S-2F_2A": ("Relay_DPDT_Omron_G6S-2F.step", 0),
+    "Relay_1A1B_Omron_G6B-2114P": ("Relay_1A1B_Omron_G6B-2114P.step", 0),
     "Fuse_1812_4532Metric": ("Fuse_1812_4532Metric.step", 0),
     "Phoenix_PST_1,0-2-5,75_R32_1x02_P5.75mm": ("Phoenix_PST_1,0-2-5,75_R32.step", 0),
     "CP_Radial_D10.0mm_P5.00mm_Horizontal_Bent": ("CP_Radial_D10.0mm_P5.00mm_Horizontal_Bent.step", 0),
@@ -349,11 +350,12 @@ DRU_4LAYER = """\
 (rule power_track_width
   (constraint track_width (min 0.22mm))
   (condition "A.hasNetclass('SELV-Power') || A.hasNetclass('KNX-Power') || A.hasNetclass('DALI-Power') || A.hasNetclass('AUX-Power')"))
-(rule relay_2a_track_width
+(rule relay_230vac_track_width_and_spacing
   (constraint track_width (min 0.75mm))
-  (constraint clearance (min 0.35mm))
+  (constraint clearance (min 2.5mm))
   (condition "A.hasNetclass('RELAY-Power')"))
 """
+RELAY_CLEARANCE_MM = 2.5  # 250 VAC functional, IEC 60664-1 PD2 material group IIIb creepage
 
 
 def neck_down_rule(refs):
@@ -421,7 +423,7 @@ def project_net_settings(classes):
                 "pcb_color": "rgba(0,0,0,0)", "schematic_color": "rgba(0,0,0,0)"}
     defs = [netclass("Default", 2147483647, 0.2)]
     defs += [netclass(d, 2, 0.2) for d in POWER_CLASS]
-    defs += [netclass(p, 1, 0.85, clearance=0.4, via_d=1.0, via_dr=0.5) if p == "RELAY-Power"
+    defs += [netclass(p, 1, 0.85, clearance=RELAY_CLEARANCE_MM, via_d=1.0, via_dr=0.5) if p == "RELAY-Power"
              else netclass(p, 1, 0.3) for p in POWER_CLASS.values()]
     patterns = [{"netclass": c, "pattern": n} for n, c in sorted(classes.items())]
     return defs, patterns
@@ -846,13 +848,29 @@ def widen_neckdown_stubs(board):
     return widened
 
 
+RELAY_WIDTH = pcbnew.FromMM(0.85)
+
+
+def restore_relay_widths(board, plan):
+    """Freerouting may neck relay contact tracks below their class width to
+    squeeze past a pad; put them back to 0.85 mm (DRC then proves clearance)."""
+    classes = net_classes(board, plan["frame"])
+    widened = 0
+    for track in board.GetTracks():
+        if track.Type() == pcbnew.PCB_TRACE_T and classes.get(track.GetNetname()) == "RELAY-Power" \
+                and track.GetWidth() < RELAY_WIDTH:
+            track.SetWidth(RELAY_WIDTH)
+            widened += 1
+    return widened
+
+
 def import_ses(board_name):
     plan = load_plan(board_name)
     board = current_board(board_name, plan)
     ses = build_dir(board_name) / f"{board_name}.ses"
     if not pcbnew.ImportSpecctraSES(board, str(ses)):
         sys.exit("SES import failed")
-    widened = widen_neckdown_stubs(board)
+    widened = widen_neckdown_stubs(board) + restore_relay_widths(board, plan)
     removed = prune_ground_tracks(board) if plan["frame"].get("prune_ground_tracks", True) else 0
     print(f"{board_name}: removed {removed} ground tracks the pours already cover, "
           f"widened {widened} neck-down stubs")

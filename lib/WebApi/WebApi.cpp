@@ -3,11 +3,17 @@
 #include "ChipId.h"
 #include "TimeHelper.h"
 #include "Version.h"
-#include <ESP8266WiFi.h>
+#include "PlatformWiFi.h"
+#if defined(ESP32)
+#include <Update.h>
+static String updateError() { return String(Update.errorString()); }
+#else
 #include <Updater.h>
+static String updateError() { return String(Update.getErrorString()); }
 
 extern "C" uint32_t _FS_start;
 extern "C" uint32_t _FS_end;
+#endif
 
 static float rounded(float v) { return (float)(int)(v * 100 + 0.5f) / 100.0f; }
 
@@ -258,10 +264,15 @@ void WebApi::handleUpload(AsyncWebServerRequest* request, const String& filename
             ? request->getParam("target", true)->value() == "filesystem"
             : request->hasParam("target") && request->getParam("target")->value() == "filesystem";
 
+#if defined(ESP32)
+        const uint32_t maxBlock = ESP.getMaxAllocHeap();
+#else
+        const uint32_t maxBlock = ESP.getMaxFreeBlockSize();
+#endif
         this->logger->info(String("Upload started: ") + filename +
                            (filesystem ? " (filesystem)" : " (firmware)") +
                            " free=" + String(ESP.getFreeHeap()) +
-                           " maxBlock=" + String(ESP.getMaxFreeBlockSize()));
+                           " maxBlock=" + String(maxBlock));
 
         // Free the websocket buffers: Update.begin() needs 4 KB contiguous.
         ws.closeAll();
@@ -269,6 +280,11 @@ void WebApi::handleUpload(AsyncWebServerRequest* request, const String& filename
 
         size_t maxSize;
         int command;
+#if defined(ESP32)
+        maxSize = UPDATE_SIZE_UNKNOWN;   // the target partition bounds the image
+        command = filesystem ? U_SPIFFS : U_FLASH;
+        if (filesystem) LittleFS.end();
+#else
         if (filesystem) {
             maxSize = (size_t)&_FS_end - (size_t)&_FS_start;
             command = U_FS;
@@ -277,17 +293,18 @@ void WebApi::handleUpload(AsyncWebServerRequest* request, const String& filename
             maxSize = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
             command = U_FLASH;
         }
-
         Update.runAsync(true);
+#endif
+
         if (!Update.begin(maxSize, command)) {
-            this->logger->error("Update.begin failed: " + String(Update.getErrorString()));
+            this->logger->error("Update.begin failed: " + updateError());
         }
     }
 
     if (Update.hasError()) return;
 
     if (len && Update.write(data, len) != len) {
-        this->logger->error("Upload write failed: " + String(Update.getErrorString()));
+        this->logger->error("Upload write failed: " + updateError());
         return;
     }
 
@@ -295,7 +312,7 @@ void WebApi::handleUpload(AsyncWebServerRequest* request, const String& filename
         if (Update.end(true)) {
             this->logger->info("Upload flashed " + String(index + len) + " bytes");
         } else {
-            this->logger->error("Update.end failed: " + String(Update.getErrorString()));
+            this->logger->error("Update.end failed: " + updateError());
         }
     }
 }

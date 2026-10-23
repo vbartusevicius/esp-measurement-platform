@@ -8,6 +8,8 @@
 #include "../../lib/Plugin/LevelFilter.cpp"
 #include "../../lib/Plugin/DailyUsageTracker.cpp"
 #include "../../lib/Plugins/HaDiscovery.cpp"
+#include "../../lib/Core/ButtonLadder.cpp"
+#include "../../lib/Core/RelayOutput.cpp"
 
 // Plugin implementations under test
 #include "../../lib/Plugins/DistanceBase/DistancePluginBase.cpp"

@@ -10,7 +10,6 @@ from itertools import pairwise
 from pathlib import Path
 
 import yaml
-from ui_stackup import OLED_HEADER_SPACER, OLED_MODULE_BOARD, OLED_PANEL
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "hardware/circuits"))
@@ -232,6 +231,24 @@ def oled_module():
     return _oled("outline")
 
 
+# The panel sits face-forward in a pocket in the front wall (glass behind the
+# active-area window) and is pressed into it by foam tape on the UI board.
+OLED_POCKET_DEPTH = 1.0
+OLED_POCKET_MARGIN = 0.15
+OLED_FOAM = {"nominal": 4.0, "note": "1.0 mm VHB (pre-applied) + 3.0 mm closed-cell PE foam tape"}
+
+
+def oled_panel_real():
+    """Real panel outline (w, h, t) from spec front_ui.display.part, centred on
+    the layout's module outline, with its front face on the pocket floor."""
+    import re
+    w, h, t = map(float, re.search(r"\(([\d.]+) x ([\d.]+) x ([\d.]+) mm",
+                                   SPEC["front_ui"]["display"]["part"]).groups())
+    mod = oled_module()
+    front = TOTAL_D - WALL + OLED_POCKET_DEPTH
+    return {"cx": mod["cx"], "cy": mod["cy"], "w": w, "h": h, "t": t, "z0": front - t, "z1": front}
+
+
 def screw_tabs():
     return SPEC["enclosure"].get("screw_tabs", [])
 
@@ -251,13 +268,8 @@ def part_boxes():
             boxes.append(span_box(board_point(board, b["x0"], b["y0"], n0),
                                   board_point(board, b["x1"], b["y1"], n1),
                                   board=board, ref=ref, through_front=board == "ui" and ref in THROUGH_FRONT))
-    top = SPEC["front_ui"]["board_top_z"]
-    module_z = top + OLED_HEADER_SPACER
-    for ref, key, z0, z1, through in (("OLED board", "outline", module_z, module_z + OLED_MODULE_BOARD, False),
-                                      ("OLED glass", "glass", module_z + OLED_MODULE_BOARD,
-                                       module_z + OLED_MODULE_BOARD + OLED_PANEL, True)):
-        r = _oled(key)
-        boxes.append({"board": "ui", "ref": ref, "x0": r["cx"] - r["w"] / 2, "x1": r["cx"] + r["w"] / 2,
-                      "y0": r["cy"] - r["h"] / 2, "y1": r["cy"] + r["h"] / 2, "z0": z0, "z1": z1,
-                      "through_front": through})
+    p = oled_panel_real()
+    boxes.append({"board": "ui", "ref": "OLED panel", "x0": p["cx"] - p["w"] / 2, "x1": p["cx"] + p["w"] / 2,
+                  "y0": p["cy"] - p["h"] / 2, "y1": p["cy"] + p["h"] / 2, "z0": p["z0"], "z1": p["z1"],
+                  "through_front": False})
     return boxes

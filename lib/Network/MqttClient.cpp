@@ -1,4 +1,4 @@
-#include <ESP8266WiFi.h>
+#include "PlatformWiFi.h"
 #include <ArduinoJson.h>
 #include <algorithm>
 #include "MqttClient.h"
@@ -27,7 +27,50 @@ MqttClient::MqttClient(Storage* storage, Logger* logger, IMqttContributor* plugi
     // the connection is alive end-to-end.
     client.onMessage([this](String& topic, String& payload) {
         this->lastBrokerMessageAt = millis();
+        bool on = false;
+        if (this->relay && topic == this->relayCommandTopic() && RelayOutput::parseCommand(payload.c_str(), on)) {
+            this->relay->set(on);
+            this->logger->info(String("Relay ") + (on ? "ON" : "OFF") + " (MQTT)");
+            this->publishRelayState();
+        }
     });
+}
+
+String MqttClient::relayStateTopic()
+{
+    return this->rootTopic() + "/relay";
+}
+
+String MqttClient::relayCommandTopic()
+{
+    return this->rootTopic() + "/relay/set";
+}
+
+void MqttClient::publishRelayState()
+{
+    if (!this->relay) return;
+    this->client.publish(this->relayStateTopic().c_str(), this->relay->isOn() ? "ON" : "OFF", true, 1);
+}
+
+void MqttClient::publishRelayHaConfig()
+{
+    if (!this->relay) return;
+    JsonDocument doc;
+    doc["name"] = "Relay";
+    doc["unique_id"] = this->deviceId + "_relay";
+    doc["state_topic"] = this->relayStateTopic();
+    doc["command_topic"] = this->relayCommandTopic();
+    doc["payload_on"] = "ON";
+    doc["payload_off"] = "OFF";
+    doc["icon"] = "mdi:electric-switch";
+
+    JsonObject device = doc["device"].to<JsonObject>();
+    HaDiscovery::addDeviceInfo(device, this->deviceId, nullptr);
+    HaDiscovery::addAvailability(doc, this->availabilityTopic());
+
+    String json;
+    serializeJson(doc, json);
+    this->client.publish(("homeassistant/switch/" + this->deviceId + "/relay/config").c_str(), json.c_str(), true, 1);
 }
 
 String MqttClient::getMqttErrorMessage(int errorCode)
@@ -125,6 +168,10 @@ bool MqttClient::connectMqtt()
     if (result) {
         client.publish(willTopic.c_str(), "online", true, 1);
         client.subscribe(this->diagTopic().c_str(), 0);
+        if (this->relay) {
+            client.subscribe(this->relayCommandTopic().c_str(), 1);
+            this->publishRelayState();
+        }
         this->logger->info("Connected to MQTT broker");
         this->reconnectInterval = 5000;
         this->lastBrokerMessageAt = millis();  // grace period right after connect
@@ -163,6 +210,7 @@ void MqttClient::publishStatus()
     doc["rssi"] = WiFi.RSSI();
     doc["uptime_s"] = millis() / 1000UL;
     doc["version"] = FW_VERSION;
+    if (this->relay) doc["relay"] = this->relay->isOn() ? "ON" : "OFF";
 
     String payload;
     serializeJson(doc, payload);
@@ -182,6 +230,7 @@ void MqttClient::publishHomeAssistantAutoconfig()
 
     this->plugin->publishHomeAssistantAutoconfig(this->client, ctx);
     this->publishSystemHaConfig();
+    this->publishRelayHaConfig();
     this->logger->info("Published Home Assistant autodiscovery config");
 }
 

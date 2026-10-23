@@ -5,6 +5,7 @@ class AnalogSensorConverter
 {
     public:
         static float voltageToCurrentMA(float voltage, float vRef, float minCurrentMA, float maxCurrentMA);
+        static float shuntMillivoltsToCurrentMA(int millivolts, float shuntOhms);
         static float currentToDistance(float currentMA, float minCurrentMA, float maxCurrentMA, float sensorRange);
         static bool isSensorConnected(float currentMA, float faultCurrentMA);
 };

@@ -28,6 +28,30 @@ TEST(AnalogSensorConverter, MidVoltageReturnsMidCurrent)
     EXPECT_FLOAT_EQ(current, expected);
 }
 
+// --- shuntMillivoltsToCurrentMA (v1 board: 120R shunt) ---
+
+TEST(AnalogSensorConverter, ShuntFourMilliampsReads480mV)
+{
+    EXPECT_FLOAT_EQ(AnalogSensorConverter::shuntMillivoltsToCurrentMA(480, 120.0f), 4.0f);
+}
+
+TEST(AnalogSensorConverter, ShuntTwentyMilliampsReads2400mV)
+{
+    EXPECT_FLOAT_EQ(AnalogSensorConverter::shuntMillivoltsToCurrentMA(2400, 120.0f), 20.0f);
+}
+
+TEST(AnalogSensorConverter, ShuntNamurFaultCurrentStaysInsideAdcRange)
+{
+    EXPECT_FLOAT_EQ(AnalogSensorConverter::shuntMillivoltsToCurrentMA(2880, 120.0f), 24.0f);
+}
+
+TEST(AnalogSensorConverter, ShuntOpenLoopOrNoShuntReadsZero)
+{
+    EXPECT_FLOAT_EQ(AnalogSensorConverter::shuntMillivoltsToCurrentMA(0, 120.0f), 0.0f);
+    EXPECT_FLOAT_EQ(AnalogSensorConverter::shuntMillivoltsToCurrentMA(-5, 120.0f), 0.0f);
+    EXPECT_FLOAT_EQ(AnalogSensorConverter::shuntMillivoltsToCurrentMA(1000, 0.0f), 0.0f);
+}
+
 // --- currentToDistance ---
 
 TEST(AnalogSensorConverter, MinCurrentReturnsZeroDistance)

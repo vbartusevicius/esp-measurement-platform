@@ -1,14 +1,17 @@
 # V1 main board, 4 layers, 1.2 mm, vertical PCB along the left wall of the
-# 1-DIN case (39.8 x 78.0 mm, enclosure x -5.4..-4.2, y 1.5..79.5, z 2.1..41.9).
+# 1-DIN case (39.8 x 77.4 mm, enclosure x -5.4..-4.2, y 1.8..79.2, z 2.1..41.9:
+# 0.2 mm clearance to the 77.8 mm inner cavity at both ends).
 #
-# Reinforced 6.0 mm isolation between SELV and RELAY (250 V AC / 2 A):
-#   - Bottom-left (x 0..14.8, y 0..30.8): J1 (GND, VIN+), F1/D1/D2, Q1/D7/R14/R15, K1 coil (pins 1 & 12 at x=14.15)
+# 6.0 mm creepage + milled slot between SELV and the 230 VAC RELAY domain
+# (Omron G6B-2114P: 3 kVAC / 6 kV coil-contacts, coil pads 10.16 mm from the
+# contact pads); 2.5 mm between the relay nets themselves:
+#   - Bottom-left (x 0..14.8, y 0..30.8): J1 (GND, VIN+), F1/D1/D2, Q1/D7/R14/R15, K1 coil (pins 1 & 8 at x=14.0)
 #   - Milled air slot (x 15.8..17.4, y 1.0..25.2) + 6.6 mm copper keepout band
-#   - Bottom-right (x 18.4..39.8, y 0..24.2): K1 contacts (pins 3..10 at x=19.23..24.31) + J4 (NC, COM, NO)
+#   - Bottom-right (x 18.0..39.8, y 0..25.0): K1 contacts (x=24.16: COM 3/6, x=31.78: NO 4 / NC 5) + J4 (COM, NO, NC)
 #   - Zero GND pour on In1.Cu anywhere near the RELAY domain or keepout band.
 
 frame:
-  size: { x: 39.8, y: 78.0 }
+  size: { x: 39.8, y: 77.4 }
   copper_layers: 4
   thickness: 1.2
   min_drill: 0.2
@@ -22,7 +25,7 @@ frame:
   domain_regions:
     SELV:
       - { x0: 0.0,  y0: 0.0,  x1: 15.0, y1: 31.5 }
-      - { x0: 0.0,  y0: 31.5, x1: 39.8, y1: 78.0 }
+      - { x0: 0.0,  y0: 31.5, x1: 39.8, y1: 77.4 }
     RELAY:
       - { x0: 18.0, y0: 0.0,  x1: 39.8, y1: 25.0 }
   isolators: [K1]
@@ -33,7 +36,7 @@ frame:
     - { x0: 15.0, y0: 0.5,  x1: 18.2, y1: 25.0 }
     - { x0: 15.0, y0: 25.0, x1: 39.3, y1: 31.2 }
   pours:
-    - { net: GND, layers: [In1.Cu], region: { x0: 0.5,  y0: 31.5, x1: 39.3, y1: 77.5 } }
+    - { net: GND, layers: [In1.Cu], region: { x0: 0.5,  y0: 31.5, x1: 39.3, y1: 76.9 } }
     - { net: GND, layers: [In1.Cu], region: { x0: 0.5,  y0: 0.5,  x1: 11.8, y1: 31.1 } }
 
 heights:
@@ -44,39 +47,41 @@ heights:
   J4: 11.1
   J5: 11.1
   U3: 11.0
-  K1: 9.2
+  K1: 11.0
   Q1: 1.2
-  L1: 1.5
   F1: 1.6
   D1: 2.0
   D2: 2.0
-  D3: 2.0
-  D4: 2.0
-  D5: 2.0
-  D6: 2.0
+  D3: 1.1
+  D4: 1.1
+  D5: 1.1
+  D6: 1.1
   D7: 2.0
   D8: 1.4
+  D9: 2.0
+  F2: 1.0
+  L1: 2.0
 
 parts:
   # --- Bottom-left (SELV): 2-pole power terminal J1 (1:GND, 2:VIN+) + 24V protection ---
-  J1:  { x: 6.4,   y: 6.9,   rot: 0,   block: terminals_bottom, locked: true }
+  J1:  { x: 6.4,   y: 6.6,   rot: 0,   block: terminals_bottom, locked: true }
   F1:  { x: 4.5,   y: 16.5,  rot: 0,   block: pwr_in }
   D2:  { x: 4.5,   y: 21.0,  rot: 0,   block: pwr_in }
   D1:  { x: 4.5,   y: 25.5,  rot: 0,   block: pwr_in }
 
-  # --- Bottom-right (RELAY 250V AC 2A): 3-pole relay terminal J4 (1:NC, 2:COM, 3:NO) ---
-  J4:  { x: 30.8,  y: 6.9,   rot: 0,   block: terminals_bottom, locked: true }
+  # --- Bottom-right (RELAY, 230 VAC): 3-pole relay terminal J4 (1:COM, 2:NO, 3:NC) ---
+  J4:  { x: 30.8,  y: 6.6,   rot: 0,   block: terminals_bottom, locked: true }
 
-  # --- Omron G6S-2F DC5 250V AC 2A Relay K1 bridging SELV (coil x=14.15) and RELAY (contacts x=19.23..24.31) ---
-  K1:  { x: 20.5,  y: 18.8,  rot: 90,  block: relay, locked: true }
+  # --- Omron G6B-2114P relay K1 bridging SELV (coil pins x=14.0) and RELAY (contacts x=24.16, 31.78) ---
+  K1:  { x: 22.89, y: 18.2,  rot: 0,   block: relay, locked: true }
   D7:  { x: 10.2,  y: 18.8,  rot: 90,  block: relay }
   Q1:  { x: 10.2,  y: 25.0,  rot: 0,   block: relay }
   R14: { x: 10.2,  y: 28.2,  rot: 0,   block: relay }
   R15: { x: 4.8,   y: 29.2,  rot: 0,   block: relay }
 
   # --- Top shoulder: interlocking 4P + 3P = 7P sensor terminal (J2 poles 1..4 + J5 poles 5..7) ---
-  J2:  { x: 27.52, y: 71.1,  rot: 180, block: terminals_top, locked: true }
-  J5:  { x: 9.74,  y: 71.1,  rot: 180, block: terminals_top, locked: true }
+  J2:  { x: 27.52, y: 70.8,  rot: 180, block: terminals_top, locked: true }
+  J5:  { x: 9.74,  y: 70.8,  rot: 180, block: terminals_top, locked: true }
 
   # --- UI FFC connector (middle-left, facing front UI board) ---
   J3:  { x: 5.5,   y: 44.0,  rot: -90, block: int_ui, locked: true }
@@ -88,7 +93,7 @@ parts:
   C1:  { x: 26.8,  y: 36.5,  rot: 0,   block: buck5v }
   C2:  { x: 18.2,  y: 36.3,  rot: 90,  block: buck5v }
   C3:  { x: 15.2,  y: 36.3,  rot: 90,  block: buck5v }
-  C4:  { x: 18.2,  y: 41.0,  rot: 90,  block: buck5v }
+  C4:  { x: 26.4,  y: 39.6,  rot: 90,  block: buck5v }
   C5:  { x: 27.2,  y: 43.7,  rot: 90,  block: buck5v }
   C6:  { x: 29.8,  y: 43.7,  rot: 90,  block: buck5v }
   C7:  { x: 30.8,  y: 40.5,  rot: 0,   block: buck5v }
@@ -96,6 +101,7 @@ parts:
   R2:  { x: 15.2,  y: 45.0,  rot: 90,  block: buck5v }
   R3:  { x: 30.4,  y: 36.5,  rot: 0,   block: buck5v }
   R4:  { x: 30.4,  y: 38.3,  rot: 0,   block: buck5v }
+  D9:  { x: 17.1,  y: 40.9,  rot: 180, block: buck5v }
 
   # --- Ideal diode + MCU decoupling + OLED I2C pull-ups ---
   U2:  { x: 34.2,  y: 44.3,  rot: 0,   block: mcu_power }
@@ -106,8 +112,9 @@ parts:
 
   # --- Dedicated 4-20 mA & 0-10V / 0-5V analog front-ends (below J2, y 53..61) ---
   D8:  { x: 6.4,   y: 59.5,  rot: 0,   block: digital_io }
-  R5:  { x: 13.5,  y: 60.5,  rot: 0,   block: analog_ma }
-  R6:  { x: 13.5,  y: 58.2,  rot: 0,   block: analog_ma }
+  F2:  { x: 24.1,  y: 59.2,  rot: 90,  block: analog_ma }
+  R5:  { x: 13.5,  y: 60.6,  rot: 0,   block: analog_ma }
+  R6:  { x: 13.5,  y: 57.9,  rot: 0,   block: analog_ma }
   R7:  { x: 13.5,  y: 55.8,  rot: 0,   block: analog_ma }
   C8:  { x: 13.5,  y: 53.5,  rot: 0,   block: analog_ma }
   D3:  { x: 8.5,   y: 53.5,  rot: 0,   block: analog_ma }

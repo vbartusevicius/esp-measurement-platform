@@ -3,14 +3,20 @@
 base   rail side, z -5..shoulder: a TS35 channel in the 5 mm deep back
        (EN 60715: 35 +-0.3 between lips, 1 mm lips) with a fixed hook under
        the top lip and a sprung sliding latch under the bottom lip. Open on
-       the left side (-x) so the vertical main board slides straight in.
-       Top wall has openings for J2, J3, J4 (6-pole sensor bank); bottom wall
-       has openings for J1, J5 (4-pole power + expansion I/O bank).
-cover  front side + left side wall: shoulder plates, front protrusion (0.96"
-       64x128 OLED window + backing rails, button holes, LED baffle windows),
-       and four side snap-click hooks that lock into the base.
+       the left side (-x) so the populated main board slides straight in (+x).
+       Top wall has slots for J2 + J5 (7-pole sensor bank), bottom wall for
+       J1 (power) and J4 (relay); every slot runs out of the open left side so
+       the terminal bodies, which overhang the board edge into the walls, can
+       slide in, and has FDM_CLEAR all round the terminal body.
+cover  front side + left side wall, slides on from the left (+x): filler bars
+       that close the terminal slots, recesses over the main board's THT
+       solder tails, shoulder plates, front protrusion (0.96" 64x128 OLED
+       panel pocket behind the active-area window, C-shaped spring button tabs
+       with a front bump and a plunger, LED baffle windows), UI board snap hooks, side
+       locating ribs and standoffs, and four side snap-click hooks into the base.
 """
 
+import math
 import sys
 from pathlib import Path
 
@@ -23,6 +29,11 @@ from enclosure_features import (
     FRONT_Y_END,
     FRONT_Y_START,
     HIDDEN_H,
+    OLED_POCKET_DEPTH,
+    OLED_POCKET_MARGIN,
+    board_slabs,
+    oled_panel_real,
+    part_boxes,
     SHOULDER_Z,
     SPEC,
     TOTAL_D,
@@ -35,9 +46,6 @@ from enclosure_features import (
     horizontal_capacitor,
     led_windows,
     legs,
-    oled_glass,
-    oled_module,
-    oled_panel,
     oled_window,
     pegs,
     screw_tabs,
@@ -62,10 +70,19 @@ FRONT_INNER_Z = TOTAL_D - WALL
 
 LEG_SIZE = 5.0
 PEG_DIAMETER = 3.0
-STANDOFF_DIAMETER = 3.0
+STANDOFF_DIAMETER = 2.4
 LED_WINDOW = 2.2
 BAFFLE_WALL = 0.4
-BUTTON_HOLE = 2.6
+BUTTON_HOLE = 2.6  # legend ring diameter drawn around each button tongue
+FDM_CLEAR = 0.2    # per side, between printed parts and around PCB/terminal bodies
+# C-shaped spring tab per button (same geometry as knx-dali-gateway v3): a
+# round pad over the switch on an arm rooted at a shared centre bridge, both
+# thinned to `thickness`; rounded bump on the front, plunger behind the pad.
+BUTTON_TAB = {"pad": 2.6, "arm": 2.0, "root_x": 0.9, "slot": 0.45, "thickness": 0.7, "nub": 1.4,
+              "nub_gap": 0.1, "boss": 2.0, "boss_height": 0.6, "boss_round": 0.25}
+THT_TAIL = 2.5     # max solder-tail protrusion behind the main board (clip longer leads)
+THT_RECESS = 1.0   # recess depth in the cover's left wall over THT tails
+UI_RIB = {"gap": 0.15, "len": 3.0, "side_ys": (23.0, 40.5, 58.0), "end_xs": (-6.0, 6.0), "end_w": 1.5}
 SCREW_HOLE = 3.2
 CASE_SCREW = {"pilot": 2.2, "clearance": 2.8, "depth": 8.5, "z": BASE_TOP_Z - 2.0}
 SCREW_TAB = {"width": 4.0, "depth": 8.5, "z0": 39.85}
@@ -143,12 +160,15 @@ def leg_bodies():
     return [box(p["x"] - h, p["x"] + h, p["y"] - h, p["y"] + h, WALL, MAIN_BOTTOM_Z) for p in legs()]
 
 
+SIDE_SNAP_YS = (16.0, 63.8)  # right-side snap hooks, >= 0.5 mm clear of the J1/J4 and J2/J5 bodies
+
+
 def shoulder_snap_bodies():
     """Four side snap-click hooks on the cover locking into the base."""
     if screw_tabs():
         return []
     bodies = []
-    for y_c in (15.6, 63.8):
+    for y_c in SIDE_SNAP_YS:
         tongue = box(INNER_W / 2 - 1.1, INNER_W / 2, y_c - 1.2, y_c + 1.2, 39.2, BASE_TOP_Z + 0.4)
         barb = box(INNER_W / 2 - 1.1, INNER_W / 2 + 0.5, y_c - 1.2, y_c + 1.2, 39.2, 40.4)
         bodies.append(tongue.union(barb))
@@ -165,7 +185,7 @@ def shoulder_snap_keepers():
     if screw_tabs():
         return []
     keepers = [box(INNER_W / 2 - 0.1, INNER_W / 2 + 0.6, y_c - 1.4, y_c + 1.4, 39.0, 40.6)
-               for y_c in (15.6, 63.8)]
+               for y_c in SIDE_SNAP_YS]
     keepers += [box(-INNER_W / 2 - 0.1, -INNER_W / 2 + 1.3, WALL - 0.6, WALL + 0.1, 8.8, 14.2),
                 box(-INNER_W / 2 - 0.1, -INNER_W / 2 + 1.3, HIDDEN_H - WALL - 0.1, HIDDEN_H - WALL + 0.6, 8.8, 14.2)]
     return keepers
@@ -173,6 +193,49 @@ def shoulder_snap_keepers():
 
 def screw_tab_bodies():
     return list(shoulder_snap_bodies())
+
+
+def terminal_slots():
+    """Wall slots for the terminal blocks: FDM_CLEAR around the body and open
+    to the left side so the populated board slides in along +x."""
+    slots = []
+    for s in wire_entries():
+        y0, y1 = (-1, WALL + 1) if s.get("side") == "bottom" else (HIDDEN_H - WALL - 1, HIDDEN_H + 1)
+        slots.append({"ref": s["ref"], "side": s.get("side"), "x0": -WIDTH / 2 - 1, "x1": s["x1"] + FDM_CLEAR,
+                      "y0": y0, "y1": y1, "z0": s["z0"] - FDM_CLEAR, "z1": s["z1"] + FDM_CLEAR,
+                      "body_x0": s["x0"]})
+    return slots
+
+
+def slot_filler_bodies():
+    """Cover bars that close each terminal slot left of the terminal body,
+    tied into the cover's left wall."""
+    bodies = []
+    for s in terminal_slots():
+        wy0, wy1 = (0.0, WALL) if s["side"] == "bottom" else (HIDDEN_H - WALL, HIDDEN_H)
+        ty0, ty1 = (WALL - 0.01, WALL + FDM_CLEAR + 0.5) if s["side"] == "bottom" else \
+            (HIDDEN_H - WALL - FDM_CLEAR - 0.5, HIDDEN_H - WALL + 0.01)
+        z0, z1 = s["z0"] + FDM_CLEAR, s["z1"] - FDM_CLEAR
+        bodies.append(box(-WIDTH / 2, s["body_x0"] - FDM_CLEAR, wy0, wy1, z0, z1)
+                      .union(box(-WIDTH / 2, -INNER_W / 2, ty0, ty1, z0, z1)))
+    return bodies
+
+
+def tht_tail_recesses():
+    """Pockets in the cover's left wall over the main board's through-hole
+    solder tails (terminal blocks, XIAO sockets)."""
+    back = SPEC["boards"]["main"]["x"] - MAIN_THICK
+    depth_x = back - THT_TAIL - 0.3
+    pockets = []
+    for comp in components("main").values():
+        pts = [board_point("main", x, y) for x, y in comp.get("tht_pads", [])]
+        if not pts:
+            continue
+        ys, zs = [p[1] for p in pts], [p[2] for p in pts]
+        pockets.append(box(min(depth_x, -INNER_W / 2 - THT_RECESS), -INNER_W / 2 + 0.01,
+                           max(WALL + FDM_CLEAR, min(ys) - 1.4), min(HIDDEN_H - WALL - FDM_CLEAR, max(ys) + 1.4),
+                           max(WALL + FDM_CLEAR, min(zs) - 1.4), min(BASE_TOP_Z, max(zs) + 1.4)))
+    return pockets
 
 
 def walls_clip(solid):
@@ -273,7 +336,7 @@ def side_wall_legend_bodies():
 
     j2_names = {"1": "GND", "2": "+5V", "3": "+24V", "4": "mA", "5": "10V", "6": "IO1", "7": "IO2"}
     j1_names = {"1": "GND", "2": "VIN"}
-    j4_names = {"1": "NC", "2": "COM", "3": "NO"}
+    j4_names = dict(zip(("1", "2", "3"), SPEC["terminals"]["relay_out"]["labels"]))
 
     items = []
     # 1. Top edge: J2 pole numbers (1..7) and signal names right under the top wire entries
@@ -298,7 +361,7 @@ def side_wall_legend_bodies():
         items.append(_side_line(zp, y_row, z_elbow_end, y_row, lw=0.24))
         items.append(_side_text_solid(desc, z_text_left, y_row, 1.15, align="left"))
 
-    # 3. Bottom edge: J1 (1=GND, 2=VIN with 9-30VDC above it) and J4 (1=NC, 2=COM, 3=NO)
+    # 3. Bottom edge: J1 (1=GND, 2=VIN with 9-30VDC above it) and J4 (labels from spec.yaml)
     for pin, z_c in sorted(j1_z.items()):
         items.append(_side_text_solid(pin, z_c, 3.6, 2.0))
         items.append(_side_text_solid(j1_names[pin], z_c, 6.4, 1.2))
@@ -310,22 +373,21 @@ def side_wall_legend_bodies():
         items.append(_side_text_solid(pin, z_c, 3.6, 2.0))
         items.append(_side_text_solid(j4_names[pin], z_c, 6.4, 1.2))
 
-    # 4. Compact schematic changeover relay symbol directly over J4's NC (pin 1), COM (pin 2), NO (pin 3)
-    z_nc, z_com, z_no = j4_z["1"], j4_z["2"], j4_z["3"]
-    # NC leg: short vertical up from y=8.2 to y=12.4 + horizontal fixed contact bar toward COM
-    items.append(_side_line(z_nc, 8.2, z_nc, 12.4, lw=0.26))
-    items.append(_side_line(z_nc, 12.4, z_nc - 1.4, 12.4, lw=0.26))
-    items.append(_side_dot(z_nc - 1.4, 12.4, radius=0.40))
-    # NO leg: short vertical up from y=8.2 to y=12.4 + horizontal open contact bar toward COM
-    items.append(_side_line(z_no, 8.2, z_no, 12.4, lw=0.26))
-    items.append(_side_line(z_no, 12.4, z_no + 1.4, 12.4, lw=0.26))
-    items.append(_side_dot(z_no + 1.4, 12.4, radius=0.40))
-    # COM leg: short vertical up from y=8.2 to pivot dot at y=10.0 + diagonal wiper arm touching NC
+    # 4. Changeover symbol over J4: COM pivot, wiper resting on NC (de-energised), NO open
+    pin_of = {name: pin for pin, name in j4_names.items()}
+    z_com, z_no, z_nc = (j4_z[pin_of[n]] for n in ("COM", "NO", "NC"))
+    toward_com_no = math.copysign(1.4, z_com - z_no)
+    items.append(_side_line(z_no, 8.2, z_no, 11.0, lw=0.26))
+    items.append(_side_line(z_no, 11.0, z_no + toward_com_no, 11.0, lw=0.26))
+    items.append(_side_dot(z_no + toward_com_no, 11.0, radius=0.40))
+    items.append(_side_line(z_nc, 8.2, z_nc, 13.0, lw=0.26))
+    items.append(_side_line(z_nc, 13.0, z_no, 13.0, lw=0.26))
+    items.append(_side_dot(z_no, 13.0, radius=0.40))
     items.append(_side_line(z_com, 8.2, z_com, 10.0, lw=0.26))
     items.append(_side_dot(z_com, 10.0, radius=0.45))
-    items.append(_side_line(z_com, 10.0, z_nc - 1.1, 12.8, lw=0.30))
-    # Centered rating label above the relay symbol
-    items.append(_side_text_solid("250VAC 2A", z_com, 14.8, 1.2, align="center"))
+    items.append(_side_line(z_com, 10.0, z_no, 12.8, lw=0.30))
+    # Rating label above the symbol (Omron G6B-2114P, 230 VAC load circuit fused <= 2 A)
+    items.append(_side_text_solid("230VAC 2A", z_no, 15.4, 1.2, align="center"))
 
     combined = items[0]
     for s in items[1:]:
@@ -340,11 +402,8 @@ def build_base():
     base = shell.union(rail_blocks())
     pocket, latch = latch_parts()
     base = base.cut(pocket).union(latch)
-    for slot in wire_entries():
-        if slot.get("side") == "bottom":
-            base = base.cut(box(slot["x0"], slot["x1"], -1, WALL + 1, slot["z0"], slot["z1"]))
-        else:
-            base = base.cut(box(slot["x0"], slot["x1"], HIDDEN_H - WALL - 1, HIDDEN_H + 1, slot["z0"], slot["z1"]))
+    for slot in terminal_slots():
+        base = base.cut(box(slot["x0"], slot["x1"], slot["y0"], slot["y1"], slot["z0"], slot["z1"]))
     # Open the left side wall so the vertical main board slides in from the left (-x -> +x)
     base = base.cut(box(-WIDTH / 2 - 1, -INNER_W / 2 + 0.01, WALL, HIDDEN_H - WALL, WALL, BASE_TOP_Z + 1))
     for body in leg_bodies() + capacitor_cradles():
@@ -362,14 +421,69 @@ def peg_bodies():
 
 
 def standoff_bodies():
-    z1 = FRONT_INNER_Z + STACK.pocket_depth + 0.1
-    bodies = [cylinder(p["x"], p["y"], UI_BOARD_TOP_Z, z1, STANDOFF_DIAMETER) for p in standoffs()]
-    z_tape = STACK.oled_glass_z - STACK.oled["panel"] - STACK.oled["module_board"] - 1.5 if hasattr(STACK, "oled") else FRONT_INNER_Z - 1.5
-    for sx in (-6.3, 6.3):
-        bodies.append(box(sx - 0.7, sx + 0.7, 31.8, 56.5, z_tape, z1))
-    for sx in (-5.8, 5.8):
-        bodies.append(box(sx - 1.1, sx + 1.1, 30.85, 31.65, z_tape, z1))
-    return bodies
+    """Columns from the front wall onto the UI board front, between the buttons
+    and the OLED panel (the snap hooks hold the board from behind)."""
+    return [cylinder(p["x"], p["y"], UI_BOARD_TOP_Z, FRONT_INNER_Z + 0.01, STANDOFF_DIAMETER) for p in standoffs()]
+
+
+def ui_rib_bodies():
+    """Locating ribs on the protrusion's inner walls around the UI board edges
+    (UI_RIB['gap'] per side), so buttons/LEDs stay within 0.3 mm of their windows."""
+    half_w = UI_W / 2
+    ui = board_slabs("ui")
+    y_lo, y_hi = min(s["y0"] for s in ui), max(s["y1"] for s in ui)
+    z0, z1 = UI_BOARD_Z - 0.6, UI_BOARD_TOP_Z + 0.6
+    ribs = []
+    for y in UI_RIB["side_ys"]:
+        for s in (-1, 1):
+            ribs.append(box(*sorted((s * (half_w + UI_RIB["gap"]), s * (INNER_W / 2 + 0.01))),
+                            y - UI_RIB["len"] / 2, y + UI_RIB["len"] / 2, z0, z1))
+    for x in UI_RIB["end_xs"]:
+        w = UI_RIB["end_w"] / 2
+        ribs.append(box(x - w, x + w, FRONT_Y_START + WALL - 0.01, y_lo - UI_RIB["gap"], z0, z1))
+        ribs.append(box(x - w, x + w, y_hi + UI_RIB["gap"], FRONT_Y_END - WALL + 0.01, z0, z1))
+    return ribs
+
+
+def button_top_z(ref):
+    return UI_BOARD_TOP_Z + components("ui")[ref]["height"]
+
+
+def button_tab_outline(hole, grow=0.0):
+    """Front outline of a C-shaped button tab (or of its slot with grow =
+    slot): pad circle (x, y, d) and arm box (x0, x1, y0, y1) towards the
+    centre bridge. The left tab reads as a C, the right one as a mirrored C."""
+    t = BUTTON_TAB
+    root = math.copysign(t["root_x"], hole["x"])
+    return ((hole["x"], hole["y"], t["pad"] + 2 * grow),
+            (*sorted((hole["x"], root)), hole["y"] - t["arm"] / 2 - grow, hole["y"] + t["arm"] / 2 + grow))
+
+
+def button_tab(ref, hole):
+    """C-slot + thinning (cuts) and plunger + front bump (bodies) for one button."""
+    t = BUTTON_TAB
+
+    def solid(grow, z0, z1):
+        (cx, cy, d), (x0, x1, y0, y1) = button_tab_outline(hole, grow)
+        return cylinder(cx, cy, z0, z1, d).union(box(x0, x1, y0, y1, z0, z1))
+
+    through = (FRONT_INNER_Z - 1, TOTAL_D + 1)
+    tab_back = TOTAL_D - t["thickness"]
+    slot = solid(t["slot"], *through).cut(solid(0.0, *through))
+    thin = solid(0.0, FRONT_INNER_Z - 1, tab_back)
+    bump = cylinder(hole["x"], hole["y"], TOTAL_D - 0.01, TOTAL_D + t["boss_height"], t["boss"]) \
+        .faces(">Z").edges().fillet(t["boss_round"])
+    plunger = cylinder(hole["x"], hole["y"], button_top_z(ref) + t["nub_gap"], tab_back + 0.01, t["nub"])
+    return [slot, thin], [plunger, bump]
+
+
+def button_flexures():
+    cuts, bodies = [], []
+    for name, hole in button_holes().items():
+        c, b = button_tab("SW1" if name == "PROG" else "SW2", hole)
+        cuts += c
+        bodies += b
+    return cuts, bodies
 
 
 def baffle_bodies():
@@ -402,10 +516,14 @@ def snap_bodies():
 
 
 def lip_bodies():
+    """Locating lip along the base's right wall, stopped short of the
+    terminal blocks that reach up to the shoulder at both ends."""
     x_out = INNER_W / 2 - 0.15
     z0 = BASE_TOP_Z - LIP["depth"]
-    lips = [box(*sorted((x_out, x_out - LIP["thickness"])), WALL + 1, HIDDEN_H - WALL - 1, z0, BASE_TOP_Z)]
-    return lips
+    terms = [p for p in part_boxes() if p["board"] == "main" and p["ref"] in ("J1", "J2", "J4", "J5")]
+    y_lo = max([p["y1"] for p in terms if p["y0"] < HIDDEN_H / 2] + [WALL + 1]) + FDM_CLEAR
+    y_hi = min([p["y0"] for p in terms if p["y0"] > HIDDEN_H / 2] + [HIDDEN_H - WALL - 1]) - FDM_CLEAR
+    return [box(*sorted((x_out, x_out - LIP["thickness"])), y_lo, y_hi, z0, BASE_TOP_Z)]
 
 
 def shoulder_plate(side):
@@ -420,31 +538,32 @@ def build_cover():
     protrusion = box(-WIDTH / 2, WIDTH / 2, FRONT_Y_START, FRONT_Y_END, BASE_TOP_Z, TOTAL_D).cut(
         box(-INNER_W / 2, INNER_W / 2, FRONT_Y_START + WALL, FRONT_Y_END - WALL, BASE_TOP_Z - 1, FRONT_INNER_Z))
     cover = protrusion.union(shoulder_plate("bottom")).union(shoulder_plate("top"))
-    cover = cover.union(box(-WIDTH / 2, -INNER_W / 2, WALL - 0.01, HIDDEN_H - WALL + 0.01, WALL, BASE_TOP_Z + 0.01))
-    for body in lip_bodies() + peg_bodies() + standoff_bodies() + screw_tab_bodies() + baffle_bodies():
+    # left side wall: FDM_CLEAR to the base's top/bottom walls and floor
+    cover = cover.union(box(-WIDTH / 2, -INNER_W / 2, WALL + FDM_CLEAR, HIDDEN_H - WALL - FDM_CLEAR,
+                            WALL + FDM_CLEAR, BASE_TOP_Z + 0.01))
+    for body in (lip_bodies() + peg_bodies() + standoff_bodies() + screw_tab_bodies() + baffle_bodies()
+                 + slot_filler_bodies() + ui_rib_bodies()):
         cover = cover.union(body)
+    for pocket in tht_tail_recesses():
+        cover = cover.cut(pocket)
     for slot, tongue in snap_geometry():
         cover = cover.cut(slot).union(tongue)
     front = (FRONT_INNER_Z - 1, TOTAL_D + 1)
     for w in led_windows():
         cover = cover.cut(cylinder(w["x"], w["y"], FRONT_INNER_Z - 1, TOTAL_D - STACK.led_skin_mm, LED_WINDOW))
-    for hole in button_holes().values():
-        cover = cover.cut(cylinder(hole["x"], hole["y"], *front, BUTTON_HOLE))
-    win, panel, module = oled_window(), oled_panel(), oled_module()
+    win, panel = oled_window(), oled_panel_real()
     cover = cover.cut(box(win["cx"] - win["w"] / 2, win["cx"] + win["w"] / 2,
                           win["cy"] - win["h"] / 2, win["cy"] + win["h"] / 2, *front))
-    margin = 0.5
-    pocket = box(module["cx"] - module["w"] / 2 - margin, module["cx"] + module["w"] / 2 + margin,
-                 module["cy"] - module["h"] / 2 - margin, module["cy"] + module["h"] / 2 + margin,
-                 FRONT_INNER_Z - 1, FRONT_INNER_Z + STACK.pocket_depth)
-    if panel != oled_glass():
-        g_margin = 0.25
-        pocket = pocket.union(box(panel["cx"] - panel["w"] / 2 - g_margin, panel["cx"] + panel["w"] / 2 + g_margin,
-                                  panel["cy"] - panel["h"] / 2 - g_margin, panel["cy"] + panel["h"] / 2 + g_margin,
-                                  FRONT_INNER_Z - 1, TOTAL_D - 0.6))
-    for body in standoff_bodies():
-        pocket = pocket.cut(body)
-    return cover.cut(pocket)
+    m = OLED_POCKET_MARGIN
+    cover = cover.cut(box(panel["cx"] - panel["w"] / 2 - m, panel["cx"] + panel["w"] / 2 + m,
+                          panel["cy"] - panel["h"] / 2 - m, panel["cy"] + panel["h"] / 2 + m,
+                          FRONT_INNER_Z - 1, FRONT_INNER_Z + OLED_POCKET_DEPTH))
+    cuts, nubs = button_flexures()
+    for c in cuts:
+        cover = cover.cut(c)
+    for n in nubs:
+        cover = cover.union(n)
+    return cover
 
 
 def export_parts(out_dir):

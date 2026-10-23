@@ -398,7 +398,7 @@
       {
         "name": "RELAY-Power",
         "priority": 1,
-        "clearance": 0.4,
+        "clearance": 2.5,
         "track_width": 0.85,
         "via_diameter": 1.0,
         "via_drill": 0.5,
@@ -533,6 +533,10 @@
       {
         "netclass": "SELV",
         "pattern": "MA_MCU"
+      },
+      {
+        "netclass": "SELV",
+        "pattern": "MA_SHUNT"
       },
       {
         "netclass": "SELV",

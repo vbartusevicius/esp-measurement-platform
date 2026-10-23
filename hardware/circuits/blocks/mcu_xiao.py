@@ -4,14 +4,14 @@ cannot back-feed the 5V sensor rail or 24V buck.
 
 Unified XIAO ESP32-C6 Pin Map:
   1  (D0 / GPIO0)  = V0_10_MCU   -> Dedicated 0-10V / 0-5V / 0.4-4.5V analog input (ADC1_CH0, J2.5)
-  2  (D1 / GPIO1)  = MA_MCU      -> Dedicated 4-20 mA loop analog input (ADC1_CH1, 165R shunt, J2.4)
+  2  (D1 / GPIO1)  = MA_MCU      -> Dedicated 4-20 mA loop analog input (ADC1_CH1, 120R shunt, J2.4)
   3  (D2 / GPIO2)  = BTN_LADDER  -> UI board 2-button ADC resistor ladder (ADC1_CH2)
   4  (D3 / GPIO21) = LED_DATA    -> UI board 3x SK6805-EC15 RGB LEDs via 5 V buffer
   5  (D4 / GPIO22) = I2C_SDA     -> UI board SSD1312 OLED SDA (4.7k pull-up to +3V3)
   6  (D5 / GPIO23) = I2C_SCL     -> UI board SSD1312 OLED SCL (4.7k pull-up to +3V3)
   7  (D6 / GPIO16) = IO2_MCU     -> Protected Sensor Bus IO2: SCL / TX / TRIG (J2.7)
   8  (D7 / GPIO17) = IO1_MCU     -> Protected Sensor Bus IO1: SDA / RX / Geiger PULSE (J2.6)
-  9  (D8 / GPIO19) = RELAY_MCU   -> SMD 3-Way Changeover Relay driver (J1.3 NC, J1.4 COM, J1.5 NO)
+  9  (D8 / GPIO19) = RELAY_MCU   -> 230 VAC changeover relay driver (J4.1 COM, J4.2 NO, J4.3 NC)
   10 (D9 / GPIO20) = NC          -> Spare internal GPIO
   11 (D10/ GPIO18) = NC          -> Spare internal GPIO
   12 (3V3)         = +3V3        -> 3.3 V output from XIAO regulator for logic & OLED
@@ -31,14 +31,14 @@ XIAO_FP = "gateway_fp:XIAO_ESP32C6_Header"
 
 MCU_PINS = {
     "v0_10_sense": {"pin": "D0/GPIO0", "net": "V0_10_MCU", "note": "ADC1_CH0: 0-10V / 0-5V / 0.4-4.5V / 2-10V input (22k/10k divider, J2.5)"},
-    "ma_sense": {"pin": "D1/GPIO1", "net": "MA_MCU", "note": "ADC1_CH1: 4-20 mA current-loop input (165R shunt, J2.4)"},
+    "ma_sense": {"pin": "D1/GPIO1", "net": "MA_MCU", "note": "ADC1_CH1: 4-20 mA current-loop input (50 mA PTC + 120R shunt: 20 mA = 2.40 V, J2.4)"},
     "button_ladder": {"pin": "D2/GPIO2", "net": "BTN_LADDER", "note": "ADC1_CH2: RST/WIFI + PAGE buttons on UI board"},
     "led_data": {"pin": "D3/GPIO21", "net": "LED_DATA", "note": "SK6805 RGB LED chain via 5 V buffer on UI"},
     "i2c_sda": {"pin": "D4/GPIO22", "net": "I2C_SDA", "note": "Internal I2C SDA to OLED on UI board"},
     "i2c_scl": {"pin": "D5/GPIO23", "net": "I2C_SCL", "note": "Internal I2C SCL to OLED on UI board"},
     "io2_bus_tx_scl": {"pin": "D6/GPIO16", "net": "IO2_MCU", "note": "Protected sensor IO2: ToF I2C SCL / Ultrasonic UART TX (J2.7)"},
     "io1_bus_rx_sda": {"pin": "D7/GPIO17", "net": "IO1_MCU", "note": "Protected sensor IO1: ToF I2C SDA / Ultrasonic UART RX / Radiation PULSE (J2.6)"},
-    "relay_ctrl": {"pin": "D8/GPIO19", "net": "RELAY_MCU", "note": "Drives Omron G6K-2F-Y 5V SMD changeover relay (J1.3 NC, J1.4 COM, J1.5 NO)"},
+    "relay_ctrl": {"pin": "D8/GPIO19", "net": "RELAY_MCU", "note": "Drives Omron G6B-2114P-US DC5 changeover relay (J4.1 COM, J4.2 NO, J4.3 NC; 230 VAC 2 A)"},
 }
 
 

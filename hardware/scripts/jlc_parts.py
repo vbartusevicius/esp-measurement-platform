@@ -194,7 +194,9 @@ def value_problems(part, record):
 
 
 PIN_ALIASES = {"CAT": "K", "CATHODE": "K", "AN": "A", "ANODE": "A", "COL": "C", "EM": "E", "EP": "EPAD",
-               "G": "GND", "VSS": "GND"}
+               "G": "GND", "VSS": "GND",
+               # series diode pair (BAT54S): EasyEDA names the anode/cathode junction "AK"
+               "AK": "COM", "KA": "COM"}
 
 
 def canonical_pin(ref, name):
