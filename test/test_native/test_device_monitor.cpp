@@ -6,6 +6,7 @@
 #include "Parameter.h"
 #include "RelayOutput.h"
 #include "ScreenModel.h"
+#include "ScopedSettings.h"
 #include "Storage.h"
 
 class DeviceMonitorTest : public ::testing::Test {
@@ -15,6 +16,8 @@ protected:
     Logger logger;
     RelayOutput relay;
     DeviceMonitor monitor;
+    ScopedSettings tankSettings{&storage, String("ad.")};
+    ScopedSettings radSettings{&storage, String("rc.")};
 
     void SetUp() override {
         storage.begin();
@@ -23,11 +26,13 @@ protected:
     }
 
     void configure(const char* low, const char* high, const char* mode) {
-        storage.saveParameter(Parameter::LIMIT_LOW, String(low));
-        storage.saveParameter(Parameter::LIMIT_HIGH, String(high));
-        storage.saveParameter(Parameter::LIMIT_HYSTERESIS, String("5"));
+        tankSettings.saveParameter(Parameter::LIMIT_LOW, String(low));
+        tankSettings.saveParameter(Parameter::LIMIT_HIGH, String(high));
+        tankSettings.saveParameter(Parameter::LIMIT_HYSTERESIS, String("5"));
         storage.saveParameter(Parameter::RELAY_MODE, String(mode));
+        monitor = DeviceMonitor();
         monitor.begin(&storage, &logger, &relay);
+        monitor.addSensor("analog_distance", &tankSettings);
     }
 
     static ScreenModel tank(float percent, bool ok = true) {
@@ -45,19 +50,19 @@ protected:
 TEST_F(DeviceMonitorTest, EmptyLimitsAreDisabled)
 {
     configure("", "", "manual");
-    EXPECT_FALSE(monitor.limits().hasLow());
-    EXPECT_FALSE(monitor.limits().hasHigh());
-    monitor.evaluate(tank(1.0f), 0);
+    EXPECT_FALSE(monitor.limits(0).hasLow());
+    EXPECT_FALSE(monitor.limits(0).hasHigh());
+    monitor.evaluate(0, tank(1.0f), 0);
     EXPECT_FALSE(monitor.alertPending());
 }
 
 TEST_F(DeviceMonitorTest, LimitRuleSwitchesTheRelayAndLogsEvents)
 {
     configure("20", "95", "on_alarm");
-    monitor.evaluate(tank(50.0f), 1000);
+    monitor.evaluate(0, tank(50.0f), 1000);
     EXPECT_FALSE(relay.isOn());
 
-    monitor.evaluate(tank(18.0f), 2000);
+    monitor.evaluate(0, tank(18.0f), 2000);
     EXPECT_TRUE(relay.isOn());
     EXPECT_TRUE(monitor.alertPending());
     EXPECT_EQ(monitor.relayActivations(), 1u);
@@ -65,7 +70,7 @@ TEST_F(DeviceMonitorTest, LimitRuleSwitchesTheRelayAndLogsEvents)
     EXPECT_STREQ(monitor.events().newest(1).title, "MIN LIMIT!");
     EXPECT_STREQ(monitor.events().newest(1).detail, "18%<20");
 
-    monitor.evaluate(tank(26.0f), 3000);
+    monitor.evaluate(0, tank(26.0f), 3000);
     EXPECT_FALSE(relay.isOn());
     EXPECT_STREQ(monitor.events().newest(1).title, "LIMIT CLEAR");
 }
@@ -85,23 +90,23 @@ TEST_F(DeviceMonitorTest, ManualCommandsAreRefusedWhileARuleOwnsTheRelay)
 TEST_F(DeviceMonitorTest, SensorFaultHoldsTheRelayAndIsLogged)
 {
     configure("20", "", "on_alarm");
-    monitor.evaluate(tank(10.0f), 0);
+    monitor.evaluate(0, tank(10.0f), 0);
     ASSERT_TRUE(relay.isOn());
-    monitor.evaluate(tank(0.0f, false), 1000);
+    monitor.evaluate(0, tank(0.0f, false), 1000);
     EXPECT_TRUE(relay.isOn());
     EXPECT_STREQ(monitor.events().newest(0).title, "SENSOR FAULT");
-    monitor.evaluate(tank(10.0f), 2000);
+    monitor.evaluate(0, tank(10.0f), 2000);
     EXPECT_STREQ(monitor.events().newest(0).title, "SENSOR OK");
 }
 
 TEST_F(DeviceMonitorTest, DismissKeepsTheAlarmButHidesTheAlert)
 {
     configure("", "90", "manual");
-    monitor.evaluate(tank(95.0f), 0);
+    monitor.evaluate(0, tank(95.0f), 0);
     ASSERT_TRUE(monitor.alertPending());
     monitor.dismissAlert();
     EXPECT_FALSE(monitor.alertPending());
-    EXPECT_TRUE(monitor.limits().alarm());
+    EXPECT_TRUE(monitor.limits(0).alarm());
 }
 
 TEST_F(DeviceMonitorTest, NetworkTransitionsAreLoggedOnce)
@@ -123,21 +128,69 @@ TEST_F(DeviceMonitorTest, RuleIsIgnoredWithoutARelay)
     none.begin(&hal, -1);
     storage.saveParameter(Parameter::RELAY_MODE, String("on_alarm"));
     monitor.begin(&storage, &logger, &none);
-    EXPECT_EQ(monitor.limits().relayMode(), LimitMonitor::RelayMode::MANUAL);
+    monitor.addSensor("analog_distance", &tankSettings);
+    EXPECT_EQ(monitor.relayMode(), LimitMonitor::RelayMode::MANUAL);
 }
 
 TEST_F(DeviceMonitorTest, AlertSwitchKeepsTheValueButDisablesTheLimit)
 {
-    storage.saveParameter(Parameter::LIMIT_LOW, String("20"));
-    storage.saveParameter(Parameter::LIMIT_LOW_ON, String("0"));
-    storage.saveParameter(Parameter::LIMIT_HIGH, String("95"));
+    tankSettings.saveParameter(Parameter::LIMIT_LOW, String("20"));
+    tankSettings.saveParameter(Parameter::LIMIT_LOW_ON, String("0"));
+    tankSettings.saveParameter(Parameter::LIMIT_HIGH, String("95"));
     monitor.begin(&storage, &logger, &relay);   // high has no switch yet: on because a value is set
-    EXPECT_FALSE(monitor.limits().hasLow());
-    EXPECT_TRUE(monitor.limits().hasHigh());
+    monitor.addSensor("analog_distance", &tankSettings);
+    EXPECT_FALSE(monitor.limits(0).hasLow());
+    EXPECT_TRUE(monitor.limits(0).hasHigh());
 
-    storage.saveParameter(Parameter::LIMIT_LOW_ON, String("1"));
-    storage.saveParameter(Parameter::LIMIT_HIGH_ON, String("0"));
+    tankSettings.saveParameter(Parameter::LIMIT_LOW_ON, String("1"));
+    tankSettings.saveParameter(Parameter::LIMIT_HIGH_ON, String("0"));
     monitor.loadLimits();
-    EXPECT_FLOAT_EQ(monitor.limits().low(), 20.0f);
-    EXPECT_FALSE(monitor.limits().hasHigh());
+    EXPECT_FLOAT_EQ(monitor.limits(0).low(), 20.0f);
+    EXPECT_FALSE(monitor.limits(0).hasHigh());
+}
+
+static ScreenModel radiation(float dose)
+{
+    ScreenModel m;
+    m.title = "RAD";
+    m.value = dose;
+    m.unit = "uSv/h";
+    m.decimals = 2;
+    m.valid = true;
+    m.sensorOk = true;
+    return m;
+}
+
+TEST_F(DeviceMonitorTest, EachSensorHasItsOwnLimitsAndOnlyTheSourceDrivesTheRelay)
+{
+    configure("20", "", "on_alarm");
+    radSettings.saveParameter(Parameter::LIMIT_HIGH, String("0.3"));
+    storage.saveParameter(Parameter::RELAY_SOURCE, String("analog_distance"));
+    monitor.addSensor("radiation_counter", &radSettings);
+    EXPECT_EQ(monitor.relaySource(), 0);
+
+    monitor.evaluate(1, radiation(0.5f), 1000);          // radiation alert: logged, relay untouched
+    EXPECT_TRUE(monitor.limits(1).alarm());
+    EXPECT_FALSE(relay.isOn());
+    EXPECT_STREQ(monitor.events().newest(0).detail, "RAD 0.50>0.30");   // sensor named with two running
+    EXPECT_EQ(monitor.pendingAlert(), 1);
+
+    monitor.evaluate(0, tank(10.0f), 2000);              // tank alert: the relay follows it
+    EXPECT_TRUE(relay.isOn());
+
+    monitor.dismissAlert();                              // PAGE: the first pending one (the tank)
+    EXPECT_EQ(monitor.pendingAlert(), 1);
+    monitor.dismissAll();
+    EXPECT_FALSE(monitor.alertPending());
+}
+
+TEST_F(DeviceMonitorTest, RelaySourceCanBeAnySensor)
+{
+    configure("", "", "on_alarm");
+    radSettings.saveParameter(Parameter::LIMIT_HIGH, String("0.3"));
+    storage.saveParameter(Parameter::RELAY_SOURCE, String("radiation_counter"));
+    monitor.addSensor("radiation_counter", &radSettings);
+    EXPECT_EQ(monitor.relaySource(), 1);
+    monitor.evaluate(1, radiation(0.5f), 1000);
+    EXPECT_TRUE(relay.isOn());
 }

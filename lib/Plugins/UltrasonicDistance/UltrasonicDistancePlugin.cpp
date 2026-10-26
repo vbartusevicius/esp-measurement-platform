@@ -8,7 +8,7 @@ const char* UltrasonicDistancePlugin::getId() const { return "ultrasonic_distanc
 const char* UltrasonicDistancePlugin::getName() const { return "Ultrasonic Distance Meter"; }
 const char* UltrasonicDistancePlugin::getDeviceName() const { return "ESP Ultrasonic Distance Meter"; }
 
-void UltrasonicDistancePlugin::setup(HAL* hal, Storage* storage, Logger* logger, LedController* led)
+void UltrasonicDistancePlugin::setup(HAL* hal, Settings* storage, Logger* logger, LedController* led)
 {
     DistancePluginBase::setup(hal, storage, logger, led);
     this->speedOfSound = 331.3 * sqrt(1 + (CURRENT_TEMP / ABSOLUTE_TEMP));

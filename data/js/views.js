@@ -39,6 +39,11 @@ function stat(data, key) {
     return entry ? entry.numeric : undefined;
 }
 
+function statText(data, key) {
+    const entry = (data.stats || []).find(s => s.key === key);
+    return entry ? entry.value : undefined;
+}
+
 function hasStat(data, key) {
     return (data.stats || []).some(s => s.key === key);
 }
@@ -68,11 +73,19 @@ function heroValue(screen, text) {
 }
 
 // Fault advice per plugin (v1 board terminals)
+// Extra help under a setting, beside its default.
+const PARAM_HINTS = {
+    meter_reading_m3: 'The dial, red pointers included. Saving a new value restarts the count from it.',
+    meter_leak_hours: 'Hours in a row with something flowing before the leak alert.',
+    meter_medium: 'Picks the Home Assistant device class (water and gas go to the Energy dashboard) and the names.',
+};
+
 const FAULT_HINTS = {
     analog_distance: 'No 4–20 mA loop current. Check the probe wiring on J2.3 (+24 V) and J2.4; if it was shorted, the resettable fuse needs a minute to cool down.',
     ultrasonic_distance: 'No echo received. Check TRIG on J2.7 (IO2), ECHO on J2.6 (IO1), and that nothing covers the sensor face.',
     analog_voltage: 'Input outside the sensor\'s range. Check the sensor on J2.5 (0–10 V) and its supply.',
-    radiation_counter: 'No pulses for 5 minutes. Check the detector\'s high-voltage supply and the pulse wire on J2.6 (IO1).',
+    radiation_counter: 'No pulses for 5 minutes. Check the detector\'s high-voltage supply and the pulse wire on J2 pole 7 (IO3).',
+    pulse_meter: 'Check the pulse wire on sensor pole 8 (IO4) and its ground; on the optical dial reader, the red LED must change once per wheel turn.',
 };
 
 function limitState(data) {
@@ -377,6 +390,120 @@ function radiationTiles(data) {
     ];
 }
 
+// ---------------------------------------------------------------- pulse meter (water, gas, oil)
+
+const MEDIA = {
+    water: { noun: 'Water', meter: 'Water meter', what: 'water' },
+    gas: { noun: 'Gas', meter: 'Gas meter', what: 'gas' },
+    oil: { noun: 'Oil', meter: 'Oil meter', what: 'oil' },
+    other: { noun: 'Flow', meter: 'Meter', what: 'flow' },
+};
+
+function medium(data) {
+    return MEDIA[statText(data, 'medium')] || MEDIA.water;
+}
+
+// The disc keeps turning smoothly across the status updates that rebuild the
+// hero: carry its angle over and restart the animation from there.
+const meterSpin = { angle: 0, at: 0, period: 0 };
+
+function spinFor(flow) {
+    const now = performance.now();
+    if (meterSpin.period) meterSpin.angle = (meterSpin.angle + 360 * (now - meterSpin.at) / (meterSpin.period * 1000)) % 360;
+    meterSpin.at = now;
+    meterSpin.period = num(flow) && flow > 0.05 ? Math.max(0.6, 60 / flow) : 0;   // one turn per litre
+    return meterSpin;
+}
+
+function meterRegister(totalM3) {
+    if (!num(totalM3)) return ['-----', '---'];
+    let whole = Math.floor(totalM3);
+    let litres = Math.round((totalM3 - whole) * 1000);
+    if (litres === 1000) { whole += 1; litres = 0; }
+    return [String(whole).padStart(5, '0').slice(-5), String(litres).padStart(3, '0')];
+}
+
+// The meter's face: odometer register (black m3, red litres, as on the dial)
+// and the metallic half-disc of the litre wheel turning at the measured flow.
+function meterGraphic(data) {
+    const flow = data.screen.value;
+    const leak = hasStat(data, 'leak');
+    const alarm = leak || ((data.limits || {}).state && data.limits.state !== 'normal');
+    const [black, red] = meterRegister(stat(data, 'total_m3'));
+    const svg = svgEl('svg', { viewBox: '0 0 140 140', role: 'img',
+        'aria-label': `Meter reading ${black}.${red} cubic metres, ${num(flow) && flow > 0.05 ? `${medium(data).what} flowing at ${fmt(flow, 1)} litres per minute` : 'no flow'}` });
+    const defs = svg.appendChild(svgEl('defs'));
+    const metal = defs.appendChild(svgEl('linearGradient', { id: 'meter-metal', x1: 0, y1: 0, x2: 1, y2: 1 }));
+    [['0', '#f2f4f6'], ['0.45', '#a9b0b8'], ['1', '#e3e6ea']].forEach(([o, c]) => metal.appendChild(svgEl('stop', { offset: o, 'stop-color': c })));
+    svg.appendChild(svgEl('circle', { cx: 70, cy: 70, r: 66, fill: 'var(--band)', stroke: alarm ? 'var(--alarm)' : 'var(--muted)', 'stroke-width': alarm ? 2.5 : 1.5 }));
+    svg.appendChild(svgEl('circle', { cx: 70, cy: 70, r: 58, fill: 'var(--card)', stroke: 'var(--line)' }));
+
+    const cell = 11, x0 = 70 - (cell * 8) / 2, y0 = 26;
+    [...black, ...red].forEach((digit, i) => {
+        const isRed = i >= 5;
+        svg.appendChild(svgEl('rect', { x: x0 + i * cell, y: y0, width: cell - 1, height: 17, rx: 2, fill: isRed ? '#c62828' : '#1f2328' }));
+        svg.appendChild(svgEl('text', { x: x0 + i * cell + (cell - 1) / 2, y: y0 + 13, 'text-anchor': 'middle', 'font-size': 12,
+            'font-family': 'ui-monospace, Menlo, monospace', 'font-weight': 700, fill: '#fff' }, digit));
+    });
+    svg.appendChild(svgEl('text', { x: 70, y: y0 + 28, 'text-anchor': 'middle', 'font-size': 9, fill: 'var(--muted)' }, 'm³'));
+
+    const cx = 70, cy = 94, r = 22;
+    svg.appendChild(svgEl('circle', { cx, cy, r: r + 3, fill: 'none', stroke: 'var(--line)' }));
+    const wheel = svg.appendChild(svgEl('g', { class: 'meter-wheel', style: `transform-origin: ${cx}px ${cy}px` }));
+    wheel.appendChild(svgEl('path', { d: `M${cx - r} ${cy} A${r} ${r} 0 0 1 ${cx + r} ${cy} Z`, fill: 'url(#meter-metal)', stroke: '#8c939b', 'stroke-width': 0.8 }));
+    wheel.appendChild(svgEl('path', { d: `M${cx - 1.6} ${cy} L${cx} ${cy + r - 2} L${cx + 1.6} ${cy} Z`, fill: '#e53935' }));
+    svg.appendChild(svgEl('circle', { cx, cy, r: 2.6, fill: '#e53935' }));
+
+    const spin = spinFor(flow);
+    if (spin.period) {
+        wheel.style.animation = `meter-spin ${spin.period.toFixed(2)}s linear infinite`;
+        wheel.style.animationDelay = `-${(spin.angle / 360 * spin.period).toFixed(2)}s`;
+    } else {
+        wheel.style.transform = `rotate(${spin.angle.toFixed(1)}deg)`;
+    }
+    if (leak) {
+        svg.appendChild(svgEl('path', { d: 'M112 100 C112 100 104 110 104 115 a8 8 0 0 0 16 0 C120 110 112 100 112 100 Z', fill: 'var(--alarm)' }));
+    }
+    const wrap = el('div', 'meter');
+    wrap.appendChild(svg);
+    return wrap;
+}
+
+function meterHero(data) {
+    const med = medium(data);
+    const screen = data.screen;
+    const total = stat(data, 'total_m3');
+    const usage = stat(data, 'usage_24h');
+    const main = el('div', 'hero-main');
+    main.append(el('div', 'hero-label', med.meter), heroValue({ unit: 'm³' }, fmt(total, 3)));
+    main.appendChild(el('div', 'hero-sub', `${fmt(usage)} L used in the last 24 h`));
+    const flow = screen.value;
+    if (hasStat(data, 'leak')) {
+        main.appendChild(stateLine('alarm', 'alarm', `${med.noun} has not stopped for ${fmt(stat(data, 'continuous_h'))} h: possible leak`));
+    } else {
+        const s = limitState(data);
+        if (s.cls !== 'ok') main.appendChild(stateLine(s.cls, 'alarm', s.text));
+    }
+    main.appendChild(num(flow) && flow > 0.05
+        ? stateLine('ok', 'down', `Flowing at ${fmt(flow, 1)} L/min`)
+        : stateLine('ok', 'steady', `No ${med.what} flowing`));
+    const hero = el('div', 'hero');
+    hero.append(meterGraphic(data), main);
+    return hero;
+}
+
+function meterTiles(data) {
+    const med = medium(data);
+    const screen = data.screen;
+    const cont = stat(data, 'continuous_h');
+    return [
+        { label: 'Flow now', value: fmt(screen.value, 1), unit: 'L/min', note: `24 h peak ${fmt(screen.high_24h, 1)} L/min` },
+        { label: 'Used, last 24 h', value: fmt(stat(data, 'usage_24h')), unit: 'L' },
+        { label: 'Continuous flow', value: fmt(cont), unit: 'h', note: `hours in a row with ${med.what} flowing`, cls: hasStat(data, 'leak') ? 'warn' : '' },
+        { label: 'Pulses since start', value: fmt(stat(data, 'pulses')), note: `${fmt(stat(data, 'liters_per_pulse'), 1)} L per pulse` },
+    ];
+}
+
 // ---------------------------------------------------------------- registry
 
 const VIEWS = {
@@ -385,6 +512,8 @@ const VIEWS = {
     pressure: { hero: pressureHero, tiles: pressureTiles, noun: 'Pressure',
         advice: { low: 'Check for leaks, an empty supply or a stopped pump.', high: 'Check the pump control and the pressure relief valve.' } },
     voltage: { hero: pressureHero, tiles: pressureTiles, noun: 'Reading', advice: { low: '', high: '' } },
+    meter: { hero: meterHero, tiles: meterTiles, noun: 'Flow',
+        advice: { low: '', high: 'Check for a burst pipe or a tap left open; an automatic relay rule can close a valve.' } },
     radiation: { hero: radiationHero, tiles: radiationTiles, noun: 'Dose rate',
         advice: { low: '', high: 'Confirm it on the 5-minute average. Radon in still indoor air is the most common cause; ventilate and compare with your local background.' } },
 };
@@ -409,23 +538,3 @@ const EVENT_TEXT = {
     'RELAY OFF': ['Relay switched off', '', 'info'],
     'SYSTEM BOOT': ['Device started', '', 'info'],
 };
-
-function renderEvents(list, events, uptime, limit) {
-    list.innerHTML = '';
-    const items = (events || []).slice(0, limit || undefined);
-    if (!items.length) {
-        list.appendChild(el('li', 'empty', 'No events since the device started.'));
-        return;
-    }
-    items.forEach(e => {
-        const [title, cls, iconName] = EVENT_TEXT[e.title] || [e.title, '', 'info'];
-        const li = el('li', cls);
-        const text = el('div');
-        text.append(el('div', 'ev-title', title), el('div', 'ev-detail', e.detail));
-        const ago = num(uptime) ? uptime - e.t : null;
-        const when = el('div', 'ev-time', ago === null ? '' : formatClock(new Date(Date.now() - ago * 1000)));
-        if (ago !== null) when.title = `${formatDuration(ago)} ago`;
-        li.append(icon(iconName), text, when);
-        list.appendChild(li);
-    });
-}

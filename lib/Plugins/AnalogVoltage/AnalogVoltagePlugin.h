@@ -27,7 +27,7 @@ class AnalogVoltagePlugin : public IPlugin, public IMqttContributor
 
     private:
         HAL* hal = nullptr;
-        Storage* storage = nullptr;
+        Settings* storage = nullptr;
         Logger* logger = nullptr;
 
         float voltageMin = 0.5f;
@@ -50,8 +50,9 @@ class AnalogVoltagePlugin : public IPlugin, public IMqttContributor
     public:
         const char* getId() const override;
         const char* getName() const override;
+        uint8_t inputs() const override { return Board::INPUT_V; }
 
-        void setup(HAL* hal, Storage* storage, Logger* logger, LedController* led) override;
+        void setup(HAL* hal, Settings* storage, Logger* logger, LedController* led) override;
         void loop() override;
 
         void getParameterDefs(std::vector<ParameterDef>& defs) const override;

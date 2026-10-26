@@ -47,14 +47,19 @@ void Storage::load()
     EEPROM.end();
 }
 
-bool Storage::persist()
+size_t Storage::usedBytes() const
 {
-    // Size check before touching flash so a partial write is impossible
     size_t needed = 6;
     for (auto& e : this->entries) {
         needed += 2 + e.key.length() + e.value.length();
     }
-    if (needed > EEPROM_SIZE) return false;
+    return needed;
+}
+
+bool Storage::persist()
+{
+    // Size check before touching flash so a partial write is impossible
+    if (this->usedBytes() > EEPROM_SIZE) return false;
 
     EEPROM.begin(EEPROM_SIZE);
 
@@ -97,7 +102,15 @@ Storage::Entry* Storage::find(const char* name)
 void Storage::saveParameter(const char* name, const String& value)
 {
     Entry* existing = this->find(name);
-    if (existing) {
+    if (value.isEmpty()) {
+        if (!existing) return;
+        for (size_t i = 0; i < this->entries.size(); i++) {
+            if (&this->entries[i] == existing) {
+                this->entries.erase(this->entries.begin() + i);
+                break;
+            }
+        }
+    } else if (existing) {
         if (existing->value == value) return;  // no flash write when unchanged
         existing->value = value;
     } else {

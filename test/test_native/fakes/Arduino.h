@@ -26,6 +26,8 @@ typedef bool boolean;
 #define D6 16
 #define D7 17
 #define D8 19
+#define D9 20
+#define D10 18
 
 #define DEC 10
 #define HEX 16
@@ -109,6 +111,15 @@ public:
     String substring(unsigned int from, unsigned int to) const {
         if (from >= _buf.size() || to <= from) return String();
         return String(_buf.substr(from, to - from).c_str());
+    }
+    bool endsWith(const char* suffix) const {
+        std::string t(suffix ? suffix : "");
+        return _buf.size() >= t.size() && _buf.compare(_buf.size() - t.size(), t.size(), t) == 0;
+    }
+    void trim() {
+        size_t b = _buf.find_first_not_of(" \t\r\n");
+        size_t e = _buf.find_last_not_of(" \t\r\n");
+        _buf = b == std::string::npos ? std::string() : _buf.substr(b, e - b + 1);
     }
     int toInt() const { return atoi(_buf.c_str()); }
     float toFloat() const { return (float)atof(_buf.c_str()); }

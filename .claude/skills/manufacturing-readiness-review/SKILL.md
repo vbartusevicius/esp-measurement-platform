@@ -129,11 +129,21 @@ Fixed in the follow-up (re-check they stay fixed; regressions are easy):
   (65 V abs max, async: needs the SS36 catch diode D9 and 22 uH per its datasheet table 2).
 - ADC clamps: SS34 (0.5 mA leak, 250 pF) -> BAT54S to GND and +3V3 (2 uA, 10 pF).
 - 4-20 mA: 165 ohm (20 mA = 3.30 V, no headroom, burns on a +24 V mis-wire) -> 50 mA PTC F2 + 120 ohm (2x240R 1206).
-- Main board 78.0 mm in a 77.8 mm cavity -> 77.4 mm, y_offset 1.8; terminal faces still flush (J1/J4 y 6.6, J2/J5 y 70.8).
+- Main board 78.0 mm in a 77.8 mm cavity -> 77.4 mm, y_offset 1.8; terminal faces flush (J1/J4 KF142R at y 6.6;
+  J2/J5/J6 WAGO 2086 at y 70.15, front 9.05 mm ahead of the pads = board y 79.2).
+- Sensor bank (2026-10-24): 7-pole KF142R 4P+3P -> 10-pole WAGO 2086 3.5 mm SMD (J2 2086-1204, J5/J6 2086-1203):
+  +5V, +24V, 4-20mA, 0-10V, IO1..IO4, GND, GND. IO3 = D9/GPIO20 (Geiger), IO4 = D10/GPIO18 (water meter), with
+  R18-R21 / D10-D11 (explicit refs; the OLED pull-ups are pinned to R16/R17 so auto-numbering can't shift them).
+  EasyEDA has no footprint for C3309626: jlc_parts.py checks it against pinouts.yaml (derived from the 4-pole
+  footprint); confirm J5/J6 rotation in JLC's preview. JLC stock is prototype-sized (~150 each).
 - Terminal windows closed on all sides -> slots open to the left side with 0.2 mm clearance; cover filler bars close them.
 - Cover lip vs J1, cover side wall 0 mm clearance, OLED rails inside the 14 mm panel, missing button plungers
   (now C-shaped spring tabs with front bump + plunger, same geometry as knx-dali-gateway v3 BUTTON_TAB), UI board free in x/y (now ribs), THT tails vs cover wall (now recesses).
 - Freerouting necks RELAY-Power tracks to 0.64 mm on In2; layout.py restore_relay_widths() puts them back to 0.85.
+- MQTT (2026-10-26): `MQTTClient client;` used arduino-mqtt's 128-byte default buffer, which silently refuses every
+  HA discovery config (largest ~620 B) and most state payloads, so Home Assistant would have discovered nothing.
+  Now `HaDiscovery::MQTT_BUFFER_SIZE` (1024); `test_all_sensors.cpp` runs all five plugins at once through SensorHub
+  (pins, ISRs, readings, relay source, unique HA topics/ids, largest message vs the buffer, status JSON size).
 
 Still open (verify every time):
 - Firmware `xiao_c6` builds but is untested on hardware: OLED rotation (U8G2_R1 vs R3), ladder thresholds,
@@ -141,9 +151,20 @@ Still open (verify every time):
   sync with spec.yaml derived.mcu_pins).
 - OLED pinout and IREF are verified against the JLX12864OLED-S096W drawing (2025-09-17); tail fold reach to
   ui J2 is still a hand-assembly judgement.
-- FFC Type A/B vs connector contact sides; KF142R 4P+3P butted at continuous pitch (dovetail fit).
+- FFC Type A/B vs connector contact sides.
+- Side-wall/lid legend for the sensor bank is generated from the pad positions (SENSOR_NAMES / SENSOR_NOTES in
+  build_enclosure.py); keep it in sync with main.py and spec.yaml terminals.sensor_io.labels.
 - DRU `courtyard_clearance (min -100mm)` applies to anything near U3 (parts under the raised XIAO) and the
   KF142R courtyards are trimmed: DRC will not catch overlaps there; check component boxes in 3D instead.
+- Accessory boards (`spec.yaml variants.v1.accessory_boards`, now `reader`): generated, routed, JLC-checked and
+  released like main/ui but never panelised (`release.py PANEL_BOARDS`). Optical dial reader housing
+  (`build_dial_reader.py`, `test_dial_reader.py`): lock ring (bayonet + spring fingers) over a rotatable carrier; hook
+  geometry is from calipers + photos, so the CAD tests prove the bayonet against that model only. Assembly paths are
+  tested too (ring lowered over the closed carrier, carrier lowered between the hooks): an earlier version with a
+  wide carrier shoulder passed every final-position test but could not be assembled. Ask for the test-ring print result. TCRT5000 numbering: EasyEDA 1 A, 2 K, 3 E,
+  4 C vs our CNY70-style 1 A, 2 K, 3 C, 4 E (jlc_pad_maps.yaml); the IR contrast through the glass is unproven.
+- Pulse ISRs (radiation IO3, water IO4) must stay in IRAM end to end (ISR, the member it calls, LedController::click):
+  settings writes disable the flash cache, and a pulse then would crash a flash-resident handler.
 - The audit script's LED/part heights come from layout `heights`; missing entries fall back to the default.
 - Radiation duct = ambient gamma only (not radon); flat base on a round duct; HV leads in humid air.
 - Wall-mount box (`box_enclosure/`, `mechanical/scripts/build_box_enclosure.py`): reuses the DIN cover's UI

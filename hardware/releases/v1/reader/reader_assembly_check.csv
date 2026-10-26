@@ -1,0 +1,17 @@
+Designator,LCSC,Manufacturer part,JLCPCB footprint,Layer,KiCad rotation,JLCPCB rotation,Stock,Library,Result
+C1,C19702,CL10A106KP8NNNC,C0603,Top,0,0,9391750,base,lands pin for pin
+C2,C14663,CC0603KRX7R9BB104,C0603,Top,0,0,51624549,base,lands pin for pin
+C3,C14663,CC0603KRX7R9BB104,C0603,Top,0,0,51624549,base,lands pin for pin
+C4,C14663,CC0603KRX7R9BB104,C0603,Top,0,0,51624549,base,lands pin for pin
+D1,C8598,B5819W SL,SOD-123_L2.7-W1.6-LS3.7-RD-1,Top,0,0,572598,base,lands pin for pin
+D2,C84256,NCD0805R1,LED0805-RD,Top,0,0,3032629,base,lands pin for pin
+J1,C3309252,2059-303/998-403,CONN-SMD_2059-303,Top,0,0,2036,expand,lands pin for pin
+R1,C22962,0603WAF2200T5E,R0603,Top,0,0,3279230,base,lands pin for pin
+R2,C23162,0603WAF4701T5E,R0603,Top,0,0,19744962,base,lands pin for pin
+R3,C25804,0603WAF1002T5E,R0603,Top,0,0,31003109,base,lands pin for pin
+R4,C23150,0603WAF3903T5E,R0603,Top,0,0,60871,expand,lands pin for pin
+R5,C21190,0603WAF1001T5E,R0603,Top,0,0,24731929,base,lands pin for pin
+R6,C23138,0603WAF3300T5E,R0603,Top,0,0,3554662,base,lands pin for pin
+RV1,C719176,TC33X-2-103E,RES-ADJ-SMD_3P-L3.0-W3.8-P1.75-BR,Top,0,180,17373,expand,lands pin for pin
+U1,C2984661,TCRT5000,OPTO-TH_TCRT5000,Bottom,90,90,1679,expand,lands pin for pin
+U2,C34731,LMV331IDBVR,SOT-23-5_L3.0-W1.7-P0.95-LS2.8-BR,Top,0,180,172241,expand,lands pin for pin

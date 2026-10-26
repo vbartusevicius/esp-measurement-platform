@@ -8,7 +8,7 @@ void HaDiscovery::publish(MQTTClient& client, const HaDiscoveryContext& ctx, con
 {
     JsonDocument doc;
     doc["name"] = entity.name;
-    doc["unique_id"] = ctx.deviceId + "_" + entity.uniqueSuffix;
+    doc["unique_id"] = ctx.deviceId + "_" + ctx.objectPrefix + entity.uniqueSuffix;
     doc["state_topic"] = ctx.stateTopic;
     if (entity.valueTemplate) doc["value_template"] = entity.valueTemplate;
     if (entity.unit) doc["unit_of_measurement"] = entity.unit;
@@ -29,7 +29,9 @@ void HaDiscovery::publish(MQTTClient& client, const HaDiscoveryContext& ctx, con
     if (extra) extra(doc, ctx);
 
     String topic = String("homeassistant/") + entity.component + "/" + ctx.deviceId + "/";
-    if (entity.objectId[0]) topic += String(entity.objectId) + "/";
+    String object = ctx.objectPrefix + entity.objectId;
+    if (!entity.objectId[0] && object.endsWith("_")) object = object.substring(0, object.length() - 1);
+    if (object.length()) topic += object + "/";
     topic += "config";
 
     String json;

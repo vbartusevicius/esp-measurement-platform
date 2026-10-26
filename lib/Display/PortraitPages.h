@@ -7,13 +7,18 @@
 #include "ScreenModel.h"
 
 class DeviceMonitor;
+class LimitMonitor;
 
-// Draws the 64x128 portrait pages (main, STAT, LOG, WIFI) and the alert and
-// WiFi-setup pop-ups into the caller's buffer. Owns no state between frames.
+// Draws the 64x128 portrait pages into the caller's buffer: one page per
+// sensor (its reading and sensor diagnostics), then DEV (network, MQTT,
+// relay, system), LOG and WIFI; plus the alert and WiFi-setup pop-ups. The
+// header of every page shows the WiFi bars, an MQTT mark and the page number.
+// Owns no state between frames.
 class PortraitPages
 {
     public:
-        static constexpr int PAGE_COUNT = 4;
+        static constexpr int SYSTEM_PAGES = 3;
+        static int pageCount(size_t sensors) { return (int)(sensors ? sensors : 1) + SYSTEM_PAGES; }
 
         explicit PortraitPages(U8G2& u8g2);
         void draw(const DisplayFrame& frame, int page);
@@ -24,20 +29,21 @@ class PortraitPages
         const int width;
         const int height;
 
-        void drawHeader(const char* title, int pageNumber);
-        void drawMainPage(const DisplayFrame& frame);
-        void drawStatPage(const DisplayFrame& frame);
-        void drawLogPage(const DisplayFrame& frame);
-        void drawWifiPage();
-        void drawAlertModal(const ScreenModel& screen, const DeviceMonitor& monitor);
+        void drawHeader(const char* title, int page, int pages, bool mqtt);
+        void drawSensorPage(const DisplayFrame& frame, size_t sensor, int page);
+        void drawNoSensorPage(const DisplayFrame& frame);
+        void drawDevicePage(const DisplayFrame& frame, int page);
+        void drawLogPage(const DisplayFrame& frame, int page);
+        void drawWifiPage(const DisplayFrame& frame, int page);
+        void drawAlertModal(const ScreenModel& screen, const LimitMonitor& limits, const DeviceMonitor& monitor);
         void drawHero(const ScreenModel& screen, int top, int left, bool centred);
-        void drawSparkline(const ScreenModel& screen, const DeviceMonitor* monitor, int top, int boxHeight);
-        void drawGauge(const ScreenModel& screen, const DeviceMonitor& monitor, int top, int boxHeight);
+        void drawSparkline(const ScreenModel& screen, const LimitMonitor* limits, int top, int boxHeight);
+        void drawGauge(const ScreenModel& screen, const LimitMonitor& limits, int top, int boxHeight);
         void drawPill(int x, int y, const char* label, bool ok);
         void drawText(int x, int top, const char* text);
         void drawRow(int top, const char* label, const String& value);
         void drawIpFooter();
-        void axisRange(const ScreenModel& screen, const DeviceMonitor* monitor, float& lo, float& hi) const;
+        void axisRange(const ScreenModel& screen, const LimitMonitor* limits, float& lo, float& hi) const;
         String withUnit(const ScreenModel& screen, float value) const;
 };
 

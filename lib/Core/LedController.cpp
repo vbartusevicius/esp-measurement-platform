@@ -22,7 +22,7 @@ void LedController::begin(HAL* hal)
     pixels.show();
 }
 
-void LedController::click()
+IRAM_ATTR void LedController::click()   // called from sensor ISRs
 {
     this->pendingClick = true;
 }

@@ -23,3 +23,4 @@
 #include "../../lib/Plugins/AnalogVoltage/AnalogVoltagePlugin.cpp"
 #include "../../lib/Plugins/UltrasonicDistance/UltrasonicDistancePlugin.cpp"
 #include "../../lib/Plugins/RadiationCounter/RadiationCounterPlugin.cpp"
+#include "../../lib/Plugins/PulseMeter/PulseMeterPlugin.cpp"

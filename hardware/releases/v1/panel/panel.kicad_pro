@@ -539,6 +539,22 @@
       },
       {
         "netclass": "SELV",
+        "pattern": "IO3_MCU"
+      },
+      {
+        "netclass": "SELV",
+        "pattern": "IO3_TERM"
+      },
+      {
+        "netclass": "SELV",
+        "pattern": "IO4_MCU"
+      },
+      {
+        "netclass": "SELV",
+        "pattern": "IO4_TERM"
+      },
+      {
+        "netclass": "SELV",
         "pattern": "LED_DATA"
       },
       {

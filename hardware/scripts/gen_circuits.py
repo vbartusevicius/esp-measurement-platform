@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "circuits"))
 os.chdir(Path(__file__).resolve().parents[1] / "build")
 
 import common
-from product_spec import load_spec
+from product_spec import all_boards, load_spec
 from skidl import (
     ERC,
     KICAD9,
@@ -96,7 +96,7 @@ def write_derived(net_classes_by_board):
 
 
 def collect_assembly_parts(variant, spec):
-    boards = spec["variants"][variant]["boards"]
+    boards = all_boards(spec, variant)
     hand_by_mpn = {}
     all_parts = []
     for b in boards:
@@ -195,7 +195,7 @@ def main():
 
     pkg = f"variants.{variant}"
     modules = {name: importlib.import_module(f"{pkg}.{name}")
-               for name in spec["variants"][variant]["boards"]}
+               for name in all_boards(spec, variant)}
     logs = {name: generate_board(variant, name, module.build, module.NET_CLASSES)
             for name, module in modules.items()}
     write_derived({name: module.NET_CLASSES for name, module in modules.items()})

@@ -1,25 +1,31 @@
 #include "PluginConfig.h"
-#include "Storage.h"
-#include "Parameter.h"
-#include "IPlugin.h"
 #include <vector>
+#include "IPlugin.h"
+#include "Parameter.h"
+#include "SensorHub.h"
+#include "Settings.h"
 
-bool PluginConfig::isComplete(const Storage& storage, const IPlugin* plugin)
+bool PluginConfig::deviceComplete(const Settings& storage)
 {
-    // If no plugin is selected, the device is unconfigured
-    if (!plugin) return false;
+    return storage.hasParameter(Parameter::MQTT_HOST) && storage.hasParameter(Parameter::MQTT_PORT) &&
+           storage.hasParameter(Parameter::MQTT_DEVICE);
+}
 
-    // Core required parameters
-    if (!storage.hasParameter(Parameter::MQTT_HOST)) return false;
-    if (!storage.hasParameter(Parameter::MQTT_PORT)) return false;
-    if (!storage.hasParameter(Parameter::MQTT_DEVICE)) return false;
-
-    // Plugin-specific required parameters (single source: ParameterDef.required)
+bool PluginConfig::sensorComplete(const Settings& sensorSettings, const IPlugin& plugin)
+{
     std::vector<ParameterDef> defs;
-    plugin->getParameterDefs(defs);
-    for (auto& def : defs) {
-        if (def.required && !storage.hasParameter(def.key)) return false;
+    plugin.getParameterDefs(defs);
+    for (const ParameterDef& def : defs) {
+        if (def.required && !sensorSettings.hasParameter(def.key)) return false;
     }
+    return true;
+}
 
+bool PluginConfig::isComplete(const Settings& storage, const SensorHub& hub)
+{
+    if (hub.size() == 0 || !deviceComplete(storage)) return false;
+    for (size_t i = 0; i < hub.size(); i++) {
+        if (!sensorComplete(hub.settings(i), hub.plugin(i))) return false;
+    }
     return true;
 }

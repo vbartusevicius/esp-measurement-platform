@@ -79,3 +79,22 @@ REM3-2415S/A/CTRL:
     to -Vin: open or 0-1.2 V on, 2.2-12 V off
   pads: {"1": [0, 0], "2": [0, -2.54], "14": [15.24, -25.4], "16": [15.24, -20.32], "22": [15.24, -5.08], "23": [15.24, -2.54]}
   names: {"1": CTRL, "2": -Vin, "14": +Vout, "16": -Vout, "22": +Vin, "23": +Vin}
+
+"2086-1203/700-000/997-605":
+  source: >-
+    WAGO 2086-1203/700-000/997-605 (SMD PCB terminal block, push-button, side
+    entry, 3 poles, 3.5 mm): JLCPCB stocks and places it (C3309626) but
+    EasyEDA has no footprint. Same land pattern per pole as the EasyEDA
+    footprint of its 4-pole sibling 2086-1204/700-000/997-605 (C3309718,
+    CONN-SMD_4P-P3.50_2086-1204): two 1.6 x 3.9 mm pads per pole at +-4.4 mm,
+    3.5 mm pitch, pole 1 on the left seen from the top with the wire entry
+    towards -y; housing length (poles - 1) x 3.5 + 4.2 mm per the WAGO 2086
+    data sheet.
+  pads:
+    "1": [[-3.5, 4.4], [-3.5, -4.4]]
+    "2": [[0, 4.4], [0, -4.4]]
+    "3": [[3.5, 4.4], [3.5, -4.4]]
+  nets:
+    "1": [IO1_TERM, IO4_TERM]
+    "2": [IO2_TERM, GND]
+    "3": [IO3_TERM, GND]

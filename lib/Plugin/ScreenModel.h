@@ -13,7 +13,7 @@ struct ScreenLine {
 // Plugin-independent view of the primary measurement. One source for the
 // OLED pages (main + STAT) and the WebUI, so both always show the same data.
 struct ScreenModel {
-    const char* kind = "";           // level | pressure | radiation | voltage: picks the web UI view
+    const char* kind = "";           // level | pressure | radiation | voltage | water: picks the web UI view
     const char* title = "";          // header, max 4 chars: TANK / PRES / RAD
     float value = NAN;               // primary value, also what MIN/MAX limits compare
     const char* unit = "";           // unit of value, limits, trend and 24 h extremes
@@ -29,10 +29,12 @@ struct ScreenModel {
     const char* sensorLabel = "SENS";
     bool sensorOk = false;
 
-    String raw;                      // unfiltered physical reading (STAT page)
+    String raw;                      // unfiltered physical reading (web / MQTT)
     String signal;                   // terminal signal: mA / V / pulses
     float low24 = NAN;
     float high24 = NAN;
+    // Two OLED diagnostic rows under the sensor state; empty = 24 h low / high
+    std::vector<ScreenLine> details;
 
     String format(float v) const
     {

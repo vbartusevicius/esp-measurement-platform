@@ -16,6 +16,7 @@
 #include <WiFi.h>
 #include "PluginRegistry.h"
 #include "RelayOutput.h"
+#include "SensorHub.h"
 #include "Storage.h"
 #include "Version.h"
 #include "WebApi.h"
@@ -25,6 +26,7 @@
 #include "AnalogVoltagePlugin.h"
 #include "RadiationCounterPlugin.h"
 #include "UltrasonicDistancePlugin.h"
+#include "PulseMeterPlugin.h"
 
 HAL hal;
 Logger logger;
@@ -32,6 +34,7 @@ Storage storage;
 LedController ledController;
 Display display;
 PluginRegistry registry;
+SensorHub hub;
 RelayOutput relay;
 ButtonLadder buttonLadder;
 DeviceMonitor monitor;
@@ -40,12 +43,12 @@ AnalogDistancePlugin analogDistancePlugin;
 UltrasonicDistancePlugin ultrasonicDistancePlugin;
 RadiationCounterPlugin radiationCounterPlugin;
 AnalogVoltagePlugin analogVoltagePlugin;
+PulseMeterPlugin pulseMeterPlugin;
 
-// Created in setup() once WiFi and the active plugin are known
+// Created in setup() once WiFi and the sensors are known
 WifiConnector* wifi = nullptr;
 MqttClient* mqtt = nullptr;
 WebApi* webApi = nullptr;
-IPlugin* activePlugin = nullptr;
 
 bool mqttConnected()
 {
@@ -68,19 +71,23 @@ void resetDevice()
 void refreshDisplay()
 {
     DisplayFrame frame;
-    ScreenModel screen;
-    frame.screen = (activePlugin && activePlugin->getScreen(screen)) ? &screen : nullptr;
+    for (size_t i = 0; i < hub.size(); i++) {
+        ScreenModel screen;
+        hub.plugin(i).getScreen(screen);
+        frame.screens.push_back(screen);
+    }
     frame.monitor = &monitor;
     frame.mqttConnected = mqttConnected();
     frame.errors = logger.errors();
     display.run(frame);
 }
 
-// PAGE: dismisses a pending alert first, otherwise cycles the display pages.
+// PAGE: dismisses a pending alert first, otherwise moves to the next sensor
+// (then the device, log and WiFi pages).
 void pagePressed()
 {
     if (monitor.alertPending()) monitor.dismissAlert();
-    else display.nextPage();
+    else display.nextPage(hub.size());
     refreshDisplay();
 }
 
@@ -124,14 +131,19 @@ void updateNetworkLed(bool portal)
     ledController.setNetworkState(LedController::netStateFor(WiFi.status() == WL_CONNECTED, mqttConnected(), portal));
 }
 
-void sampleSensor()
+// Every second: each sensor samples on its own interval, then its limits are checked.
+void sampleSensors()
 {
-    if (activePlugin) {
-        activePlugin->loop();
+    const unsigned long now = millis();
+    bool sampled = false;
+    for (size_t i = 0; i < hub.size(); i++) {
+        if (!hub.sampleDue(i, now)) continue;
+        hub.plugin(i).loop();
         ScreenModel screen;
-        if (activePlugin->getScreen(screen)) monitor.evaluate(screen, millis());
+        if (hub.plugin(i).getScreen(screen)) monitor.evaluate(i, screen, now);
+        sampled = true;
     }
-    ledController.click();
+    if (sampled) ledController.click();
 }
 
 void everySecond()
@@ -142,18 +154,14 @@ void everySecond()
     updateNetworkLed(false);
 }
 
-void selectPlugin()
+void startSensors()
 {
-    IPlugin* plugins[] = {&analogDistancePlugin, &ultrasonicDistancePlugin, &radiationCounterPlugin, &analogVoltagePlugin};
+    IPlugin* plugins[] = {&analogDistancePlugin, &ultrasonicDistancePlugin, &radiationCounterPlugin, &analogVoltagePlugin,
+                          &pulseMeterPlugin};
     for (IPlugin* plugin : plugins) registry.add(plugin);
 
-    activePlugin = registry.get(storage.getParameter(Parameter::ACTIVE_PLUGIN, "").c_str());
-    if (activePlugin) {
-        logger.info("Active plugin: " + String(activePlugin->getName()));
-        activePlugin->setup(&hal, &storage, &logger, &ledController);
-    } else {
-        logger.warning("No plugin selected. Please configure one in the web interface.");
-    }
+    hub.begin(&storage, registry, &hal, &logger, &ledController);
+    for (size_t i = 0; i < hub.size(); i++) monitor.addSensor(hub.plugin(i).getId(), &hub.settings(i));
 }
 
 // No WiFi yet: serve the setup portal and restart once it is done.
@@ -176,12 +184,11 @@ void runSetupPortal()
 
 void startMqtt(const String& chipId)
 {
-    IMqttContributor* contributor = activePlugin ? activePlugin->mqtt() : nullptr;
-    if (storage.getParameter(Parameter::MQTT_DEVICE).isEmpty() || !contributor) {
+    if (storage.getParameter(Parameter::MQTT_DEVICE).isEmpty()) {
         logger.warning("MQTT device name not configured, skipping MQTT");
         return;
     }
-    mqtt = new MqttClient(&storage, &logger, contributor, activePlugin->getId(), chipId);
+    mqtt = new MqttClient(&storage, &logger, &hub, chipId);
     if (relay.available()) mqtt->setRelay(&relay, &monitor);
     mqtt->begin();
 }
@@ -203,7 +210,7 @@ void setup()
     const String chipId = ChipId::get();
     logger.info("=== ESP Unified ===");
     logger.info("Chip ID: " + chipId);
-    selectPlugin();
+    startSensors();
 
     const bool forcePortal = storage.getParameter(Parameter::PORTAL_ON_BOOT, "") == "1";
     if (forcePortal) storage.saveParameter(Parameter::PORTAL_ON_BOOT, String(""));
@@ -215,21 +222,21 @@ void setup()
         return;
     }
 
-    webApi = new WebApi(&storage, &logger, activePlugin, &registry, &monitor, resetDevice);
+    webApi = new WebApi(&storage, &logger, &hub, &registry, &monitor, resetDevice);
     webApi->begin();
     startMqtt(chipId);
     OtaUpdates::begin(&logger);
 
-    const int samplingInterval = activePlugin ? activePlugin->getSamplingInterval() : 10;
-    const int publishInterval = activePlugin ? activePlugin->getPublishInterval() : samplingInterval;
     taskManager.scheduleFixedRate(2000, [] { webApi->run(mqttConnected()); });
     taskManager.scheduleFixedRate(5000, [] { if (mqtt) mqtt->run(); });
-    taskManager.scheduleFixedRate(samplingInterval * 1000, [] { sampleSensor(); });
-    taskManager.scheduleFixedRate(publishInterval * 1000, [] { if (mqtt) mqtt->publish(); });
-    taskManager.scheduleFixedRate(1000, [] { everySecond(); });
+    // Sensors keep their own sampling and publishing intervals (SensorHub)
+    taskManager.scheduleFixedRate(1000, [] {
+        sampleSensors();
+        if (mqtt) mqtt->publish(millis());
+        everySecond();
+    });
 
-    logger.info("Setup complete. Sampling every " + String(samplingInterval) +
-                "s, publishing every " + String(publishInterval) + "s.");
+    logger.info("Setup complete. " + String((unsigned long)hub.size()) + " sensor(s) running.");
 }
 
 void loop()

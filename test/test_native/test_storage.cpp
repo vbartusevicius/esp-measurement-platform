@@ -63,11 +63,15 @@ TEST_F(StorageTest, ResetClearsEverything)
     EXPECT_FALSE(reloaded.hasParameter("mqtt_host"));
 }
 
-TEST_F(StorageTest, EmptyValuePreserved)
+TEST_F(StorageTest, EmptyValueRemovesTheKey)
 {
+    storage.saveParameter("mqtt_user", String("bob"));
     storage.saveParameter("mqtt_user", String(""));
-    EXPECT_TRUE(storage.hasParameter("mqtt_user"));
-    EXPECT_STREQ(storage.getParameter("mqtt_user", "default").c_str(), "");
+    EXPECT_FALSE(storage.hasParameter("mqtt_user"));
+    EXPECT_STREQ(storage.getParameter("mqtt_user", "default").c_str(), "default");
+    Storage reloaded;
+    reloaded.begin();
+    EXPECT_FALSE(reloaded.hasParameter("mqtt_user"));
 }
 
 TEST_F(StorageTest, LongValueRoundTrips)

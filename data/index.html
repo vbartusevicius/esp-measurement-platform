@@ -20,6 +20,7 @@
         </div>
         <nav class="tabs" role="tablist">
             <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+            <button role="tab" data-tab="events" aria-selected="false">Events<span id="events-badge" class="tab-badge" hidden></span></button>
             <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
             <button role="tab" data-tab="device" aria-selected="false">Device</button>
         </nav>
@@ -28,23 +29,35 @@
     <main class="page">
         <!-- OVERVIEW: one headline answer, then context -->
         <section id="tab-overview" class="tab-panel" role="tabpanel">
-            <div id="alert-slot"></div>
-            <div class="overview-grid">
+            <nav id="sensor-tabs" class="subtabs" role="tablist" aria-label="Sensors" hidden></nav>
+            <div id="alert-slot" class="alert-slot"></div>
+            <!-- The relay belongs to the device: one bar, in the same place on every Overview view -->
+            <section id="relay-bar" class="card relay-bar" aria-labelledby="relay-bar-title" hidden>
+                <div id="relay-pill" class="relay-pill" aria-hidden="true">OFF</div>
+                <div class="relay-text">
+                    <div class="relay-line"><h2 id="relay-bar-title">Relay output</h2><a id="relay-mode" class="relay-mode" href="#settings"></a></div>
+                    <div id="relay-rule" class="relay-rule"></div>
+                    <div id="relay-meta" class="muted small"></div>
+                </div>
+                <div class="relay-control">
+                    <label id="relay-switch" class="switch big" hidden>
+                        <input type="checkbox" id="relay-toggle" role="switch">
+                        <span class="slider" aria-hidden="true"></span>
+                        <span class="switch-label" id="relay-switch-label">Relay</span>
+                    </label>
+                    <a id="relay-settings-link" class="btn btn-quiet" href="#settings" hidden>Change rule</a>
+                </div>
+            </section>
+            <div id="summary-view" hidden>
+                <div id="sensor-grid" class="sensor-grid"></div>
+                <a id="latest-event" class="latest-event muted small" href="#events"></a>
+            </div>
+            <div id="detail-view" class="overview-grid">
                 <article class="card hero-card" id="hero-card">
                     <div class="skeleton">Waiting for the first reading…</div>
                 </article>
                 <div class="side">
                     <div class="tiles" id="tiles"></div>
-                    <article class="card relay-card" id="relay-card" hidden>
-                        <div class="card-head"><h2>Relay output</h2><span id="relay-mode" class="muted small"></span></div>
-                        <div class="relay-body">
-                            <div>
-                                <div id="relay-state" class="relay-state">—</div>
-                                <div id="relay-info" class="muted small"></div>
-                            </div>
-                            <button type="button" id="relay-toggle" class="btn">Switch</button>
-                        </div>
-                    </article>
                 </div>
                 <article class="card trend-card">
                     <div class="card-head">
@@ -60,58 +73,59 @@
                         <span id="trend-caption" class="muted small"></span>
                     </div>
                 </article>
-                <details class="card events-card" id="events-card">
-                    <summary>
-                        <h2>Events</h2>
-                        <span id="events-summary" class="muted small"></span>
-                    </summary>
-                    <ul id="events-list" class="events"></ul>
-                </details>
             </div>
+        </section>
+
+        <!-- EVENTS: device events and the system log on one timeline -->
+        <section id="tab-events" class="tab-panel" role="tabpanel" hidden>
+            <article class="card events-filters">
+                <div class="filter-row" role="group" aria-label="Show">
+                    <button type="button" class="chip" data-cat="alert" aria-pressed="true">Alerts</button>
+                    <button type="button" class="chip" data-cat="relay" aria-pressed="true">Relay</button>
+                    <button type="button" class="chip" data-cat="sensor" aria-pressed="true">Sensor faults</button>
+                    <button type="button" class="chip" data-cat="network" aria-pressed="true">Network</button>
+                    <button type="button" class="chip" data-cat="system" aria-pressed="true">Device</button>
+                    <button type="button" class="chip" data-cat="log" aria-pressed="false">System log</button>
+                </div>
+                <div class="filter-row">
+                    <select id="events-sensor" aria-label="Sensor" hidden></select>
+                    <label class="check" id="log-level-wrap" hidden><input type="checkbox" id="log-warn-only"> Log: warnings and errors only</label>
+                    <input type="search" id="events-search" placeholder="Search" aria-label="Search events and log">
+                    <span class="spacer"></span>
+                    <button type="button" id="events-copy" class="btn btn-quiet">Copy</button>
+                    <button type="button" id="events-download" class="btn btn-quiet">Download</button>
+                </div>
+            </article>
+            <article class="card">
+                <div id="events-count" class="muted small"></div>
+                <div id="events-timeline" class="timeline" aria-live="polite"></div>
+                <p class="muted small">The device keeps its last 16 events and the latest system-log lines in memory; older ones and everything before a restart are gone. Times are worked out from the device's uptime.</p>
+            </article>
         </section>
 
         <!-- SETTINGS -->
         <section id="tab-settings" class="tab-panel" role="tabpanel" hidden>
             <form id="config-form" novalidate>
                 <article class="card">
-                    <div class="card-head"><h2>Sensor</h2></div>
-                    <div class="field">
-                        <label for="active-plugin">Sensor type</label>
-                        <select id="active-plugin" name="active_plugin"></select>
-                        <small class="hint">Changing the sensor type restarts the device.</small>
-                    </div>
-                    <div id="plugin-params" class="field-grid"></div>
+                    <div class="card-head"><h2>Sensors</h2></div>
+                    <p class="muted small">Switch on every sensor that is wired up; they run side by side. Each one uses its own sensor-bank poles, its own settings and its own alert limits. Switching sensors on or off restarts the device.</p>
+                    <div id="sensor-list" class="sensor-list"></div>
                 </article>
 
-                <article class="card">
-                    <div class="card-head"><h2>Alerts</h2></div>
-                    <p class="muted small">Limits use the unit of the main reading (<b class="limit-unit">%</b>). Changes apply immediately, no restart needed.</p>
-                    <div class="alert-rows">
-                        <div class="alert-row">
-                            <label class="switch"><input type="checkbox" id="limit-low-on" data-switch="limit_low_on"><span class="slider" aria-hidden="true"></span><span class="switch-label">Low alert <b class="switch-state"></b></span></label>
-                            <div class="input-unit"><input type="number" step="any" id="limit-low" name="limit_low" aria-label="Low alert limit"><span class="limit-unit">%</span></div>
-                            <small class="hint">Alert when the reading drops below this value.</small>
-                        </div>
-                        <div class="alert-row">
-                            <label class="switch"><input type="checkbox" id="limit-high-on" data-switch="limit_high_on"><span class="slider" aria-hidden="true"></span><span class="switch-label">High alert <b class="switch-state"></b></span></label>
-                            <div class="input-unit"><input type="number" step="any" id="limit-high" name="limit_high" aria-label="High alert limit"><span class="limit-unit">%</span></div>
-                            <small class="hint">Alert when the reading rises above this value.</small>
-                        </div>
-                        <div class="alert-row">
-                            <label for="limit-hysteresis" class="row-label">Clear margin</label>
-                            <div class="input-unit"><input type="number" step="any" min="0" id="limit-hysteresis" name="limit_hysteresis" placeholder="0"><span class="limit-unit">%</span></div>
-                            <small class="hint">How far back inside the limit the reading must return before an alert clears. Stops flapping around the limit.</small>
-                        </div>
-                    </div>
-                    <div id="limit-error" class="field-error" hidden></div>
-
+                <article class="card" id="relay-settings">
+                    <div class="card-head"><h2>Relay output</h2></div>
                     <fieldset id="relay-mode-group" class="choices">
-                        <legend>Relay output</legend>
+                        <legend>Mode</legend>
                         <label class="choice"><input type="radio" name="relay_mode" value="manual"><span><b>Manual</b><small>Switched from the Overview page or from Home Assistant (MQTT).</small></span></label>
                         <label class="choice"><input type="radio" name="relay_mode" value="on_alarm"><span><b>On during an alert</b><small>E.g. start a pump or a siren while a limit is exceeded.</small></span></label>
-                        <label class="choice"><input type="radio" name="relay_mode" value="off_alarm"><span><b>Off during an alert</b><small>E.g. cut a pump when the tank runs low (dry-run protection).</small></span></label>
+                        <label class="choice"><input type="radio" name="relay_mode" value="off_alarm"><span><b>Off during an alert</b><small>E.g. cut a pump when the tank runs low, or close a valve on a burst pipe.</small></span></label>
                     </fieldset>
-                    <div id="relay-mode-warning" class="field-warning" hidden>Both alerts are off, so the relay will stay off.</div>
+                    <fieldset id="relay-source-field" class="relay-source">
+                        <legend>Follows the alerts of</legend>
+                        <p class="hint">Only one sensor can switch the relay. Its low / high alerts do; the other sensors only alert.</p>
+                        <div id="relay-source-list" class="choices"></div>
+                    </fieldset>
+                    <div id="relay-mode-warning" class="field-warning" hidden>That sensor has both alerts off, so the relay will stay off.</div>
                 </article>
 
                 <article class="card">
@@ -143,9 +157,8 @@
                             <input type="text" id="mqtt-device" name="mqtt_device" placeholder="rainwater_tank" required>
                         </div>
                         <div class="field">
-                            <label for="mqtt-topic">State topic</label>
-                            <input type="text" id="mqtt-topic" name="mqtt_topic">
-                            <small class="hint">Filled in from the device id.</small>
+                            <span class="row-label">State topics</span>
+                            <div id="mqtt-topics" class="muted small"></div>
                         </div>
                     </div>
                 </article>
@@ -180,12 +193,6 @@
                     <progress id="upload-progress" max="100" value="0" hidden></progress>
                     <span id="upload-status" class="muted small"></span>
                 </div>
-            </article>
-            <article class="card">
-                <details>
-                    <summary><h2>System log</h2></summary>
-                    <div id="log-container" class="log"></div>
-                </details>
             </article>
             <article class="card danger-zone">
                 <div class="card-head"><h2>Maintenance</h2></div>

@@ -10,7 +10,8 @@
       22k / 10k (10/32 = 0.3125) voltage divider to GND + 100nF filter cap +
       BAT54S clamp to GND and +3V3. Reads 0-10 V (0..3.125 V at ADC), 2-10 V,
       0-5 V and 0.4-4.5 V sensors via Web UI min/max voltage settings.
-  - IO1 (J2 pin 6: SDA / RX / Radiation PULSE) & IO2 (J2 pin 7: SCL / TX):
+  - IO1 (J2 pole 5: ECHO / SDA / RX), IO2 (pole 6: TRIG / SCL / TX),
+    IO3 (pole 7: Geiger PULSE), IO4 (pole 8: meter pulse, open collector):
       Each has a 4.7k pull-up to +3V3, 330R series protection resistor, and a
       BAT54S clamp (10 pF max, so I2C rise time stays inside 1 us at 100 kHz).
   - Changeover relay output (J4 pins 1=COM, 2=NO, 3=NC), 230 VAC loads:
@@ -36,8 +37,8 @@ SOT23 = "Package_TO_SOT_SMD:SOT-23"
 RELAY_G6B = "gateway_fp:Relay_1A1B_Omron_G6B-2114P"
 
 
-def res(value, fields=None, footprint=R0603):
-    return part("Device", "R", value, footprint, fields)
+def res(value, fields=None, footprint=R0603, ref=None):
+    return part("Device", "R", value, footprint, fields, ref=ref)
 
 
 def cap(value, fields=None, footprint=C0603):
@@ -103,25 +104,29 @@ def build(gnd, v3, v5):
 
     clamp("D4", v0_10_mcu, gnd, v3, "0-10V ADC input")
 
-    # --- 3. Protected Digital / Bus I/O channels (IO1: SDA/RX/PULSE, IO2: SCL/TX) ---
+    # --- 3. Protected Digital / Bus I/O channels (IO1: ECHO/SDA/RX, IO2: TRIG/SCL/TX) ---
     block("digital_io")
     io_terms = {}
     io_mcus = {}
-    for idx in (1, 2):
+
+    def digital_io(idx, refs=(None, None), clamp_ref=None, use="I2C / UART / pulses"):
         t_net = Net(f"IO{idx}_TERM")
         m_net = Net(f"IO{idx}_MCU")
         io_terms[f"io{idx}_term"] = t_net
         io_mcus[f"io{idx}_mcu"] = m_net
 
-        r_pu = res("4k7", src(source=f"IO{idx} 3.3 V pull-up (I2C / UART / Geiger PULSE)"))
+        r_pu = res("4k7", src(source=f"IO{idx} 3.3 V pull-up ({use})"), ref=refs[0])
         r_pu[1] += v3
         r_pu[2] += m_net
 
-        r_ser = res("330R", src(source=f"IO{idx} series protection resistor"))
+        r_ser = res("330R", src(source=f"IO{idx} series protection resistor"), ref=refs[1])
         r_ser[1] += t_net
         r_ser[2] += m_net
 
-        clamp(f"D{idx + 4}", m_net, gnd, v3, f"IO{idx}")
+        clamp(clamp_ref or f"D{idx + 4}", m_net, gnd, v3, f"IO{idx}")
+
+    for idx in (1, 2):
+        digital_io(idx)
 
     # Rail Zener across +5V so clamped fault currents cannot lift the supply rail
     d_rail = part("Device", "D_Zener", "5V6", SOD123,
@@ -174,6 +179,12 @@ def build(gnd, v3, v5):
     k1["6"] += relay_com
     k1["4"] += relay_no
     k1["5"] += relay_nc
+
+    # --- 5. IO3 (Geiger PULSE) & IO4 (meter pulse (dial reader / open collector)), same front-end as IO1/IO2.
+    #        Explicit refs so the existing ones keep their numbers.
+    block("digital_io2")
+    digital_io(3, ("R18", "R19"), "D10", "Geiger counter PULSE")
+    digital_io(4, ("R20", "R21"), "D11", "meter pulse (dial reader / open collector)")
 
     return {
         "ma_term": ma_term,

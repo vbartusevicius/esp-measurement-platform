@@ -12,7 +12,8 @@ public:
     const char* getId() const override { return _id; }
     const char* getName() const override { return _name; }
 
-    void setup(HAL*, Storage*, Logger*, LedController*) override {}
+    void setup(HAL*, Settings*, Logger*, LedController*) override {}
+    uint8_t inputs() const override { return 0; }
     void loop() override {}
 
     void getParameterDefs(std::vector<ParameterDef>&) const override {}

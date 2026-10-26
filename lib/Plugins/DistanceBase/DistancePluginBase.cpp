@@ -1,8 +1,8 @@
 #include "DistancePluginBase.h"
 #include "HAL.h"
-#include "Storage.h"
+#include "Settings.h"
 
-void DistancePluginBase::setup(HAL* hal, Storage* storage, Logger* logger, LedController* led)
+void DistancePluginBase::setup(HAL* hal, Settings* storage, Logger* logger, LedController* led)
 {
     this->hal = hal;
     this->storage = storage;

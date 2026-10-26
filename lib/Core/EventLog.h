@@ -9,7 +9,7 @@ class EventLog
 {
     public:
         static constexpr size_t CAPACITY = 16;
-        static constexpr size_t TEXT_LENGTH = 12;
+        static constexpr size_t TEXT_LENGTH = 16;   // 64 px of the OLED 4x6 font
 
         struct Entry {
             unsigned long uptimeSec = 0;

@@ -34,9 +34,10 @@ enclosure:
 
 variants:
   v1:
-    description: "1 DIN (18 mm), vertical main board + front UI board, 7-pole top sensor bank (J2 4P + J5 3P) + bottom 2-pole power (J1) and 3-pole SELV relay (J4)"
+    description: "1 DIN (18 mm), vertical main board + front UI board, 10-pole top sensor bank (WAGO 2086 3.5 mm: J2 4P + J5 3P + J6 3P) + bottom 2-pole power (J1) and 3-pole SELV relay (J4)"
     modules: 1
-    boards: [main, ui]
+    boards: [main, ui]            # in the enclosure, on one breakaway panel
+    accessory_boards: [reader]    # separate orders, never on the panel: optical dial reader
 
 boards:
   main:
@@ -85,10 +86,11 @@ terminals:
     board: main
     shoulder: top
     ref: J2
-    poles: 7
-    pitch: 5.08
-    type: push-in spring (Kefa KF142R-5.08-7P)
-    labels: [GND, +5V, +24V, 4-20mA, 0-10V, IO1, IO2]
+    refs: [J2, J5, J6]   # poles 1-4, 5-7, 8-10
+    poles: 10
+    pitch: 3.5
+    type: push-in spring, push-button, side entry (WAGO 2086-1204 + 2 x 2086-1203, SMD)
+    labels: [+5V, +24V, 4-20mA, 0-10V, IO1, IO2, IO3, IO4, GND, GND]
 
 front_ui:
   board_z: 54.19
@@ -134,12 +136,13 @@ derived:
     v0_10_sense:
       pin: D0/GPIO0
       net: V0_10_MCU
-      note: 'ADC1_CH0: 0-10V / 0-5V / 0.4-4.5V / 2-10V input (22k/10k divider, J2.5)'
+      note: 'ADC1_CH0: 0-10V / 0-5V / 0.4-4.5V / 2-10V input (22k/10k divider, J2
+        pole 4)'
     ma_sense:
       pin: D1/GPIO1
       net: MA_MCU
       note: 'ADC1_CH1: 4-20 mA current-loop input (50 mA PTC + 120R shunt: 20 mA =
-        2.40 V, J2.4)'
+        2.40 V, J2 pole 3)'
     button_ladder:
       pin: D2/GPIO2
       net: BTN_LADDER
@@ -159,17 +162,24 @@ derived:
     io2_bus_tx_scl:
       pin: D6/GPIO16
       net: IO2_MCU
-      note: 'Protected sensor IO2: ToF I2C SCL / Ultrasonic UART TX (J2.7)'
+      note: 'Protected sensor IO2: ultrasonic TRIG / I2C SCL / UART TX (J2 pole 6)'
     io1_bus_rx_sda:
       pin: D7/GPIO17
       net: IO1_MCU
-      note: 'Protected sensor IO1: ToF I2C SDA / Ultrasonic UART RX / Radiation PULSE
-        (J2.6)'
+      note: 'Protected sensor IO1: ultrasonic ECHO / I2C SDA / UART RX (J2 pole 5)'
     relay_ctrl:
       pin: D8/GPIO19
       net: RELAY_MCU
       note: Drives Omron G6B-2114P-US DC5 changeover relay (J4.1 COM, J4.2 NO, J4.3
         NC; 230 VAC 2 A)
+    io3_pulse:
+      pin: D9/GPIO20
+      net: IO3_MCU
+      note: 'Protected sensor IO3: Geiger counter PULSE (J2 pole 7)'
+    io4_pulse:
+      pin: D10/GPIO18
+      net: IO4_MCU
+      note: 'Protected sensor IO4: water meter open-collector pulse (J2 pole 8)'
   net_classes:
     main:
       SELV:
@@ -188,6 +198,10 @@ derived:
       - IO1_MCU
       - IO2_TERM
       - IO2_MCU
+      - IO3_TERM
+      - IO3_MCU
+      - IO4_TERM
+      - IO4_MCU
       - RELAY_MCU
       - RELAY_BASE
       - RELAY_COIL_N
@@ -215,4 +229,18 @@ derived:
       - I2C_SDA
       - I2C_SCL
       - Net-*
+    reader:
+      SELV:
+      - GND
+      - IR_A
+      - SENSE
+      - SENSE_IN
+      - THRESHOLD
+      - CMP_OUT
+      - LED_A
+      - PULSE
+      - Net-*
+      SELV-Power:
+      - +5V_IN
+      - +5V_S
 # --- END GENERATED ---

@@ -128,10 +128,10 @@ TEST(EventLog, StoresUppercaseTruncatedEntriesNewestFirst)
 {
     EventLog log;
     log.add("system boot", "fw 1.2.3", 1000);
-    log.add("MQTT ONLINE", "192.168.0.10.extra", 5000);
+    log.add("MQTT ONLINE", "192.168.0.10.extra-long", 5000);
     ASSERT_EQ(log.size(), 2u);
     EXPECT_STREQ(log.newest(0).title, "MQTT ONLINE");
-    EXPECT_STREQ(log.newest(0).detail, "192.168.0.10");
+    EXPECT_STREQ(log.newest(0).detail, "192.168.0.10.EXT");   // 16 chars: the OLED width
     EXPECT_EQ(log.newest(0).uptimeSec, 5u);
     EXPECT_STREQ(log.newest(1).title, "SYSTEM BOOT");
 }

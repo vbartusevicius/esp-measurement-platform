@@ -2,7 +2,7 @@
 #include "HAL.h"
 #include "LedController.h"
 #include "Logger.h"
-#include "Storage.h"
+#include "Settings.h"
 
 RadiationCounterPlugin* RadiationCounterPlugin::instance = nullptr;
 
@@ -43,7 +43,7 @@ IRAM_ATTR void RadiationCounterPlugin::radiationISR()
 const char* RadiationCounterPlugin::getId() const { return "radiation_counter"; }
 const char* RadiationCounterPlugin::getName() const { return "Radiation Counter Gateway"; }
 
-void RadiationCounterPlugin::setup(HAL* hal, Storage* storage, Logger* logger, LedController* led)
+void RadiationCounterPlugin::setup(HAL* hal, Settings* storage, Logger* logger, LedController* led)
 {
     this->hal = hal;
     this->storage = storage;
@@ -72,7 +72,7 @@ void RadiationCounterPlugin::setup(HAL* hal, Storage* storage, Logger* logger, L
     logger->info("Radiation counter interrupt attached");
 }
 
-void RadiationCounterPlugin::onRadiationClick()
+IRAM_ATTR void RadiationCounterPlugin::onRadiationClick()
 {
     this->clickCounter++;
     if (this->led) this->led->click();

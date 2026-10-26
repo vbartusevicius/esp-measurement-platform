@@ -33,11 +33,12 @@ def run_eda(boards, *, fresh=False, do_release=False, do_test=False):
     import pcbnew
     import release
     import render_board
+    from product_spec import all_boards
 
     gen_circuits.main()
     os.chdir(REPO)
     variant = layout.VARIANT
-    target_boards = boards or layout.SPEC["variants"][variant]["boards"]
+    target_boards = boards or all_boards(layout.SPEC, variant)
     for b in target_boards:
         pcb_path = layout.stored_board_path(b)
         if fresh and pcb_path.exists():
@@ -63,6 +64,7 @@ def run_cad(*, do_test=False):
     import build_box_enclosure
     import build_distance_pod
     import build_enclosure
+    import build_dial_reader
     import build_radiation_duct
     import fit_drawing
     import front_legend
@@ -79,6 +81,7 @@ def run_cad(*, do_test=False):
     render_box.main()
     build_radiation_duct.main()
     build_distance_pod.main()
+    build_dial_reader.main()
     if do_test:
         subprocess.run([
             sys.executable, "-m", "pytest",
@@ -86,6 +89,7 @@ def run_cad(*, do_test=False):
             "mechanical/tests/test_front_legend.py",
             "mechanical/tests/test_accessories.py",
             "mechanical/tests/test_box_enclosure.py",
+            "mechanical/tests/test_dial_reader.py",
             "-q", "-p", "no:cacheprovider",
         ], cwd=REPO, check=True)
 
@@ -117,7 +121,7 @@ def run_variant_on_host(variant, args):
         docker_run(variant, "cad",
                    "python3 -m pytest mechanical/tests/test_enclosure_probe.py "
                    "mechanical/tests/test_front_legend.py mechanical/tests/test_accessories.py "
-                   "mechanical/tests/test_box_enclosure.py "
+                   "mechanical/tests/test_box_enclosure.py mechanical/tests/test_dial_reader.py "
                    "-q -p no:cacheprovider --tb=short")
 
 

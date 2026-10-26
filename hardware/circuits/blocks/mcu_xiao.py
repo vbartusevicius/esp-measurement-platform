@@ -9,11 +9,11 @@ Unified XIAO ESP32-C6 Pin Map:
   4  (D3 / GPIO21) = LED_DATA    -> UI board 3x SK6805-EC15 RGB LEDs via 5 V buffer
   5  (D4 / GPIO22) = I2C_SDA     -> UI board SSD1312 OLED SDA (4.7k pull-up to +3V3)
   6  (D5 / GPIO23) = I2C_SCL     -> UI board SSD1312 OLED SCL (4.7k pull-up to +3V3)
-  7  (D6 / GPIO16) = IO2_MCU     -> Protected Sensor Bus IO2: SCL / TX / TRIG (J2.7)
-  8  (D7 / GPIO17) = IO1_MCU     -> Protected Sensor Bus IO1: SDA / RX / Geiger PULSE (J2.6)
+  7  (D6 / GPIO16) = IO2_MCU     -> Protected sensor IO2: TRIG / SCL / TX (J2 pole 6)
+  8  (D7 / GPIO17) = IO1_MCU     -> Protected sensor IO1: ECHO / SDA / RX (J2 pole 5)
   9  (D8 / GPIO19) = RELAY_MCU   -> 230 VAC changeover relay driver (J4.1 COM, J4.2 NO, J4.3 NC)
-  10 (D9 / GPIO20) = NC          -> Spare internal GPIO
-  11 (D10/ GPIO18) = NC          -> Spare internal GPIO
+  10 (D9 / GPIO20) = IO3_MCU     -> Protected sensor IO3: Geiger PULSE (J2 pole 7)
+  11 (D10/ GPIO18) = IO4_MCU     -> Protected sensor IO4: meter pulse (J2 pole 8)
   12 (3V3)         = +3V3        -> 3.3 V output from XIAO regulator for logic & OLED
   13 (GND)         = GND         -> System ground
   14 (5V)          = +5V_XIAO    -> Fed from +5V buck through LM66100 ideal diode
@@ -30,20 +30,22 @@ SC70_6 = "Package_TO_SOT_SMD:SOT-363_SC-70-6"
 XIAO_FP = "gateway_fp:XIAO_ESP32C6_Header"
 
 MCU_PINS = {
-    "v0_10_sense": {"pin": "D0/GPIO0", "net": "V0_10_MCU", "note": "ADC1_CH0: 0-10V / 0-5V / 0.4-4.5V / 2-10V input (22k/10k divider, J2.5)"},
-    "ma_sense": {"pin": "D1/GPIO1", "net": "MA_MCU", "note": "ADC1_CH1: 4-20 mA current-loop input (50 mA PTC + 120R shunt: 20 mA = 2.40 V, J2.4)"},
+    "v0_10_sense": {"pin": "D0/GPIO0", "net": "V0_10_MCU", "note": "ADC1_CH0: 0-10V / 0-5V / 0.4-4.5V / 2-10V input (22k/10k divider, J2 pole 4)"},
+    "ma_sense": {"pin": "D1/GPIO1", "net": "MA_MCU", "note": "ADC1_CH1: 4-20 mA current-loop input (50 mA PTC + 120R shunt: 20 mA = 2.40 V, J2 pole 3)"},
     "button_ladder": {"pin": "D2/GPIO2", "net": "BTN_LADDER", "note": "ADC1_CH2: RST/WIFI + PAGE buttons on UI board"},
     "led_data": {"pin": "D3/GPIO21", "net": "LED_DATA", "note": "SK6805 RGB LED chain via 5 V buffer on UI"},
     "i2c_sda": {"pin": "D4/GPIO22", "net": "I2C_SDA", "note": "Internal I2C SDA to OLED on UI board"},
     "i2c_scl": {"pin": "D5/GPIO23", "net": "I2C_SCL", "note": "Internal I2C SCL to OLED on UI board"},
-    "io2_bus_tx_scl": {"pin": "D6/GPIO16", "net": "IO2_MCU", "note": "Protected sensor IO2: ToF I2C SCL / Ultrasonic UART TX (J2.7)"},
-    "io1_bus_rx_sda": {"pin": "D7/GPIO17", "net": "IO1_MCU", "note": "Protected sensor IO1: ToF I2C SDA / Ultrasonic UART RX / Radiation PULSE (J2.6)"},
+    "io2_bus_tx_scl": {"pin": "D6/GPIO16", "net": "IO2_MCU", "note": "Protected sensor IO2: ultrasonic TRIG / I2C SCL / UART TX (J2 pole 6)"},
+    "io1_bus_rx_sda": {"pin": "D7/GPIO17", "net": "IO1_MCU", "note": "Protected sensor IO1: ultrasonic ECHO / I2C SDA / UART RX (J2 pole 5)"},
     "relay_ctrl": {"pin": "D8/GPIO19", "net": "RELAY_MCU", "note": "Drives Omron G6B-2114P-US DC5 changeover relay (J4.1 COM, J4.2 NO, J4.3 NC; 230 VAC 2 A)"},
+    "io3_pulse": {"pin": "D9/GPIO20", "net": "IO3_MCU", "note": "Protected sensor IO3: Geiger counter PULSE (J2 pole 7)"},
+    "io4_pulse": {"pin": "D10/GPIO18", "net": "IO4_MCU", "note": "Protected sensor IO4: meter pulse (dial reader / open collector) (J2 pole 8)"},
 }
 
 
-def res(value, fields=None, footprint=R0603):
-    return part("Device", "R", value, footprint, fields)
+def res(value, fields=None, footprint=R0603, ref=None):
+    return part("Device", "R", value, footprint, fields, ref=ref)
 
 
 def cap(value, fields=None, footprint=C0603):
@@ -86,8 +88,8 @@ def build(gnd, v3, v5_buck, s_io):
     u3["7"] += s_io["io2_mcu"]    # D6/GPIO16
     u3["8"] += s_io["io1_mcu"]    # D7/GPIO17
     u3["9"] += s_io["relay_mcu"]  # D8/GPIO19
-    u3["10"] += NC                # D9/GPIO20
-    u3["11"] += NC                # D10/GPIO18
+    u3["10"] += s_io["io3_mcu"]   # D9/GPIO20
+    u3["11"] += s_io["io4_mcu"]   # D10/GPIO18
     u3["12"] += v3                # 3V3 regulator output
     u3["13"] += gnd               # GND
     u3["14"] += v5_xiao           # 5V input
@@ -96,8 +98,8 @@ def build(gnd, v3, v5_buck, s_io):
     c_v3[1] += v3
     c_v3[2] += gnd
 
-    for net_ in (sda, scl):
-        r = res("4k7", src(source="Internal OLED I2C pull-up"))
+    for net_, ref in ((sda, "R16"), (scl, "R17")):   # refs fixed: IO3/IO4 parts use R18..R21
+        r = res("4k7", src(source="Internal OLED I2C pull-up"), ref=ref)
         r[1] += v3
         r[2] += net_
 

@@ -1,0 +1,58 @@
+# V1 optical dial reader (accessory board, ordered on its own): 31.5 x 18 mm, 4 layers, 1.2 mm.
+# Plan coords = dial coords + (10.5, 9): dial (0, 0) is the dial centre, +x points at the
+# reflective wheel (axis 20.5 mm out on the GMDM dial, half-disc Ø14.5 mm). The housing's
+# carrier holds the board in a pocket and turns on the glass, so the sensor can be swung
+# exactly over the wheel after the lock ring is on.
+# Back: TCRT5000 U1 at dial (16.5, 0), turned so its emitter and detector spots sit at
+# (16.5, +-2.75), 4.9 mm from the wheel axis; its 7 mm body ends 0.5 mm above the glass.
+# Front (all <= 2.7 mm tall): J1 WAGO 2059-303 with the wire entry at the -x edge (cable hole),
+# trimmer RV1 and LED D2 under the lid holes.
+
+frame:
+  size: { x: 31.5, y: 18.0 }
+  copper_layers: 4
+  thickness: 1.2
+  min_drill: 0.2
+  min_track: 0.15
+  edge_clearance: 0.3
+  silk_inside: true
+  plane_layers: [In1.Cu]
+  domains: [SELV]
+  domain_regions:
+    SELV: { x0: 0.0, y0: 0.0, x1: 31.5, y1: 18.0 }
+  isolators: []
+  power_nets: [+5V_IN, +5V_S]
+  pours:
+    - { net: GND, layers: [In1.Cu], region: { x0: 0.4, y0: 0.4, x1: 31.1, y1: 17.6 } }
+
+heights:
+  default: 1.2
+  J1: 2.7
+  U1: 7.0
+  RV1: 1.2
+  D1: 1.2
+
+parts:
+  # --- cable terminal at the -x edge, wire entry pointing out of the board ---
+  J1:  { x: 4.9,  y: 9.0,  rot: 0,   block: connector, locked: true }
+  D1:  { x: 10.5, y: 15.5, rot: 0,   block: power }
+  C1:  { x: 10.5, y: 2.5,  rot: 0,   block: power }
+  C2:  { x: 14.0, y: 2.5,  rot: 0,   block: power }
+
+  # --- optical sensor on the back over the wheel ---
+  U1:  { x: 27.0, y: 9.0,  rot: 90,  side: back, block: sensor, locked: true }
+  R1:  { x: 22.5, y: 15.5, rot: 0,   block: sensor }
+  R2:  { x: 22.5, y: 2.5,  rot: 0,   block: sensor }
+  C3:  { x: 18.5, y: 2.5,  rot: 0,   block: sensor }
+
+  # --- comparator, threshold trimmer, hysteresis ---
+  U2:  { x: 17.0, y: 9.0,  rot: 0,   block: comparator }
+  R3:  { x: 21.5, y: 6.5,  rot: 0,   block: comparator }
+  R4:  { x: 21.5, y: 11.5, rot: 0,   block: comparator }
+  C4:  { x: 14.2, y: 5.6,  rot: 0,   block: comparator }
+  RV1: { x: 12.2, y: 9.0,  rot: 0,   block: comparator, locked: true }
+
+  # --- indicator LED and output ---
+  R5:  { x: 16.0, y: 12.3, rot: 0,   block: output }
+  D2:  { x: 16.0, y: 15.5, rot: 0,   block: output, locked: true }
+  R6:  { x: 11.0, y: 12.5, rot: 0,   block: output }

@@ -30,6 +30,7 @@ class AnalogDistancePlugin : public DistancePluginBase
     public:
         const char* getId() const override;
         const char* getName() const override;
+        uint8_t inputs() const override { return Board::INPUT_MA; }
 
         void publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx) override;
 };

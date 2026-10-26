@@ -4,7 +4,8 @@ simulated sensors.
 
     python3 tools/webui_mock.py [port]      then open http://127.0.0.1:8790/?sensor=tank
 
-Scenarios: tank, tank-basic, tank-alarm, pressure, radiation, radiation-high, fault.
+Scenarios: house, house-alarm (four sensors side by side), tank, tank-basic, tank-alarm, pressure, radiation,
+radiation-high, water, water-leak, gas, fault.
 Add &clean=1 to hide the scenario switcher (used for the README screenshots).
 """
 import base64, hashlib, json, math, os, struct, sys, threading, time
@@ -22,7 +23,15 @@ PLUGINS = {
     'ultrasonic_distance': 'Ultrasonic Distance Meter',
     'radiation_counter': 'Radiation Counter Gateway',
     'analog_voltage': 'Pressure / 0-10 V Sensor',
+    'pulse_meter': 'Pulse Meter (water, gas, oil)',
 }
+
+# firmware: ScopedSettings::prefixFor() and the sensor-bank poles each plugin needs (IPlugin::inputs)
+PREFIX = {'analog_distance': 'ad.', 'ultrasonic_distance': 'ud.', 'radiation_counter': 'rc.', 'analog_voltage': 'av.',
+          'pulse_meter': 'pm.'}
+INPUTS = {'analog_distance': [(3, '4-20mA')], 'ultrasonic_distance': [(5, 'IO1'), (6, 'IO2')],
+          'radiation_counter': [(7, 'IO3')], 'analog_voltage': [(4, '0-10V')], 'pulse_meter': [(8, 'IO4')]}
+LIMIT_KEYS = ('limit_low', 'limit_high', 'limit_low_on', 'limit_high_on', 'limit_hysteresis')
 
 COMMON_DISTANCE = [
     ('avg_sample_count', 'Median Window Samples', '10', 'number', False),
@@ -51,17 +60,29 @@ PARAMS = {
                        ('value_decimals', 'Decimals', '1', 'number', False),
                        ('display_title', 'Display Title (4 chars)', 'PRES', 'text', False),
                        ('sampling_interval', 'Sampling Interval (s)', '5', 'number', False)],
+    'pulse_meter': [('meter_medium', 'Medium', 'water', 'select', False),
+                    ('meter_liters_per_pulse', 'Litres per Pulse (K)', '1', 'number', True),
+                    ('meter_reading_m3', 'Meter Reading (m3)', '', 'number', False),
+                    ('meter_min_pulse_gap_ms', 'Min Pulse Gap (ms)', '50', 'number', False),
+                    ('meter_leak_hours', 'Leak Alert after (h, 0=off)', '24', 'number', False)],
 }
 
 TUBES = [('j305', 'J305 (glass, 107 mm)', '123.1', '180'), ('m4011', 'M4011 (glass, 88 mm)', '153.8', '0'),
          ('sbm20', 'SBM-20 / СБМ-20', '175.4', '190'), ('sts5', 'STS-5 / СТС-5', '175.4', '190'),
          ('si29bg', 'SI-29BG / СИ-29БГ', '122', '0'), ('sbm19', 'SBM-19 / СБМ-19', '476.2', '0'),
          ('lnd712', 'LND 712 (end window)', '108', '90'), ('si3bg', 'SI-3BG / СИ-3БГ (high range)', '1.58', '0')]
-SELECT_EXTRA = {'tube_model': dict(
+SELECT_EXTRA = {'meter_medium': dict(options=[dict(value='water', label='Water'), dict(value='gas', label='Gas'),
+                                               dict(value='oil', label='Oil / fuel'), dict(value='other', label='Other (volume)')],
+                                      presets={}),
+                'tube_model': dict(
     options=[dict(value=t[0], label=t[1]) for t in TUBES] + [dict(value='custom', label='Other / custom')],
     presets={t[0]: {'tube_conversion_factor': t[2], 'tube_dead_time_us': t[3]} for t in TUBES})}
 
 SCENARIOS = {
+    'house': dict(label='House: tank + pressure + radiation + water', name='Utility room', relay=True, mode='off_alarm',
+                  source='analog_distance', parts=['tank', 'pressure', 'radiation', 'water']),
+    'house-alarm': dict(label='House with alerts (tank low, radiation, leak)', name='Utility room', relay=True, mode='off_alarm',
+                        source='analog_distance', parts=['tank-alarm', 'pressure', 'radiation-high', 'water-leak']),
     'tank': dict(label='Water tank (4–20 mA, with volume)', plugin='analog_distance', name='Rainwater tank',
                  relay=True, mode='manual', low='20', high='95', hyst='5', capacity=3000, base=64.0,
                  values={'total_volume': '3000', 'distance_empty': '250', 'distance_full': '30'}),
@@ -78,6 +99,15 @@ SCENARIOS = {
     'radiation-high': dict(label='Radiation, elevated (alert)', plugin='radiation_counter', name='Basement radiation',
                            relay=True, mode='on_alarm', low='', high='0.3', hyst='0.05', dose=0.42,
                            values={'tube_model': 'm4011', 'tube_conversion_factor': '150', 'tube_dead_time_us': '0'}),
+    'gas': dict(label='Gas meter (dial reader, 10 L per turn)', plugin='pulse_meter', name='House gas', relay=False,
+                mode='manual', low='', high='', hyst='', leak=False, medium='gas',
+                values={'meter_medium': 'gas', 'meter_liters_per_pulse': '10', 'meter_reading_m3': '4821.3'}),
+    'water': dict(label='Water meter (dial reader)', plugin='pulse_meter', name='House water', relay=True,
+                  mode='off_alarm', low='', high='30', hyst='2', leak=False,
+                  values={'meter_liters_per_pulse': '1', 'meter_reading_m3': '1666.6'}),
+    'water-leak': dict(label='Water meter, continuous flow (leak)', plugin='pulse_meter', name='House water', relay=True,
+                       mode='manual', low='', high='30', hyst='2', leak=True,
+                       values={'meter_liters_per_pulse': '1', 'meter_reading_m3': '1666.6'}),
     'fault': dict(label='Tank with a sensor fault', plugin='analog_distance', name='Rainwater tank',
                   relay=True, mode='manual', low='20', high='95', hyst='5', capacity=3000, base=0, fault=True,
                   values={'total_volume': '3000'}),
@@ -91,11 +121,21 @@ clients = []   # (conn, scenario)
 def rt(name):
     if name not in runtime:
         s = SCENARIOS[name]
-        runtime[name] = {'relay_on': False, 'activations': 2, 'ack': False, 'last_state': None,
-                         'config': {'limit_low': s['low'], 'limit_high': s['high'], 'limit_hysteresis': s['hyst'],
-                                    'limit_low_on': '1' if s['low'] else '0', 'limit_high_on': '1' if s['high'] else '0',
-                                    'relay_mode': s['mode'], 'device_name': s['name']}}
+        cfg = {'relay_mode': s['mode'], 'relay_source': s.get('source', ''), 'device_name': s['name']}
+        if 'parts' not in s:
+            cfg.update({'limit_low': s['low'], 'limit_high': s['high'], 'limit_hysteresis': s['hyst'],
+                        'limit_low_on': '1' if s['low'] else '0', 'limit_high_on': '1' if s['high'] else '0'})
+        runtime[name] = {'relay_on': False, 'activations': 2, 'ack': False, 'last_state': None, 'config': cfg}
     return runtime[name]
+
+
+def parts(name):
+    """The single-sensor scenarios that make up a scenario (itself for the classic ones)."""
+    return SCENARIOS[name].get('parts', [name])
+
+
+def part_for(name, plugin):
+    return next((p for p in parts(name) if SCENARIOS[p]['plugin'] == plugin), None)
 
 
 def num(v):
@@ -184,6 +224,35 @@ def simulate(name):
                       low_24h=round(min(hist + trend), 2), high_24h=round(max(hist + trend), 2))
         return screen, stats, hist, 900, 'bar'
 
+    if s['plugin'] == 'pulse_meter':
+        # Household use: morning and evening peaks; a leak adds a steady trickle that never stops
+        def litres(bar):
+            hour = (bar % 96) / 4
+            use = 14 if 6.5 < hour < 8 else 9 if 18 < hour < 21 else 2 if 8 < hour < 23 else 0
+            return max(0.0, use + noise(bar, use * 0.5)) + (1.5 if s['leak'] else 0)
+        bar_now = int((BOOT_UPTIME + t) / 900)
+        hist = [round(litres(bar_now - 95 + i), 1) for i in range(96)]
+        usage = sum(hist)
+        flow = (6.8 + noise(int(t / 7), 0.6)) if int(t / 60) % 5 < 2 else (0.1 if s['leak'] else 0.0)
+        trend = [round((6.8 if (int(t / 60) - 55 + i) % 5 < 2 else (0.1 if s['leak'] else 0.0)) + noise(i, 0.4), 2) for i in range(56)]
+        total = (4821300 if s.get('medium') == 'gas' else 1666600) + uptime() * 0.25
+        cont = 27 if s['leak'] else 0
+        stats = [dict(key='medium', label='Medium', value=s.get('medium', 'water'), numeric=0),
+                 dict(key='total_m3', label='Meter Reading', value=f'{total / 1000:.3f} m³', numeric=round(total / 1000, 3)),
+                 dict(key='flow_rate', label='Flow Rate', value=f'{flow:.1f} L/min', numeric=round(flow, 1)),
+                 dict(key='usage_24h', label='Usage 24h', value=f'{usage:.0f} L', numeric=round(usage)),
+                 dict(key='continuous_h', label='Continuous Flow', value=f'{cont} h', numeric=cont),
+                 dict(key='pulses', label='Pulses since Start', value=str(int(uptime() * 0.25)), numeric=int(uptime() * 0.25)),
+                 dict(key='liters_per_pulse', label='Litres per Pulse', value='1.0 L', numeric=1.0)]
+        if s['leak']:
+            stats.append(dict(key='leak', label='Leak', value='CONTINUOUS FLOW', numeric=1))
+        screen = dict(kind='meter', title={'gas': 'GAS'}.get(s.get('medium'), 'WATR'), value=round(flow, 1), text=f'{flow:.1f}', unit='L/min', decimals=1, valid=True,
+                      scale_min=0, scale_max=None, trend_bucket_s=60, trend=trend,
+                      lines=[dict(label='TOT', value=f'{total / 1000:.1f}m3'), dict(label='24H', value=f'{usage:.0f}L')],
+                      sensor_label='PULS', sensor_ok=True, raw=f'{total / 1000:.3f}m3', signal=f'{int(uptime() * 0.25)}p',
+                      low_24h=0, high_24h=round(max(trend) + 4, 1))
+        return screen, stats, hist, 900, 'L'
+
     base = s['dose']
     dose = max(0.0, base * (1 + noise(int(t), 0.35)))
     avg = base * (1 + noise(int(t / 30), 0.06))
@@ -203,10 +272,11 @@ def simulate(name):
     return screen, stats, hist, 600, 'µSv/h'
 
 
-def status(name):
-    s = SCENARIOS[name]
-    r = rt(name)
-    screen, stats, _, _, _ = simulate(name)
+def sensor_status(part, named):
+    """One entry of status["sensors"], its limit state and its events (firmware: StatusJson / DeviceMonitor)."""
+    s = SCENARIOS[part]
+    r = rt(part)
+    screen, stats, _, _, _ = simulate(part)
     cfg = r['config']
     low = num(cfg['limit_low']) if cfg['limit_low_on'] == '1' else None
     high = num(cfg['limit_high']) if cfg['limit_high_on'] == '1' else None
@@ -218,46 +288,100 @@ def status(name):
     if st != r['last_state']:
         r['ack'] = False
         r['last_state'] = st
-    mode = cfg['relay_mode'] if s['relay'] else 'manual'
-    if s['relay'] and mode != 'manual':
-        r['relay_on'] = (mode == 'on_alarm') == (st != 'normal')
     up = uptime()
+    who = f"{screen['title']} " if named else ''
     events = []
     if st != 'normal':
         events.append(dict(t=up - 1260, title='MIN LIMIT!' if st == 'low' else 'MAX LIMIT!',
-                           detail=f"{screen['text']}{screen['unit'] if len(screen['unit']) <= 3 else ''}{'<' if st == 'low' else '>'}{cfg['limit_low'] if st == 'low' else cfg['limit_high']}"))
-        if s['relay'] and mode != 'manual':
-            events.insert(0, dict(t=up - 1260, title='RELAY ON' if r['relay_on'] else 'RELAY OFF', detail='AUTO LIMIT'))
+                           detail=(who + f"{screen['text']}{screen['unit'] if len(screen['unit']) <= 3 else ''}{'<' if st == 'low' else '>'}{cfg['limit_low'] if st == 'low' else cfg['limit_high']}")[:16]))
     if not screen['sensor_ok']:
-        events.append(dict(t=up - 540, title='SENSOR FAULT', detail=screen['signal']))
+        events.append(dict(t=up - 540, title='SENSOR FAULT', detail=(who + screen['signal'])[:16]))
+    entry = {'id': s['plugin'], 'name': PLUGINS[s['plugin']], 'configured': part != 'tank-basic',
+             'stats': [{k: v for k, v in x.items() if k in ('key', 'label', 'value', 'numeric')} for x in stats],
+             'screen': screen, 'limits': {'low': low, 'high': high, 'state': st, 'alert': st != 'normal' and not r['ack'], 'trips': 1}}
+    return entry, st, events
+
+
+def status(name):
+    s = SCENARIOS[name]
+    r = rt(name)
+    cfg = r['config']
+    named = len(parts(name)) > 1
+    sensors, events, states = [], [], {}
+    for part in parts(name):
+        entry, st, ev = sensor_status(part, named)
+        sensors.append(entry)
+        events += ev
+        states[entry['id']] = st
+    mode = cfg['relay_mode'] if s['relay'] else 'manual'
+    source = cfg.get('relay_source') if cfg.get('relay_source') in states else sensors[0]['id']
+    if s['relay'] and mode != 'manual':
+        r['relay_on'] = (mode == 'on_alarm') == (states[source] != 'normal')
+        if states[source] != 'normal':
+            events.insert(0, dict(t=uptime() - 1260, title='RELAY ON' if r['relay_on'] else 'RELAY OFF', detail='AUTO LIMIT'))
+    up = uptime()
+    events.sort(key=lambda e: -e['t'])
     events += [dict(t=up - 7200, title='MQTT ONLINE', detail='192.168.0.10'), dict(t=up - 7212, title='MQTT OFFLINE', detail='192.168.0.10'),
                dict(t=12, title='MQTT ONLINE', detail='192.168.0.10'), dict(t=4, title='WIFI ONLINE', detail='HOME -58'),
                dict(t=0, title='SYSTEM BOOT', detail='FW V2026.10.23')]
+    relay = {'available': s['relay'], 'on': r['relay_on'], 'activations': r['activations'], 'mode': mode}
+    if mode != 'manual':
+        relay['source'] = source
     return {
-        'event': 'stats_update', 'chip_id': 'A4CF12B3C4D5', 'active_plugin': s['plugin'], 'active_plugin_name': PLUGINS[s['plugin']],
-        'wifi_network': 'HOME', 'wifi_signal': '-61', 'ip_address': '192.168.0.138', 'free_heap': 188416, 'mqtt_connected': True,
+        'event': 'stats_update', 'chip_id': 'A4CF12B3C4D5',
+        'wifi_network': 'HOME', 'wifi_signal': '-61', 'ip_address': '192.168.0.138', 'free_heap': 172032, 'mqtt_connected': True,
         'firmware_version': 'mock', 'errors': 0, 'warnings': 3, 'uptime': f'{up // 86400:02d}d {up % 86400 // 3600:02d}:{up % 3600 // 60:02d}:{up % 60:02d}',
-        'uptime_s': up, 'stats': [{k: v for k, v in st.items() if k in ('key', 'label', 'value', 'numeric')} for st in stats],
-        'screen': screen, 'configured': name != 'tank-basic',
-        'limits': {'low': low, 'high': high, 'state': st, 'alert': st != 'normal' and not r['ack'], 'trips': 1},
-        'relay': {'available': s['relay'], 'on': r['relay_on'], 'activations': r['activations'], 'mode': mode},
-        'events': events[:16],
+        'uptime_s': up, 'configured': all(x['configured'] for x in sensors),
+        'sensors': sensors, 'relay': relay, 'events': events[:16],
     }
 
 
-def config(name, plugin=None):
+def config(name):
+    """GET /api/v1/config: every sensor type, enabled ones first (firmware: ConfigJson::writeConfig)."""
     s = SCENARIOS[name]
     r = rt(name)
-    plugin = plugin or s['plugin']
-    params = [dict(key=k, label=l, default=d, type=ty, required=req, value=s['values'].get(k, d) if plugin == s['plugin'] else d,
-                   **SELECT_EXTRA.get(k, {}))
-              for k, l, d, ty, req in PARAMS[plugin]]
-    return dict(active_plugin=s['plugin'], chip_id='A4CF12B3C4D5', device_name=r['config']['device_name'],
-                mqtt_host='192.168.0.10', mqtt_port='1883', mqtt_user='', mqtt_pass_set=False, mqtt_device=name.replace('-', '_'),
-                mqtt_topic=f"{name.replace('-', '_')}/stat/{s['plugin']}", firmware_version='mock',
-                limit_low=r['config']['limit_low'], limit_high=r['config']['limit_high'], limit_hysteresis=r['config']['limit_hysteresis'],
-                limit_low_on=r['config']['limit_low_on'], limit_high_on=r['config']['limit_high_on'],
-                relay_mode=r['config']['relay_mode'], relay_available=s['relay'], plugin_params=params)
+    device = name.replace('-', '_')
+    enabled = [SCENARIOS[p]['plugin'] for p in parts(name)]
+    sensors = []
+    for plugin in enabled + [k for k in PLUGINS if k not in enabled]:
+        part = part_for(name, plugin)
+        values = SCENARIOS[part]['values'] if part else {}
+        lim = rt(part)['config'] if part else {}
+        sensors.append(dict(
+            id=plugin, name=PLUGINS[plugin], prefix=PREFIX[plugin], enabled=part is not None, topic=f'{device}/stat/{plugin}',
+            inputs=[dict(pole=p, name=n) for p, n in INPUTS[plugin]],
+            params=[dict(key=k, label=l, default=d, type=ty, required=req, value=values.get(k, d), **SELECT_EXTRA.get(k, {}))
+                    for k, l, d, ty, req in PARAMS[plugin]],
+            limits=dict(low=lim.get('limit_low', ''), high=lim.get('limit_high', ''), hysteresis=lim.get('limit_hysteresis', ''),
+                        low_on=lim.get('limit_low_on', '0'), high_on=lim.get('limit_high_on', '0'))))
+    return dict(chip_id='A4CF12B3C4D5', device_name=r['config']['device_name'], firmware_version='mock',
+                mqtt_host='192.168.0.10', mqtt_port='1883', mqtt_user='', mqtt_pass_set=False, mqtt_device=device,
+                relay_mode=r['config']['relay_mode'], relay_source=r['config'].get('relay_source', ''),
+                relay_available=s['relay'], sensors=sensors)
+
+
+def stamp(t):
+    t = int(t)
+    return f'{t // 86400:02d}d {t % 86400 // 3600:02d}:{t % 3600 // 60:02d}:{t % 60:02d}'
+
+
+def mock_log(name):
+    """The firmware's Logger lines ("00d 00:00:01 [INFO] text"), matching the events of status()."""
+    up = uptime()
+    lines = [(0, 'INFO', '=== ESP Measurement Platform ==='), (0, 'INFO', 'Firmware mock')]
+    lines += [(1, 'INFO', f"Sensor: {PLUGINS[SCENARIOS[p]['plugin']]}") for p in parts(name)]
+    lines += [(4, 'INFO', 'Connected to WiFi. IP: 192.168.0.138'), (12, 'INFO', 'Connected to MQTT broker'),
+              (13, 'INFO', 'Home Assistant discovery published'),
+              (up - 7212, 'WARN', 'MQTT connection lost, retrying in 5 s'), (up - 7200, 'INFO', 'Connected to MQTT broker')]
+    for e in status(name)['events']:
+        if e['title'] in ('MIN LIMIT!', 'MAX LIMIT!'):
+            lines.append((e['t'], 'WARN', f"Limit alarm: {e['detail']}"))
+        elif e['title'] == 'SENSOR FAULT':
+            lines.append((e['t'], 'WARN', f"Sensor fault: {e['detail']}"))
+        elif e['title'].startswith('RELAY'):
+            lines.append((e['t'], 'INFO', f"Relay {e['title'][6:]} ({e['detail']})"))
+    lines.append((up - 300, 'INFO', 'Settings saved'))
+    return [f'{stamp(t)} [{lvl}] {msg}' for t, lvl, msg in sorted(lines, key=lambda x: x[0])]
 
 
 MOCK_JS = """
@@ -358,12 +482,14 @@ class Handler(SimpleHTTPRequestHandler):
         elif u.path == '/api/v1/status':
             self.send_json(status(name))
         elif u.path == '/api/v1/chart':
-            _, _, hist, step, unit = simulate(name)
-            self.send_json({'points': hist, 'span_seconds': step, 'unit': unit})
-        elif u.path == '/api/v1/plugins':
-            self.send_json({'plugins': [{'id': k, 'name': v, 'active': k == SCENARIOS[name]['plugin']} for k, v in PLUGINS.items()]})
+            want = parse_qs(u.query).get('sensor', [None])[0]
+            part = part_for(name, want) if want else parts(name)[0]
+            if not part:
+                return self.send_json({})
+            _, _, hist, step, unit = simulate(part)
+            self.send_json({'sensor': SCENARIOS[part]['plugin'], 'points': hist, 'span_seconds': step, 'unit': unit})
         elif u.path == '/api/v1/config':
-            self.send_json(config(name, parse_qs(u.query).get('plugin', [None])[0]))
+            self.send_json(config(name))
         else:
             super().do_GET()
 
@@ -387,10 +513,7 @@ class Handler(SimpleHTTPRequestHandler):
                 if msg.get('event') == 'request_status':
                     ws_send(conn, json.dumps(status(name)))
                 elif msg.get('event') == 'request_logs':
-                    ws_send(conn, json.dumps({'event': 'log_batch', 'messages': [
-                        '00d 00:00:00 [INFO] === ESP Unified ===',
-                        f"00d 00:00:01 [INFO] Active plugin: {PLUGINS[SCENARIOS[name]['plugin']]}",
-                        '00d 00:00:04 [INFO] Connected to WiFi.', '00d 00:00:12 [INFO] Connected to MQTT broker']}))
+                    ws_send(conn, json.dumps({'event': 'log_batch', 'messages': mock_log(name)}))
         except OSError:
             pass
         with lock:
@@ -411,12 +534,29 @@ class Handler(SimpleHTTPRequestHandler):
                 r['activations'] += 1
             r['relay_on'] = on
         elif u.path == '/api/v1/alert/ack':
-            r['ack'] = True
+            want = q.get('sensor', [None])[0]
+            for part in parts(name):
+                if want is None or SCENARIOS[part]['plugin'] == want:
+                    rt(part)['ack'] = True
         elif u.path == '/api/v1/config':
             cfg = json.loads(body or b'{}')
-            for k in ('limit_low', 'limit_high', 'limit_low_on', 'limit_high_on', 'limit_hysteresis', 'relay_mode', 'device_name'):
+            # the same checks as ConfigJson::problem
+            ids = [x for x in cfg.get('sensors', '').split(',') if x] if 'sensors' in cfg else []
+            poles = [n for i in ids for _, n in INPUTS.get(i, [('', '?')])]
+            if any(i not in PLUGINS for i in ids) or len(set(ids)) != len(ids):
+                return self.send_json({'status': 'error', 'message': 'Unknown or repeated sensor'}, 400)
+            if len(set(poles)) != len(poles):
+                return self.send_json({'status': 'error', 'message': 'Two sensors need the same input'}, 400)
+            for k in ('relay_mode', 'relay_source', 'device_name'):
                 if k in cfg:
                     r['config'][k] = cfg[k]
+            for plugin, prefix in PREFIX.items():
+                part = part_for(name, plugin)
+                if not part:
+                    continue
+                for k in LIMIT_KEYS:
+                    if prefix + k in cfg:
+                        rt(part)['config'][k] = cfg[prefix + k]
         self.send_json({'status': 'ok'})
 
 
@@ -434,5 +574,5 @@ def ticker():
 
 if __name__ == '__main__':
     threading.Thread(target=ticker, daemon=True).start()
-    print(f'Mock device on http://127.0.0.1:{PORT}/?sensor=tank', flush=True)
+    print(f'Mock device on http://127.0.0.1:{PORT}/?sensor=house', flush=True)
     ThreadingHTTPServer(('127.0.0.1', PORT), Handler).serve_forever()

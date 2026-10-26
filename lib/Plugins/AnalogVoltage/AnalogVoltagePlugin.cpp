@@ -3,7 +3,7 @@
 #include "AnalogVoltageConverter.h"
 #include "HAL.h"
 #include "Logger.h"
-#include "Storage.h"
+#include "Settings.h"
 
 static bool isPressureUnit(const char* unit)
 {
@@ -17,7 +17,7 @@ static bool isPressureUnit(const char* unit)
 const char* AnalogVoltagePlugin::getId() const { return "analog_voltage"; }
 const char* AnalogVoltagePlugin::getName() const { return "Pressure / 0-10 V Sensor"; }
 
-void AnalogVoltagePlugin::setup(HAL* hal, Storage* storage, Logger* logger, LedController* led)
+void AnalogVoltagePlugin::setup(HAL* hal, Settings* storage, Logger* logger, LedController* led)
 {
     this->hal = hal;
     this->storage = storage;

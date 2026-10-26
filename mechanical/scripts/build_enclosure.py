@@ -4,7 +4,7 @@ base   rail side, z -5..shoulder: a TS35 channel in the 5 mm deep back
        (EN 60715: 35 +-0.3 between lips, 1 mm lips) with a fixed hook under
        the top lip and a sprung sliding latch under the bottom lip. Open on
        the left side (-x) so the populated main board slides straight in (+x).
-       Top wall has slots for J2 + J5 (7-pole sensor bank), bottom wall for
+       Top wall has slots for J2 + J5 + J6 (10-pole sensor bank), bottom wall for
        J1 (power) and J4 (relay); every slot runs out of the open left side so
        the terminal bodies, which overhang the board edge into the walls, can
        slide in, and has FDM_CLEAR all round the terminal body.
@@ -160,7 +160,7 @@ def leg_bodies():
     return [box(p["x"] - h, p["x"] + h, p["y"] - h, p["y"] + h, WALL, MAIN_BOTTOM_Z) for p in legs()]
 
 
-SIDE_SNAP_YS = (16.0, 63.8)  # right-side snap hooks, >= 0.5 mm clear of the J1/J4 and J2/J5 bodies
+SIDE_SNAP_YS = (16.0, 63.8)  # right-side snap hooks, >= 0.5 mm clear of the J1/J4 and J2/J5/J6 bodies
 
 
 def shoulder_snap_bodies():
@@ -316,50 +316,68 @@ def _side_dot(z_c, y_c, radius=0.65):
     return cq.Workplane("YZ", origin=(x0, 0, 0)).center(y_c, z_c).circle(radius).extrude(SIDE_DEBOSS)
 
 
+def _side_text_vertical(text, z_centre, y_top, height):
+    """Text on the right side wall reading bottom to top (rotated 90 deg
+    counter-clockwise as seen from +x), centred on z_centre, ending at y_top."""
+    from matplotlib.path import Path as MplPath
+    from matplotlib.textpath import TextPath
+
+    raw = TextPath((0, 0), text, size=height, prop={"family": "DejaVu Sans", "weight": "bold"})
+    ext = raw.get_extents()
+    b_mid = (ext.y0 + ext.y1) / 2
+    polygons = [p for p in raw.to_polygons(closed_only=True) if len(p) > 3]
+    nested = []
+    for i, ring in enumerate(polygons):
+        depth = sum(MplPath(other).contains_point(ring[0]) for j, other in enumerate(polygons) if j != i)
+        # text (a along the baseline, b up) -> wall (y = up, z = left as seen from +x)
+        nested.append((depth, [(float(y_top - ext.x1 + a), float(z_centre + b - b_mid)) for a, b in ring[:-1]]))
+    nested.sort(key=lambda item: item[0])
+    x0 = WIDTH / 2 - SIDE_DEBOSS
+    solid = None
+    for depth, pts_yz in nested:
+        body = cq.Workplane("YZ", origin=(x0, 0, 0)).polyline(pts_yz).close().extrude(SIDE_DEBOSS)
+        if depth % 2 == 0:
+            solid = body if solid is None else solid.union(body)
+        elif solid is not None:
+            solid = solid.cut(body)
+    return solid
+
+
+SENSOR_NAMES = ("+5V", "+24V", "mA", "10V", "IO1", "IO2", "IO3", "IO4", "GND", "GND")
+SENSOR_NOTES = ("5V 600mA", "VIN PASS", "4-20mA LOOP", "0-5V / 0-10V", "ECHO / SDA / RX", "TRIG / SCL / TX",
+                "GEIGER PULSE", "METER PULSE", "", "")
+
+
+def sensor_pole_z():
+    """Enclosure z of the 10 sensor poles in order: J2 1..4, J5 1..3, J6 1..3 (spec terminals.sensor_io.refs)."""
+    zs = []
+    for ref in SPEC["terminals"]["sensor_io"]["refs"]:
+        by_pin = _pin_z_positions(ref)
+        zs += [by_pin[k] for k in sorted(by_pin, key=int)]
+    return zs
+
+
 def side_wall_legend_bodies():
-    """Debossed/embossed terminal pole numbers, signal names, 90-deg leader lines
-    to left-aligned signal explanations, and schematic changeover relay symbol
-    over NC/COM/NO on the right side wall (x = +WIDTH/2) of the base."""
-    j2_raw = _pin_z_positions("J2")
-    j5_raw = _pin_z_positions("J5")
-    j2_z = {
-        "1": j2_raw["1"],
-        "2": j2_raw["2"],
-        "3": j2_raw["3"],
-        "4": j2_raw["4"],
-        "5": j5_raw["1"],
-        "6": j5_raw["2"],
-        "7": j5_raw["3"],
-    }
+    """Debossed terminal pole numbers, signal names and short vertical
+    explanations under each sensor pole, and the schematic changeover relay
+    symbol over NC/COM/NO on the right side wall (x = +WIDTH/2) of the base."""
+    items = []
+    # 1. Top edge: sensor pole numbers (1..10) and signal names right under the wire entries
+    for pole, (z_c, name) in enumerate(zip(sensor_pole_z(), SENSOR_NAMES), start=1):
+        items.append(_side_text_solid(str(pole), z_c, 77.2, 1.8))
+        items.append(_side_text_solid(name, z_c, 74.5, 1.0))
+
+    # 2. Short leader under each signal name, then its explanation reading upwards
+    for z_c, note in zip(sensor_pole_z(), SENSOR_NOTES):
+        if not note:
+            continue
+        items.append(_side_line(z_c, 73.6, z_c, 72.4, lw=0.24))
+        items.append(_side_text_vertical(note, z_c, 71.8, 1.0))
+
     j1_z = _pin_z_positions("J1")
     j4_z = _pin_z_positions("J4")
-
-    j2_names = {"1": "GND", "2": "+5V", "3": "+24V", "4": "mA", "5": "10V", "6": "IO1", "7": "IO2"}
     j1_names = {"1": "GND", "2": "VIN"}
     j4_names = dict(zip(("1", "2", "3"), SPEC["terminals"]["relay_out"]["labels"]))
-
-    items = []
-    # 1. Top edge: J2 pole numbers (1..7) and signal names right under the top wire entries
-    for pin, z_c in sorted(j2_z.items()):
-        items.append(_side_text_solid(pin, z_c, 77.2, 2.0))
-        items.append(_side_text_solid(j2_names[pin], z_c, 74.3, 1.1))
-
-    # 2. Thin 90-degree L-shaped leader lines from J2 pins 3 (+24V), 4 (mA), 5 (10V), 6 (IO1), 7 (IO2)
-    #    with compact vertical row spacing, turning right (-z) to left-aligned explanation text.
-    z_elbow_end = 13.4
-    z_text_left = 12.6
-    callouts = (
-        ("3", 65.3, "VIN PASS"),
-        ("4", 62.4, "4-20mA LOOP"),
-        ("5", 59.5, "0-5V / 0-10V"),
-        ("6", 56.6, "SDA / RX / PLS"),
-        ("7", 53.7, "SCL / TX / TRIG"),
-    )
-    for pin, y_row, desc in callouts:
-        zp = j2_z[pin]
-        items.append(_side_line(zp, 72.5, zp, y_row, lw=0.24))
-        items.append(_side_line(zp, y_row, z_elbow_end, y_row, lw=0.24))
-        items.append(_side_text_solid(desc, z_text_left, y_row, 1.15, align="left"))
 
     # 3. Bottom edge: J1 (1=GND, 2=VIN with 9-30VDC above it) and J4 (labels from spec.yaml)
     for pin, z_c in sorted(j1_z.items()):
@@ -520,7 +538,7 @@ def lip_bodies():
     terminal blocks that reach up to the shoulder at both ends."""
     x_out = INNER_W / 2 - 0.15
     z0 = BASE_TOP_Z - LIP["depth"]
-    terms = [p for p in part_boxes() if p["board"] == "main" and p["ref"] in ("J1", "J2", "J4", "J5")]
+    terms = [p for p in part_boxes() if p["board"] == "main" and p["ref"] in ("J1", "J2", "J4", "J5", "J6")]
     y_lo = max([p["y1"] for p in terms if p["y0"] < HIDDEN_H / 2] + [WALL + 1]) + FDM_CLEAR
     y_hi = min([p["y0"] for p in terms if p["y0"] > HIDDEN_H / 2] + [HIDDEN_H - WALL - 1]) - FDM_CLEAR
     return [box(*sorted((x_out, x_out - LIP["thickness"])), y_lo, y_hi, z0, BASE_TOP_Z)]

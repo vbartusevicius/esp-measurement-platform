@@ -15,7 +15,7 @@ class UltrasonicDistancePlugin : public DistancePluginBase
         double speedOfSound = 0.0;
 
     public:
-        void setup(HAL* hal, Storage* storage, Logger* logger, LedController* led) override;
+        void setup(HAL* hal, Settings* storage, Logger* logger, LedController* led) override;
 
     protected:
         void setupPins() override;
@@ -28,6 +28,7 @@ class UltrasonicDistancePlugin : public DistancePluginBase
     public:
         const char* getId() const override;
         const char* getName() const override;
+        uint8_t inputs() const override { return Board::INPUT_IO1 | Board::INPUT_IO2; }
 
         void publishHomeAssistantAutoconfig(MQTTClient& client, const HaDiscoveryContext& ctx) override;
 };

@@ -18,7 +18,8 @@ class Display
         Display();
         void begin();
         void run(const DisplayFrame& frame);
-        void nextPage() { this->page = (this->page + 1) % PortraitPages::PAGE_COUNT; }
+        // PAGE button: next sensor, then the device, log and WiFi pages.
+        void nextPage(size_t sensors) { this->page = (this->page + 1) % PortraitPages::pageCount(sensors); }
         void showSetupPortal(const char* apName);
 };
 

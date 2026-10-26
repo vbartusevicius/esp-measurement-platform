@@ -10,15 +10,16 @@ struct HaDiscoveryContext {
     String stateTopic;
     String availabilityTopic;
     String deviceName;   // user-configured display name; empty = plugin default
+    String objectPrefix; // "<plugin id>_" for sensor entities, so sensors side by side never collide
 
     const char* nameOr(const char* fallback) const {
         return deviceName.isEmpty() ? fallback : deviceName.c_str();
     }
 };
 
-// One Home Assistant entity. Topic: homeassistant/<component>/<device>/<objectId>/config
-// (no objectId segment when empty). unique_id = <device>_<uniqueSuffix>; both are
-// kept stable so existing HA entities keep their history.
+// One Home Assistant entity. Topic: homeassistant/<component>/<device>/<prefix><objectId>/config
+// (just <prefix> without its "_" when objectId is empty); unique_id = <device>_<prefix><uniqueSuffix>.
+// Keep both stable so existing HA entities keep their history.
 struct HaEntity {
     const char* component;        // sensor | binary_sensor | switch
     const char* objectId;
@@ -34,6 +35,10 @@ struct HaEntity {
 
 namespace HaDiscovery
 {
+    // MQTT client read/write buffer. arduino-mqtt defaults to 128 bytes and silently refuses
+    // larger messages; a discovery config is several hundred (test_all_sensors checks the largest).
+    constexpr size_t MQTT_BUFFER_SIZE = 1024;
+
     // Publishes the retained discovery config. The state topic defaults to
     // ctx.stateTopic; `extra` may add or override fields (command_topic, ...).
     // deviceName nullptr = don't rename the HA device (it merges by identifier).

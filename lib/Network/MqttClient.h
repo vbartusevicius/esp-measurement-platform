@@ -7,9 +7,9 @@
 #include <WiFi.h>
 
 class DeviceMonitor;
-class IMqttContributor;
 class Logger;
 class RelayOutput;
+class SensorHub;
 class Storage;
 
 class MqttClient
@@ -17,14 +17,13 @@ class MqttClient
     private:
         Storage* storage;
         Logger* logger;
-        IMqttContributor* plugin;
+        SensorHub* hub;
         RelayOutput* relay = nullptr;
         DeviceMonitor* monitor = nullptr;
         int publishedRelayState = -1;
         WiFiClient network;
-        MQTTClient client;
+        MQTTClient client{(int)HaDiscovery::MQTT_BUFFER_SIZE};   // the library default (128 B) drops discovery configs
         String deviceId;
-        String pluginId;
         unsigned long lastReconnectAttempt;
         unsigned long reconnectInterval;
         unsigned long lastActivityCheck;
@@ -46,16 +45,18 @@ class MqttClient
         void publishStatus();
         void publishSystemHaConfig();
         void publishHomeAssistantAutoconfig();
-        String getBaseTopic();
+        String stateTopic(size_t sensor);
         String getMqttErrorMessage(int errorCode);
 
     public:
-        MqttClient(Storage* storage, Logger* logger, IMqttContributor* plugin, const char* pluginId, const String& deviceId);
+        // Publishes every sensor of the hub that has MQTT support, each on <device>/stat/<plugin id>.
+        MqttClient(Storage* storage, Logger* logger, SensorHub* hub, const String& deviceId);
         // Relay commands go through the monitor (it refuses them while a limit rule owns the relay).
         void setRelay(RelayOutput* relay, DeviceMonitor* monitor) { this->relay = relay; this->monitor = monitor; }
         void begin();
         bool run();
-        void publish();
+        // Publishes the sensors whose publish interval has passed.
+        void publish(unsigned long nowMs);
         bool isConnected();
 };
 

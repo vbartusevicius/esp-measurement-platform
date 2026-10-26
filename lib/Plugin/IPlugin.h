@@ -6,7 +6,7 @@
 #include "ScreenModel.h"
 
 class HAL;
-class Storage;
+class Settings;
 class Logger;
 class LedController;
 class IMqttContributor;
@@ -52,7 +52,8 @@ class IPlugin
         virtual const char* getId() const = 0;
         virtual const char* getName() const = 0;
 
-        virtual void setup(HAL* hal, Storage* storage, Logger* logger, LedController* led) = 0;
+        // `storage` is this sensor's own scope of the device settings.
+        virtual void setup(HAL* hal, Settings* storage, Logger* logger, LedController* led) = 0;
         virtual void loop() = 0;
 
         virtual void getParameterDefs(std::vector<ParameterDef>& defs) const = 0;
@@ -65,6 +66,9 @@ class IPlugin
 
         // Stored history for the web UI chart. Default: none.
         virtual bool getChartData(std::vector<float>& points, int& spanSeconds) const { return false; }
+
+        // Board inputs it uses (Board::Input bits): two sensors can't share one.
+        virtual uint8_t inputs() const = 0;
 
         virtual int getSamplingInterval() const { return 10; }
         virtual int getPublishInterval() const { return this->getSamplingInterval(); }

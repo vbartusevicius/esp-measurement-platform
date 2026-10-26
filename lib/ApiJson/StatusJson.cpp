@@ -7,6 +7,8 @@
 #include "Logger.h"
 #include <WiFi.h>
 #include "PluginConfig.h"
+#include "SensorHub.h"
+#include "Storage.h"   // IWYU pragma: keep (Storage -> Settings conversion)
 #include "TimeHelper.h"
 #include "Version.h"
 
@@ -25,9 +27,7 @@ static void addNumber(JsonObject obj, const char* key, float value)
 static void writeSystem(JsonDocument& doc, const StatusJson::Sources& sources)
 {
     doc["chip_id"] = ChipId::get();
-    doc["active_plugin"] = sources.plugin ? sources.plugin->getId() : "";
-    doc["active_plugin_name"] = sources.plugin ? sources.plugin->getName() : "None";
-    doc["configured"] = PluginConfig::isComplete(*sources.storage, sources.plugin);
+    doc["configured"] = PluginConfig::isComplete(*sources.storage, *sources.hub);
     doc["wifi_network"] = WiFi.SSID();
     doc["wifi_signal"] = String(WiFi.RSSI());
     doc["ip_address"] = WiFi.localIP().toString();
@@ -43,7 +43,7 @@ static void writeSystem(JsonDocument& doc, const StatusJson::Sources& sources)
     doc["uptime_s"] = millis() / 1000UL;
 }
 
-static void writeStats(JsonDocument& doc, const IPlugin& plugin)
+static void writeStats(JsonObject doc, const IPlugin& plugin)
 {
     std::vector<StatEntry> entries;
     plugin.getStats(entries);
@@ -57,7 +57,7 @@ static void writeStats(JsonDocument& doc, const IPlugin& plugin)
     }
 }
 
-static void writeScreen(JsonDocument& doc, const IPlugin& plugin)
+static void writeScreen(JsonObject doc, const IPlugin& plugin)
 {
     ScreenModel screen;
     if (!plugin.getScreen(screen)) return;
@@ -88,21 +88,25 @@ static void writeScreen(JsonDocument& doc, const IPlugin& plugin)
     addNumber(s, "high_24h", screen.high24);
 }
 
-static void writeDevice(JsonDocument& doc, const DeviceMonitor& monitor)
+static void writeLimits(JsonObject sensor, const LimitMonitor& limits)
 {
-    const LimitMonitor& limits = monitor.limits();
-    JsonObject lim = doc["limits"].to<JsonObject>();
+    JsonObject lim = sensor["limits"].to<JsonObject>();
     addNumber(lim, "low", limits.low());
     addNumber(lim, "high", limits.high());
     lim["state"] = LimitMonitor::stateName(limits.state());
     lim["alert"] = limits.alertPending();
     lim["trips"] = limits.trips();
+}
 
+static void writeDevice(JsonDocument& doc, const DeviceMonitor& monitor)
+{
     JsonObject relay = doc["relay"].to<JsonObject>();
     relay["available"] = monitor.relayAvailable();
     relay["on"] = monitor.relayOn();
     relay["activations"] = monitor.relayActivations();
-    relay["mode"] = LimitMonitor::modeName(limits.relayMode());
+    relay["mode"] = LimitMonitor::modeName(monitor.relayMode());
+    const int source = monitor.relaySource();
+    if (source >= 0) relay["source"] = monitor.sensorId(source);
 
     const EventLog& events = monitor.events();
     JsonArray arr = doc["events"].to<JsonArray>();
@@ -118,18 +122,28 @@ static void writeDevice(JsonDocument& doc, const DeviceMonitor& monitor)
 void StatusJson::write(JsonDocument& doc, const Sources& sources)
 {
     writeSystem(doc, sources);
-    if (sources.plugin) {
-        writeStats(doc, *sources.plugin);
-        writeScreen(doc, *sources.plugin);
+    JsonArray sensors = doc["sensors"].to<JsonArray>();
+    for (size_t i = 0; i < sources.hub->size(); i++) {
+        const IPlugin& plugin = sources.hub->plugin(i);
+        JsonObject s = sensors.add<JsonObject>();
+        s["id"] = plugin.getId();
+        s["name"] = plugin.getName();
+        s["configured"] = PluginConfig::sensorComplete(sources.hub->settings(i), plugin);
+        writeStats(s, plugin);
+        writeScreen(s, plugin);
+        if (sources.monitor && i < sources.monitor->sensorCount()) writeLimits(s, sources.monitor->limits(i));
     }
     if (sources.monitor) writeDevice(doc, *sources.monitor);
 }
 
-void StatusJson::writeChart(JsonDocument& doc, const IPlugin* plugin)
+void StatusJson::writeChart(JsonDocument& doc, const SensorHub& hub, int sensor)
 {
+    if (sensor < 0 || (size_t)sensor >= hub.size()) return;
+    const IPlugin* plugin = &hub.plugin(sensor);
+    doc["sensor"] = plugin->getId();
     std::vector<float> points;
     int spanSeconds = 0;
-    if (!plugin || !plugin->getChartData(points, spanSeconds) || points.empty()) return;
+    if (!plugin->getChartData(points, spanSeconds) || points.empty()) return;
     JsonArray arr = doc["points"].to<JsonArray>();
     for (float v : points) arr.add(rounded(v));
     doc["span_seconds"] = spanSeconds;

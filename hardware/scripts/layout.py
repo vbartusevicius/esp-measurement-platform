@@ -53,6 +53,10 @@ MODELS_3D = {
     "TerminalBlock_Kefa_KF142R-5.08-5P": ("TerminalBlock_Kefa_KF142R-5.08-5P.step", 0),
     "TerminalBlock_Kefa_KF142R-5.08-6P": ("TerminalBlock_Kefa_KF142R-5.08-6P.step", 0),
     "TerminalBlock_Kefa_KF142R-5.08-7P": ("TerminalBlock_Kefa_KF142R-5.08-7P.step", 0),
+    "TerminalBlock_WAGO_2086-1204_SMD": ("TerminalBlock_WAGO_2086-1204_SMD.step", 0),
+    "TerminalBlock_WAGO_2086-1203_SMD": ("TerminalBlock_WAGO_2086-1203_SMD.step", 0),
+    "TerminalBlock_WAGO_2059-303_SMD": ("TerminalBlock_WAGO_2059-303_SMD.step", 0),
+    "Vishay_TCRT5000_Clips": ("Vishay_TCRT5000_Clips.step", 0),
     "Relay_DPDT_Omron_G6K-2F-Y": ("Relay_DPDT_Omron_G6K-2F-Y.step", 0),
     "Relay_DPDT_Omron_G6S-2F": ("Relay_DPDT_Omron_G6S-2F.step", 0),
     "Relay_DPDT_Omron_G6S-2F_2A": ("Relay_DPDT_Omron_G6S-2F.step", 0),
@@ -771,7 +775,7 @@ def without_plane_layers(dsn_text, frame):
         dsn_text = re.sub(rf"    \(layer {layer}\n.*?\n    \)\n", "", dsn_text,
                           count=1, flags=re.DOTALL)
         dsn_text = re.sub(rf"[ \t]*\(shape \(\w+ {layer} [^()]*\)\)\n", "", dsn_text)
-        dsn_text = re.sub(rf'[ \t]*\(keepout "" \(polygon {layer} [^()]*\)\)\n', "", dsn_text)
+        dsn_text = re.sub(rf'[ \t]*\(keepout "" \((?:polygon|circle) {layer} [^()]*\)\)\n', "", dsn_text)
     if any(layer in dsn_text for layer in frame.get("plane_layers", [])):
         sys.exit("plane layer still referenced in DSN")
     index = iter(range(100))

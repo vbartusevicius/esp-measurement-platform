@@ -4,8 +4,8 @@
 #include <ArduinoJson.h>
 
 class DeviceMonitor;
-class IPlugin;
 class Logger;
+class SensorHub;
 class Storage;
 
 // Builds the live-status document sent by GET /api/v1/status and the
@@ -13,15 +13,16 @@ class Storage;
 namespace StatusJson
 {
     struct Sources {
-        const IPlugin* plugin;
+        const SensorHub* hub;
         const Logger* logger;
         const DeviceMonitor* monitor;
         const Storage* storage;
         bool mqttConnected;
     };
 
+    // Device state, then "sensors": [{id, name, configured, screen, stats, limits}] in display order.
     void write(JsonDocument& doc, const Sources& sources);
-    void writeChart(JsonDocument& doc, const IPlugin* plugin);
+    void writeChart(JsonDocument& doc, const SensorHub& hub, int sensor);
 }
 
 #endif

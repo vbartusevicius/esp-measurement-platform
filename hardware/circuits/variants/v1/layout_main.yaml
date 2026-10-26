@@ -42,10 +42,11 @@ frame:
 heights:
   default: 1.2
   J1: 11.1
-  J2: 11.1
+  J2: 8.3
   J3: 1.2
   J4: 11.1
-  J5: 11.1
+  J5: 8.3
+  J6: 8.3
   U3: 11.0
   K1: 11.0
   Q1: 1.2
@@ -79,9 +80,12 @@ parts:
   R14: { x: 10.2,  y: 28.2,  rot: 0,   block: relay }
   R15: { x: 4.8,   y: 29.2,  rot: 0,   block: relay }
 
-  # --- Top shoulder: interlocking 4P + 3P = 7P sensor terminal (J2 poles 1..4 + J5 poles 5..7) ---
-  J2:  { x: 27.52, y: 70.8,  rot: 180, block: terminals_top, locked: true }
-  J5:  { x: 9.74,  y: 70.8,  rot: 180, block: terminals_top, locked: true }
+  # --- Top shoulder: 10-pole WAGO 2086 3.5 mm sensor bank, butted with 0.15 mm gaps:
+  #     J2 (4P, poles 1..4) + J5 (3P, poles 5..7) + J6 (3P, poles 8..10); wire-entry faces at y 79.2
+  #     (footprint front 9.05 mm ahead of the pad centre line), flush with the enclosure's top face ---
+  J2:  { x: 31.10, y: 70.15, rot: 180, block: terminals_top, locked: true }
+  J5:  { x: 18.00, y: 70.15, rot: 180, block: terminals_top, locked: true }
+  J6:  { x: 6.65,  y: 70.15, rot: 180, block: terminals_top, locked: true }
 
   # --- UI FFC connector (middle-left, facing front UI board) ---
   J3:  { x: 5.5,   y: 44.0,  rot: -90, block: int_ui, locked: true }
@@ -131,3 +135,12 @@ parts:
   D6:  { x: 28.0,  y: 54.5,  rot: 0,   block: digital_io }
   R13: { x: 34.5,  y: 55.5,  rot: 0,   block: digital_io }
   R12: { x: 34.5,  y: 53.0,  rot: 0,   block: digital_io }
+
+  # --- IO3 (Geiger PULSE) & IO4 (meter pulse) protection: left column between the FFC J3
+  #     (courtyard y <= 48.65) and the sensor bank (y >= 63.5), left of D3 (x >= 6.53) and D8 ---
+  D10: { x: 2.3,   y: 50.6,  rot: 0,   block: digital_io2 }
+  D11: { x: 2.3,   y: 54.4,  rot: 0,   block: digital_io2 }
+  R18: { x: 5.4,   y: 50.3,  rot: 90,  block: digital_io2 }
+  R19: { x: 5.4,   y: 53.5,  rot: 90,  block: digital_io2 }
+  R21: { x: 2.15,  y: 57.3,  rot: 0,   block: digital_io2 }
+  R20: { x: 2.15,  y: 59.4,  rot: 0,   block: digital_io2 }

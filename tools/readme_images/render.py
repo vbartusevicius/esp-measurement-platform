@@ -86,7 +86,8 @@ def build_oled_sim():
             subprocess.run([cc, "-c", "-O1", "-w", f"-I{U8G2}", c, "-o", o], check=True)
     sources = [os.path.join(HERE, "oled_sim", "oled_sim.cpp")] + [os.path.join(ROOT, "lib", p) for p in (
         "Display/Display.cpp", "Display/PortraitPages.cpp", "Core/DeviceMonitor.cpp", "Core/LimitMonitor.cpp",
-        "Core/EventLog.cpp", "Core/RelayOutput.cpp", "Core/TimeHelper.cpp", "Storage/Storage.cpp", "Logger/Logger.cpp")]
+        "Core/EventLog.cpp", "Core/RelayOutput.cpp", "Core/TimeHelper.cpp", "Storage/Storage.cpp", "Storage/ScopedSettings.cpp",
+        "Logger/Logger.cpp")]
     includes = [f"-I{os.path.join(HERE, 'oled_sim')}", f"-I{os.path.join(ROOT, 'test', 'test_native', 'fakes')}", f"-I{U8G2}"]
     includes += [f"-I{d}" for d in sorted({os.path.dirname(h) for h in glob.glob(os.path.join(ROOT, 'lib', '**', '*.h'), recursive=True)})]
     binary = os.path.join(BUILD, "oled_sim")
@@ -142,8 +143,8 @@ def render_oled():
     def frame(name, scale=3):
         return decode_frame(os.path.join(frames, f"{name}.bin"), scale)
     save(strip([oled_panel(frame(n), label) for n, label in (
-        ("tank", "Tank"), ("pressure", "Pressure"), ("radiation", "Radiation"), ("stat", "2 · STAT"),
-        ("log", "3 · LOG"), ("wifi", "4 · WIFI"), ("alert", "Alert pop-up"), ("portal", "WiFi setup"))]), "oled-pages.png", colors=32)
+        ("tank", "1 · Tank"), ("pressure", "2 · Pressure"), ("radiation", "3 · Radiation"), ("water", "4 · Water meter"),
+        ("dev", "5 · DEV"), ("log", "6 · LOG"), ("wifi", "7 · WIFI"), ("alert", "Alert pop-up"), ("portal", "WiFi setup"))]), "oled-pages.png", colors=32)
     return frame("tank", 4)
 
 
@@ -208,10 +209,12 @@ def render_webui(browser):
             for scenario, image in phones.items():
                 first_screen = image.crop((0, 0, image.width, min(image.height, round(image.width * 2.1))))
                 save(fit(first_screen, 520, 4000), f"webui-phone-{scenario}.png", colors=128)
-            desktop = trim_bottom(screenshot(browser, f"{base}/?sensor=tank&clean=1", 1200, 1300, 1, os.path.join(tmp, "desktop.png")))
+            desktop = trim_bottom(screenshot(browser, f"{base}/?sensor=house-alarm&clean=1", 1200, 1300, 1, os.path.join(tmp, "desktop.png")))
             save(desktop, "webui-desktop.png", colors=128)
-            settings = screenshot(browser, f"{base}/?sensor=radiation-high&clean=1#settings", 1200, 1150, 1, os.path.join(tmp, "settings.png"))
+            settings = screenshot(browser, f"{base}/?sensor=house&clean=1#settings", 1200, 1150, 1, os.path.join(tmp, "settings.png"))
             save(settings, "webui-settings.png", colors=128)
+            events = trim_bottom(screenshot(browser, f"{base}/?sensor=house-alarm&clean=1#events", 1200, 1100, 1, os.path.join(tmp, "events.png")))
+            save(events, "webui-events.png", colors=128)
             return phones["tank"]
     finally:
         mock.terminate()

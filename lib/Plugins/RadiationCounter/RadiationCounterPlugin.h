@@ -22,7 +22,7 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor
 
     private:
         HAL* hal;
-        Storage* storage;
+        Settings* storage;
         Logger* logger;
         LedController* led;
 
@@ -59,8 +59,9 @@ class RadiationCounterPlugin : public IPlugin, public IMqttContributor
     public:
         const char* getId() const override;
         const char* getName() const override;
+        uint8_t inputs() const override { return Board::INPUT_IO3; }
 
-        void setup(HAL* hal, Storage* storage, Logger* logger, LedController* led) override;
+        void setup(HAL* hal, Settings* storage, Logger* logger, LedController* led) override;
         void loop() override;
 
         void getParameterDefs(std::vector<ParameterDef>& defs) const override;

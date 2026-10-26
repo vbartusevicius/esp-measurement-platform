@@ -2,18 +2,19 @@
 #include <algorithm>
 #include "DeviceMonitor.h"
 #include "IMqttContributor.h"
+#include "IPlugin.h"
 #include "Logger.h"
 #include "Parameter.h"
 #include "RelayOutput.h"
+#include "SensorHub.h"
 #include "Storage.h"
 #include "Version.h"
 
-MqttClient::MqttClient(Storage* storage, Logger* logger, IMqttContributor* plugin, const char* pluginId, const String& deviceId)
+MqttClient::MqttClient(Storage* storage, Logger* logger, SensorHub* hub, const String& deviceId)
 {
     this->storage = storage;
     this->logger = logger;
-    this->plugin = plugin;
-    this->pluginId = pluginId;
+    this->hub = hub;
     this->deviceId = deviceId;
 
     this->lastReconnectAttempt = 0;
@@ -127,15 +128,9 @@ String MqttClient::availabilityTopic()
     return this->rootTopic() + "/availability";
 }
 
-String MqttClient::getBaseTopic()
+String MqttClient::stateTopic(size_t sensor)
 {
-    String topic = this->storage->getParameter(Parameter::MQTT_TOPIC);
-    if (topic.isEmpty()) {
-        topic = this->rootTopic() + "/stat/" + this->pluginId;
-        String mutableTopic = topic;
-        this->storage->saveParameter(Parameter::MQTT_TOPIC, mutableTopic);
-    }
-    return topic;
+    return this->rootTopic() + "/stat/" + this->hub->plugin(sensor).getId();
 }
 
 bool MqttClient::connectMqtt()
@@ -224,7 +219,13 @@ void MqttClient::publishStatus()
 
 void MqttClient::publishHomeAssistantAutoconfig()
 {
-    this->plugin->publishHomeAssistantAutoconfig(this->client, this->haContext(this->getBaseTopic()));
+    for (size_t i = 0; i < this->hub->size(); i++) {
+        IMqttContributor* sensor = this->hub->plugin(i).mqtt();
+        if (!sensor) continue;
+        HaDiscoveryContext ctx = this->haContext(this->stateTopic(i));
+        ctx.objectPrefix = String(this->hub->plugin(i).getId()) + "_";
+        sensor->publishHomeAssistantAutoconfig(this->client, ctx);
+    }
     this->publishSystemHaConfig();
     this->publishRelayHaConfig();
     this->logger->info("Published Home Assistant autodiscovery config");
@@ -304,12 +305,11 @@ bool MqttClient::isConnected()
     return client.connected();
 }
 
-void MqttClient::publish()
+void MqttClient::publish(unsigned long nowMs)
 {
-    if (!client.connected()) {
-        return;
+    if (!client.connected()) return;
+    for (size_t i = 0; i < this->hub->size(); i++) {
+        IMqttContributor* sensor = this->hub->plugin(i).mqtt();
+        if (sensor && this->hub->publishDue(i, nowMs)) sensor->publishMqtt(this->client, this->stateTopic(i));
     }
-
-    String topic = this->getBaseTopic();
-    this->plugin->publishMqtt(this->client, topic);
 }

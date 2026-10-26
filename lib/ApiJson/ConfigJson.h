@@ -4,19 +4,22 @@
 #include <ArduinoJson.h>
 
 class DeviceMonitor;
-class IPlugin;
 class PluginRegistry;
+class SensorHub;
 class Storage;
 
-// Builds GET /api/v1/plugins and GET /api/v1/config documents.
+// Builds the GET /api/v1/config document and checks POST bodies.
 namespace ConfigJson
 {
-    void writePlugins(JsonDocument& doc, const PluginRegistry& registry, const IPlugin* active);
+    // Device settings plus every available sensor type: whether it runs, the
+    // sensor-bank poles it needs, its settings prefix, MQTT state topic,
+    // parameters and alert limits (all read from its own settings scope).
+    void writeConfig(JsonDocument& doc, const Storage& storage, const PluginRegistry& registry,
+                     const DeviceMonitor* monitor);
 
-    // `inspected` is the plugin whose parameters are listed (the active one,
-    // or the one picked in the sensor dropdown before saving).
-    void writeConfig(JsonDocument& doc, const Storage& storage, const IPlugin* active,
-                     const IPlugin* inspected, const DeviceMonitor* monitor);
+    // nullptr when the body can be saved, otherwise why not (unknown sensor,
+    // two sensors on one input).
+    const char* problem(JsonObjectConst body, const PluginRegistry& registry);
 }
 
 #endif

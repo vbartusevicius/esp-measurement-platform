@@ -196,7 +196,9 @@ def value_problems(part, record):
 PIN_ALIASES = {"CAT": "K", "CATHODE": "K", "AN": "A", "ANODE": "A", "COL": "C", "EM": "E", "EP": "EPAD",
                "G": "GND", "VSS": "GND",
                # series diode pair (BAT54S): EasyEDA names the anode/cathode junction "AK"
-               "AK": "COM", "KA": "COM"}
+               "AK": "COM", "KA": "COM",
+               # comparator (KiCad LMV331: +, -, V+, V-; EasyEDA: IN+, IN-, VCC+, GND)
+               "+": "IN+", "-": "IN-", "V+": "VCC", "VCC+": "VCC", "V-": "GND"}
 
 
 def canonical_pin(ref, name):
@@ -205,8 +207,8 @@ def canonical_pin(ref, name):
     text = re.sub(r"[^A-Z0-9+\-]", "", (name or "").upper()).replace("0", "O")
     if not text or re.fullmatch(r"(PIN)?[O0-9]+", text.replace("O", "0")):
         return None
-    if ref.startswith("D") and text == "C":
-        return "K"
+    if ref.startswith("D") and text in ("C", "+", "-"):
+        return {"C": "K", "+": "A", "-": "K"}[text]   # EasyEDA diodes: + anode, - cathode
     return PIN_ALIASES.get(text, text)
 
 
@@ -243,10 +245,16 @@ def load_reference():
 
 
 def supplier_data(lcsc, *, refresh=False):
+    """JLCPCB record plus EasyEDA footprint and pin names; footprint and pads
+    are None for JLCPCB parts EasyEDA has no footprint for (those are checked
+    against pinouts.yaml instead)."""
     record = jlc_record(lcsc, refresh=refresh)
-    footprint, pads = easyeda_pads(lcsc, refresh=refresh)
-    return {"record": record, "footprint": footprint, "pads": pads,
-            "pin_names": easyeda_pin_names(lcsc, refresh=False)}
+    try:
+        footprint, pads = easyeda_pads(lcsc, refresh=refresh)
+        pin_names = easyeda_pin_names(lcsc, refresh=False)
+    except KeyError:
+        footprint, pads, pin_names = None, None, {}
+    return {"record": record, "footprint": footprint, "pads": pads, "pin_names": pin_names}
 
 
 def reference_key(part):
@@ -278,7 +286,7 @@ def snapshot(*, cached=False):
                                                                        "Voltage Rating", "Voltage Rated")]
         parts[lcsc] = data
         raw = json.loads((CACHE / f"{lcsc}.easyeda.json").read_text())
-        notice = raw["result"]["packageDetail"]["dataStr"]["head"].get("license")
+        notice = raw["result"]["packageDetail"]["dataStr"]["head"].get("license") if raw.get("result") else None
         if notice:
             notices.add(notice)
     document = {"source": "嘉立创EDA/EasyEDA官方库 (JLCEDA/EasyEDA Official Library) and JLCPCB catalogue",
@@ -367,6 +375,14 @@ def check_board(pcb, parts, *, live=False):
             check.stock = int(record.get("stockCount") or 0)
             if check.stock < quantity[key] * ORDER_BOARDS:
                 check.problems.append(f"stock {check.stock} < {quantity[key] * ORDER_BOARDS} needed")
+        if theirs is None:
+            # JLCPCB stocks and places it, but EasyEDA has no footprint: the cited land pattern instead
+            if part["mpn"] in pinouts:
+                check_pinout(check, fp, part, pinouts[part["mpn"]])
+            else:
+                check.problems.append(f"{key} has no EasyEDA footprint and {part['mpn']!r} no cited pinout in "
+                                      f"{PINOUTS.name}")
+            continue
         pad_map = pad_maps.get(key, {}).get("map")
         ours = our_pads(fp)
         check.placement = fit(ours, theirs, fp.IsFlipped(), pad_map)

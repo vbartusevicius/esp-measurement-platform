@@ -24,7 +24,7 @@ class DistancePluginBase : public IPlugin, public IMqttContributor
 
     protected:
         HAL* hal = nullptr;
-        Storage* storage = nullptr;
+        Settings* storage = nullptr;
         Logger* logger = nullptr;
 
         LevelFilter distFilter;
@@ -64,7 +64,7 @@ class DistancePluginBase : public IPlugin, public IMqttContributor
         void publishCommonHaSensors(MQTTClient& client, const HaDiscoveryContext& ctx);
 
     public:
-        void setup(HAL* hal, Storage* storage, Logger* logger, LedController* led) override;
+        void setup(HAL* hal, Settings* storage, Logger* logger, LedController* led) override;
         void loop() override;
 
         void getParameterDefs(std::vector<ParameterDef>& defs) const override;

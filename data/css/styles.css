@@ -150,18 +150,15 @@ a:hover { text-decoration: underline; }
 
 @media (min-width: 880px) {
     .overview-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
-    .trend-card, .events-card { grid-column: 1 / -1; }
+    .trend-card { grid-column: 1 / -1; }
 }
 
 .side { display: flex; flex-direction: column; gap: 16px; }
 
 /* Main card and side column share one row height, so the chart below always
-   starts one standard gap away. The side column absorbs the difference in the
-   relay card (or the tiles when the board has no relay). */
+   starts one standard gap away; the tiles absorb the difference. */
 .hero-card, .side { align-self: stretch; }
-.side > .relay-card { flex: 1; display: flex; flex-direction: column; }
-.side > .relay-card .relay-body { flex: 1; }
-.side:has(> .relay-card[hidden]) > .tiles { flex: 1; grid-auto-rows: 1fr; }
+.side > .tiles { flex: 1; grid-auto-rows: 1fr; }
 
 .card {
     background: var(--card);
@@ -243,11 +240,17 @@ a:hover { text-decoration: underline; }
 .forecast.warn b { color: var(--warn); }
 .forecast.alarm b { color: var(--alarm); }
 
-.stale .hero-value, .stale .tile-value, .stale .tank, .stale .scale { opacity: 0.45; }
+.stale .hero-value, .stale .tile-value, .stale .tank, .stale .meter, .stale .scale { opacity: 0.45; }
 
 /* tank */
 .tank { width: 112px; flex: none; }
 .tank svg { width: 100%; height: auto; display: block; }
+
+/* water meter face */
+.meter { width: 140px; flex: none; align-self: center; }
+.meter svg { width: 100%; height: auto; display: block; }
+.meter-wheel { transform-box: view-box; }
+@keyframes meter-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 /* moving analog indicator / log scale */
 .scale svg { width: 100%; height: auto; display: block; overflow: visible; }
@@ -306,6 +309,11 @@ a:hover { text-decoration: underline; }
 .alert-detail { color: var(--text); font-size: 0.9rem; }
 .alert-meta { font-size: 0.78rem; opacity: 0.85; margin-top: 2px; }
 .alert .btn { flex: none; }
+.alert-actions { display: flex; gap: 8px; flex: none; }
+.alert-actions:empty { display: none; }
+.btn.btn-quiet { background: transparent; border-color: currentColor; color: inherit; }
+.alert-slot.compact .alert { padding: 10px 14px; align-items: center; }
+.alert-slot.compact .alert-detail { display: none; }
 
 /* ---------- charts ---------- */
 .chart { position: relative; height: 170px; }
@@ -346,9 +354,6 @@ a:hover { text-decoration: underline; }
 .summary-row b { display: block; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
 
 /* ---------- relay ---------- */
-.relay-body { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.relay-state { font-size: 1.4rem; font-weight: 700; }
-.relay-state.on { color: var(--live); }
 
 /* ---------- events ---------- */
 .events { list-style: none; display: flex; flex-direction: column; }
@@ -385,7 +390,7 @@ a:hover { text-decoration: underline; }
 .hint { color: var(--muted); font-size: 0.78rem; }
 .field-error { color: var(--alarm); font-size: 0.85rem; margin-top: 8px; font-weight: 600; }
 
-input[type="text"], input[type="number"], input[type="password"], select {
+input[type="text"], input[type="number"], input[type="password"], input[type="search"], select {
     width: 100%;
     min-height: 42px;
     padding: 8px 10px;
@@ -490,20 +495,6 @@ details summary::before { content: "▸"; color: var(--muted); }
 details[open] summary::before { content: "▾"; }
 details summary h2 { display: inline; }
 
-.log {
-    margin-top: 12px;
-    max-height: 320px;
-    overflow-y: auto;
-    background: #111418;
-    color: #d6dbe1;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.78rem;
-    padding: 10px;
-    border-radius: 8px;
-}
-
-.log div { padding: 2px 0; word-break: break-word; }
-
 .toast {
     position: fixed;
     top: 72px;
@@ -520,6 +511,7 @@ details summary h2 { display: inline; }
 @media (max-width: 520px) {
     .hero { gap: 14px; }
     .tank { width: 68px; }
+    .meter { width: 96px; }
     .events li { grid-template-columns: 16px 1fr; }
     .ev-time { grid-column: 2; text-align: left; }
 }
@@ -557,18 +549,6 @@ details summary h2 { display: inline; }
 }
 
 .chart-foot .summary-row { margin-top: 0; }
-
-/* ---------- collapsible events ---------- */
-.events-card summary {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    flex-wrap: wrap;
-    min-height: 28px;
-}
-
-.events-card[open] summary { margin-bottom: 8px; }
-.events-card .events { max-height: 420px; overflow-y: auto; }
 
 /* ---------- alert switches ---------- */
 .alert-rows { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
@@ -631,3 +611,262 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
 }
+
+/* ---------------------------------------------------------------- several sensors */
+
+.alert-slot { display: flex; flex-direction: column; gap: 10px; }
+.alert-slot:empty { display: none; }
+
+/* Overview sub-tabs: "All sensors" + one per sensor (in-page tabs, switch in place) */
+.subtabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+}
+.subtab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+    min-height: 36px;
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--muted);
+    font: inherit;
+    font-weight: 550;
+    cursor: pointer;
+}
+.subtab[aria-selected="true"] { background: var(--live); border-color: var(--live); color: #fff; }
+.subtab:focus-visible { outline: 2px solid var(--live); outline-offset: 2px; }
+.subtab-mark {
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+}
+.subtab-mark.alarm { background: var(--alarm); }
+.subtab-mark.warn { background: var(--warn); }
+
+/* "All sensors" summary: equal cards, then the device's relay and events */
+#summary-view { display: flex; flex-direction: column; gap: 16px; }
+#summary-view[hidden] { display: none; }
+.sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+.latest-event { align-self: flex-start; text-decoration: none; }
+.latest-event b { color: var(--live); }
+
+.sensor-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    border-left: 4px solid var(--line);
+    transition: box-shadow 0.15s;
+}
+.sensor-card:hover { box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14); }
+.sensor-card:focus-visible { outline: 2px solid var(--live); outline-offset: 2px; }
+.sensor-card.alarm { border-left-color: var(--alarm); }
+.sensor-card.warn { border-left-color: var(--warn); }
+.sensor-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.sensor-card-title { display: grid; gap: 1px; min-width: 0; }
+.sensor-card-name { font-weight: 650; letter-spacing: 0.04em; }
+.state-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--band);
+    color: var(--muted);
+}
+.state-chip .icon { width: 14px; height: 14px; }
+.state-chip.alarm { background: var(--alarm-bg); color: var(--alarm); }
+.state-chip.warn { background: var(--warn-bg); color: var(--warn); }
+.sensor-card-value { display: flex; align-items: baseline; gap: 6px; }
+.sensor-card-value .num { font-size: 2.2rem; font-weight: 650; line-height: 1; font-variant-numeric: tabular-nums; }
+.sensor-card-value .unit { color: var(--muted); }
+.sensor-card.alarm .sensor-card-value .num { color: var(--alarm); }
+.sensor-card-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; }
+.sensor-card-facts dt { font-size: 0.75rem; color: var(--muted); }
+.sensor-card-facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sensor-card-trend svg { width: 100%; height: 44px; display: block; }
+.sensor-card-trend polyline { fill: none; stroke: var(--live); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.sensor-card-trend line.limit { stroke: var(--alarm); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; opacity: 0.7; }
+.sensor-card-foot { display: flex; justify-content: space-between; margin-top: auto; }
+.sensor-card-foot .open { color: var(--live); font-weight: 600; }
+
+/* Settings: one collapsible block per sensor type */
+.sensor-list { display: grid; gap: 10px; }
+.sensor-block { border: 1px solid var(--line); border-radius: var(--radius); }
+.sensor-block.open { border-color: var(--fill); }
+.sensor-block-head { display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; }
+.sensor-expand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    min-height: 48px;
+    padding: 6px 8px;
+    background: none;
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.sensor-expand:focus-visible { outline: 2px solid var(--live); }
+.sensor-expand .chevron {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--muted);
+    border-bottom: 2px solid var(--muted);
+    transform: rotate(-45deg);
+    transition: transform 0.15s;
+}
+.sensor-expand[aria-expanded="true"] .chevron { transform: rotate(45deg); }
+.sensor-expand-text { display: grid; gap: 1px; flex: 1; min-width: 0; }
+.sensor-name { font-weight: 600; }
+.sensor-summary.needs { color: var(--alarm); font-weight: 600; }
+.sensor-poles { flex: none; }
+.sensor-block.off .sensor-name { color: var(--muted); }
+.sensor-block-body { display: grid; gap: 12px; padding: 12px; border-top: 1px solid var(--line); }
+.sensor-block-body[hidden] { display: none; }
+@media (max-width: 560px) { .sensor-poles { display: none; } }
+
+/* ---------------------------------------------------------------- relay bar */
+
+.relay-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-top: 12px; padding-bottom: 12px; }
+.relay-pill {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 44px;
+    border-radius: 10px;
+    border: 2px solid var(--line);
+    background: var(--band);
+    color: var(--muted);
+    font-weight: 750;
+    letter-spacing: 0.05em;
+}
+.relay-pill.on { background: var(--live); border-color: var(--live); color: #fff; }
+.relay-bar.stale .relay-pill { opacity: 0.5; }
+.relay-text { flex: 1; min-width: 220px; display: grid; gap: 2px; }
+.relay-line { display: flex; align-items: baseline; gap: 10px; }
+.relay-line h2 { font-size: 0.95rem; margin: 0; white-space: nowrap; }
+.relay-mode { text-decoration: none; }
+.relay-mode { font-size: 0.75rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--band); color: var(--muted); }
+.relay-mode.auto { background: var(--live-soft); color: var(--live); }
+.relay-rule { font-weight: 550; }
+.relay-control { flex: none; display: flex; align-items: center; gap: 8px; }
+.switch.big .slider { width: 52px; height: 30px; border-radius: 15px; }
+.switch.big .slider::after { width: 24px; height: 24px; }
+.switch.big input:checked + .slider::after { transform: translateX(22px); }
+.switch.big .switch-label { min-width: 2.2em; font-size: 0.95rem; }
+
+/* ---------------------------------------------------------------- events tab */
+
+.tab-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--alarm);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+.events-filters { display: grid; gap: 10px; }
+.filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.filter-row .spacer { flex: 1; }
+.filter-row input[type="search"] { flex: 1 1 180px; max-width: 320px; }
+.filter-row select { width: auto; }
+.chip {
+    min-height: 34px;
+    padding: 4px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 550;
+    cursor: pointer;
+}
+.chip[aria-pressed="true"] { background: var(--live-soft); border-color: var(--live); color: var(--live); }
+.chip[aria-pressed="true"]::before { content: "✓ "; }
+.chip:focus-visible { outline: 2px solid var(--live); outline-offset: 2px; }
+.check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+.check input { width: auto; }
+
+.timeline-day { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 16px 0 6px; }
+.timeline-list { list-style: none; margin: 0; padding: 0; }
+.tl-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 0; border-top: 1px solid var(--line); }
+.tl-row:first-child { border-top: none; }
+.tl-icon .icon { width: 18px; height: 18px; color: var(--muted); }
+.tl-row.alarm .tl-icon .icon, .tl-row.alarm .tl-title { color: var(--alarm); }
+.tl-row.warn .tl-icon .icon, .tl-row.warn .tl-title { color: var(--warn); }
+.tl-title { font-weight: 600; }
+.tl-sensor { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 4px; background: var(--band); color: var(--text); font-size: 0.75rem; font-weight: 650; letter-spacing: 0.04em; }
+.tl-detail { color: var(--muted); font-size: 0.85rem; }
+.tl-time { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tl-row.log { padding: 4px 0; }
+.tl-row.log .tl-body { display: flex; gap: 8px; align-items: baseline; }
+.tl-log { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; word-break: break-word; }
+.tl-level { flex: none; font-size: 0.65rem; font-weight: 700; padding: 0 5px; border-radius: 4px; background: var(--band); color: var(--muted); }
+.tl-level.warn { background: var(--warn-bg); color: var(--warn); }
+.tl-level.error { background: var(--alarm-bg); color: var(--alarm); }
+@media (max-width: 560px) {
+    .relay-bar { flex-wrap: nowrap; gap: 10px; padding-top: 10px; padding-bottom: 10px; }
+    .relay-pill { width: 46px; height: 34px; font-size: 0.8rem; }
+    .relay-text { min-width: 0; }
+    .relay-rule { font-size: 0.85rem; }
+    #relay-meta { display: none; }
+    .switch.big .switch-label { display: none; }
+    #relay-settings-link { display: none !important; }   /* the "Automatic ›" chip links to the rule */
+}
+
+/* Settings: the one sensor that drives the relay */
+.relay-source {
+    margin: 4px 0 0;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--live);
+    border-radius: var(--radius);
+}
+.relay-source legend { padding: 0 6px; font-weight: 700; font-size: 1rem; }
+.relay-source .hint { margin: 0 0 8px; }
+.relay-source-alerts { display: block; }
+.relay-badge {
+    flex: none;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--live);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 650;
+}
+.sensor-topic { font-size: 0.8rem; }

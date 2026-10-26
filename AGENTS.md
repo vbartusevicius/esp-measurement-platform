@@ -22,3 +22,22 @@
 - `lib/Display`: `Display` owns the OLED, `PortraitPages` draws the 64x128 pages.
 - Web UI lives in `data/`; `tools/embed_web.py` gzips it into `lib/WebApi/WebAssets.h` (generated, git-ignored) on every build.
 - Use `hal->millis()` in plugins, not the global `millis()`, so tests control time.
+
+## Several sensors at once
+
+- `SensorHub` (`lib/Plugin`) runs the plugins listed in `sensors` (falls back to the old single `active_plugin`),
+  refuses ones that clash on a board input (`IPlugin::inputs()`, `Board::INPUT_*`) and schedules each on its own
+  sampling / publish interval (main loop ticks every second).
+- Plugins get a `Settings*`: a `ScopedSettings` with the plugin prefix (`ScopedSettings::prefixFor`: `ad.`, `ud.`,
+  `rc.`, `av.`, `pm.`). Per-sensor limits (`limit_*`) live in that scope too; `relay_mode` / `relay_source` and
+  MQTT settings are device-wide. Storage is 3 KB; `test_sensor_hub` checks every setting of all five sensors fits.
+  Saving an empty value removes the key.
+- `DeviceMonitor`: one `LimitMonitor` per sensor (`addSensor`), the relay follows `relay_source`; events name the
+  sensor once more than one runs (`EventLog::TEXT_LENGTH` 16).
+- MQTT: `<device>/stat/<plugin id>` per sensor; HA object ids are `<plugin id>_<objectId>`
+  (`HaDiscoveryContext::objectPrefix`); diagnostics and relay once per device.
+- OLED: one page per sensor, then DEV / LOG / WIFI (`PortraitPages::pageCount`); PAGE steps through them.
+- Web: `sensors[]` in status and config, `?sensor=<id>` on chart and alert ack; mock scenarios `house`, `house-alarm`.
+  Overview sub-tabs: `state.view` = `'all'` (summary cards) or a sensor id (detail, `#overview/<id>`); the relay is
+  one bar on top of every Overview view (`renderRelay` / `relayRule`). The Events tab merges `status.events` and the
+  WebSocket `log_batch` lines (`timelineEntries`), filtered by `state.filter`.

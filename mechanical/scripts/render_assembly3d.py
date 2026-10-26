@@ -116,6 +116,16 @@ def realistic_part(b, comp):
             return [(housing, GREEN_TERM)] + [(bt, ORANGE_BTN) for bt in btns]
         return [(box(x0, x1, y0, y1, z0, z1), GREEN_TERM)]
 
+    if "WAGO_2086" in fp and perp:
+        # black housing; per pole a round wire hole and a grey push-button on the entry face (+y, top bank)
+        n_poles = 4 if "1204" in fp else 3
+        zs = [cz + (i - (n_poles - 1) / 2) * 3.5 for i in range(n_poles)]
+        housing = box(x0, x1, y0, y1, z0 + 0.1, z1 - 0.1)
+        for z in zs:
+            housing = housing.cut(cq.Workplane("XZ").center(x0 + 2.4, z).circle(0.9).extrude(4.0).translate((0, y1, 0)))
+        btns = [box(x0 + 4.6, x0 + 7.4, y1 - 1.2, y1 + 0.2, z - 1.1, z + 1.1) for z in zs]
+        return [(housing, (0.12, 0.12, 0.13))] + [(bt, (0.78, 0.79, 0.80)) for bt in btns]
+
     if "G6K-2F-Y" in fp or "G6S-2F" in fp:
         return [(box(x0, x0 + 0.6, y0 + 0.3, y1 - 0.3, z0 + 0.3, z1 - 0.3), SILVER),
                 (box(x0 + 0.2, x1, y0 + 0.5, y1 - 0.5, z0 + 1.0, z1 - 1.0), IVORY)]

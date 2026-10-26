@@ -3,7 +3,7 @@
 #include "AnalogSensorConverter.h"
 #include "HAL.h"
 #include "Logger.h"
-#include "Storage.h"
+#include "Settings.h"
 
 const char* AnalogDistancePlugin::getId() const { return "analog_distance"; }
 const char* AnalogDistancePlugin::getName() const { return "Analog Distance Meter"; }

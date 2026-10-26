@@ -27,6 +27,14 @@ def merge(base, overrides):
     return result
 
 
+def all_boards(spec, variant):
+    """The enclosure boards (panelised together) followed by the accessory
+    boards, which are generated, checked and released the same way but
+    ordered separately."""
+    v = spec["variants"][variant]
+    return list(v["boards"]) + list(v.get("accessory_boards", []))
+
+
 def load_spec():
     base = yaml.safe_load(BASE_PATH.read_text())
     selected = spec_path()

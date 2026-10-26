@@ -36,7 +36,7 @@ UI_H = SPEC["boards"]["ui"]["max_outline"]["height"]
 FRONT_Y_START = (HIDDEN_H - FRONT_H) / 2
 FRONT_Y_END = (HIDDEN_H + FRONT_H) / 2
 
-TOP_TERMINAL_REFS = ("J2", "J5")
+TOP_TERMINAL_REFS = ("J2", "J5", "J6")
 BOTTOM_TERMINAL_REFS = ("J1", "J4")
 ALL_TERMINAL_REFS = TOP_TERMINAL_REFS + BOTTOM_TERMINAL_REFS
 
@@ -134,7 +134,7 @@ def terminal_holes():
 
 
 def wire_entries():
-    """Openings in the top and bottom walls that the KF142R push-in terminals'
+    """Openings in the top and bottom walls that the push-in terminals'
     wire-entry faces sit in, flush with the outside."""
     entries = []
     for p in part_boxes():
@@ -161,12 +161,13 @@ def shoulder_of(y):
 def connector_faces():
     main = components("main")
     faces = {}
+    # the wire-entry face is the body edge towards the board edge
     for ref in TOP_TERMINAL_REFS:
         if ref in main:
-            faces[ref] = board_point("main", 0, main[ref]["y"] + 8.40)[1]
+            faces[ref] = board_point("main", 0, main[ref]["bbox"]["y1"])[1]
     for ref in BOTTOM_TERMINAL_REFS:
         if ref in main:
-            faces[ref] = board_point("main", 0, main[ref]["y"] - 8.40)[1]
+            faces[ref] = board_point("main", 0, main[ref]["bbox"]["y0"])[1]
     return faces
 
 

@@ -6,9 +6,9 @@
 #include <ESPAsyncWebServer.h>
 
 class DeviceMonitor;
-class IPlugin;
 class Logger;
 class PluginRegistry;
+class SensorHub;
 class Storage;
 
 typedef void (*ResetCallback)();
@@ -21,7 +21,7 @@ class WebApi {
         AsyncWebSocket ws;
         Storage* storage;
         Logger* logger;
-        IPlugin* activePlugin;
+        SensorHub* hub;
         PluginRegistry* registry;
         DeviceMonitor* monitor;
         ResetCallback resetCallback;
@@ -29,16 +29,16 @@ class WebApi {
         bool mqttConnected = false;
         unsigned long restartAt = 0;
         const char* uploadRejected = nullptr;   // why the current upload was refused before flashing
-        static constexpr size_t MAX_CONFIG_BODY_SIZE = 2048;
+        static constexpr size_t MAX_CONFIG_BODY_SIZE = 6144;   // every sensor's fields in one save
         static constexpr size_t MAX_LOG_LINES_PER_MESSAGE = 15;
 
         // Requests from the async web task, applied on the main loop by processActions()
         volatile int pendingRelay = -1;
-        volatile bool pendingAlertAck = false;
+        volatile int pendingAlertAck = -2;   // -2 none, -1 all, else the sensor index
         volatile bool pendingLimitsReload = false;
 
     public:
-        WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry,
+        WebApi(Storage* storage, Logger* logger, SensorHub* hub, PluginRegistry* registry,
                DeviceMonitor* monitor, ResetCallback resetCallback);
 
         void begin();
@@ -52,6 +52,7 @@ class WebApi {
         void setupUploadEndpoint();
         void handleConfigBody(AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total);
         void handleRelay(AsyncWebServerRequest* request);
+        int sensorParam(AsyncWebServerRequest* request) const;   // ?sensor=<id> -> index, default the first
         void handleUpload(AsyncWebServerRequest* request, const String& filename,
                           size_t index, uint8_t* data, size_t len, bool final);
 

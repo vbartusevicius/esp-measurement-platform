@@ -1,0 +1,12 @@
+(version 1)
+(rule jlcpcb_minimum
+  (constraint track_width (min 0.12mm))
+  (constraint clearance (min 0.2mm))
+  (constraint hole_size (min 0.2mm)))
+(rule power_track_width
+  (constraint track_width (min 0.22mm))
+  (condition "A.hasNetclass('SELV-Power') || A.hasNetclass('KNX-Power') || A.hasNetclass('DALI-Power') || A.hasNetclass('AUX-Power')"))
+(rule relay_230vac_track_width_and_spacing
+  (constraint track_width (min 0.75mm))
+  (constraint clearance (min 2.5mm))
+  (condition "A.hasNetclass('RELAY-Power')"))

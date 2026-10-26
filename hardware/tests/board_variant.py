@@ -6,11 +6,12 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "hardware/circuits"))
-from product_spec import load_spec
+from product_spec import all_boards, load_spec
 
 SPEC = load_spec()
 VARIANT = SPEC["active_variant"]
-BOARDS = tuple(SPEC["variants"][VARIANT]["boards"])
+BOARDS = tuple(all_boards(SPEC, VARIANT))
+PANEL_BOARDS = tuple(SPEC["variants"][VARIANT]["boards"])
 
 
 def layout_path(board, suffix=".kicad_pcb"):

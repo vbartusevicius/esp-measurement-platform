@@ -33,11 +33,12 @@ import yaml
 
 REPO = Path("/work")
 sys.path.insert(0, str(REPO / "hardware/circuits"))
-from product_spec import load_spec
+from product_spec import all_boards, load_spec
 
 SPEC = load_spec()
 VARIANT = SPEC["active_variant"]
-BOARDS = tuple(SPEC["variants"][VARIANT]["boards"])
+PANEL_BOARDS = tuple(SPEC["variants"][VARIANT]["boards"])   # the accessory boards are ordered on their own
+BOARDS = tuple(all_boards(SPEC, VARIANT))
 RELEASE = SPEC["product"]["release"]
 
 
@@ -176,8 +177,8 @@ def main(version, boards=BOARDS):
             print(f"{board}: released; every JLC part lands pin for pin. Rotation differs from KiCad's "
                   f"for {', '.join(turned) or 'none'}; bottom side: {', '.join(bottom) or 'none'} "
                   "(confirm these in JLCPCB's placement preview)")
-    if not failed and tuple(boards) == BOARDS:
-        panel_problems = panelize.build_panel(VARIANT, BOARDS, root, board_checks)
+    if not failed and set(PANEL_BOARDS) <= set(boards):
+        panel_problems = panelize.build_panel(VARIANT, PANEL_BOARDS, root, board_checks)
         if panel_problems:
             failed = True
             for problem in panel_problems:

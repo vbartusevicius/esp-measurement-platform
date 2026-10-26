@@ -1,10 +1,10 @@
 #include "WebApi.h"
 #include "ConfigJson.h"
 #include "DeviceMonitor.h"
-#include "IPlugin.h"
 #include "Logger.h"
 #include "PluginRegistry.h"
 #include "RelayOutput.h"
+#include "SensorHub.h"
 #include "StatusJson.h"
 #include "Storage.h"
 #include "WebAssets.h"
@@ -31,9 +31,9 @@ static void sendResult(AsyncWebServerRequest* request, int code, const char* mes
     request->send(code, "application/json", body);
 }
 
-WebApi::WebApi(Storage* storage, Logger* logger, IPlugin* plugin, PluginRegistry* registry,
+WebApi::WebApi(Storage* storage, Logger* logger, SensorHub* hub, PluginRegistry* registry,
                DeviceMonitor* monitor, ResetCallback resetCallback)
-    : server(80), ws("/ws"), storage(storage), logger(logger), activePlugin(plugin),
+    : server(80), ws("/ws"), storage(storage), logger(logger), hub(hub),
       registry(registry), monitor(monitor), resetCallback(resetCallback)
 {
 }
@@ -78,21 +78,10 @@ void WebApi::setupStaticFiles()
 
 void WebApi::setupApiEndpoints()
 {
-    server.on("/api/v1/plugins", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        JsonDocument doc;
-        ConfigJson::writePlugins(doc, *this->registry, this->activePlugin);
-        sendJson(request, doc);
-    });
-
-    // ?plugin=<id> lists that plugin's parameters (sensor dropdown before saving)
+    // Device settings and every sensor type (enabled or not) with its parameters and limits
     server.on("/api/v1/config", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        IPlugin* inspected = this->activePlugin;
-        if (request->hasParam("plugin")) {
-            IPlugin* requested = this->registry->get(request->getParam("plugin")->value().c_str());
-            if (requested) inspected = requested;
-        }
         JsonDocument doc;
-        ConfigJson::writeConfig(doc, *this->storage, this->activePlugin, inspected, this->monitor);
+        ConfigJson::writeConfig(doc, *this->storage, *this->registry, this->monitor);
         sendJson(request, doc);
     });
 
@@ -109,7 +98,7 @@ void WebApi::setupApiEndpoints()
 
     server.on("/api/v1/chart", HTTP_GET, [this](AsyncWebServerRequest *request) {
         JsonDocument doc;
-        StatusJson::writeChart(doc, this->activePlugin);
+        StatusJson::writeChart(doc, *this->hub, this->sensorParam(request));
         sendJson(request, doc);
     });
 
@@ -118,9 +107,9 @@ void WebApi::setupApiEndpoints()
         this->handleRelay(request);
     });
 
-    // Same as the PAGE button while an alert is shown
+    // ?sensor=<id> acknowledges that sensor's alert, without it every pending one
     server.on("/api/v1/alert/ack", HTTP_POST, [this](AsyncWebServerRequest *request) {
-        this->pendingAlertAck = true;
+        this->pendingAlertAck = request->hasParam("sensor") ? this->sensorParam(request) : -1;
         sendResult(request, 200);
     });
 
@@ -134,6 +123,12 @@ void WebApi::setupApiEndpoints()
         sendResult(request, 200, "Resetting");
         this->resetCallback();
     });
+}
+
+int WebApi::sensorParam(AsyncWebServerRequest* request) const
+{
+    if (!request->hasParam("sensor")) return 0;
+    return this->hub->indexOf(request->getParam("sensor")->value().c_str());
 }
 
 void WebApi::handleConfigBody(AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total)
@@ -161,11 +156,22 @@ void WebApi::handleConfigBody(AsyncWebServerRequest* request, uint8_t* data, siz
         sendResult(request, 400, "Invalid JSON");
         return;
     }
+    const char* problem = ConfigJson::problem(doc.as<JsonObjectConst>(), *this->registry);
+    if (problem) {
+        sendResult(request, 400, problem);
+        return;
+    }
     for (JsonPair kv : doc.as<JsonObject>()) {
         String value = kv.value().as<String>();
         // The UI never receives the password, so an empty field means "keep it".
         if (value.length() == 0 && strcmp(kv.key().c_str(), Parameter::MQTT_PASS) == 0) continue;
         this->storage->saveParameter(kv.key().c_str(), value);
+    }
+    // Once the sensor list is saved, the single-sensor setting it replaced is dropped
+    // (otherwise switching every sensor off would bring that one back).
+    if (doc[Parameter::SENSORS].is<const char*>()) {
+        String none;
+        this->storage->saveParameter(Parameter::ACTIVE_PLUGIN, none);
     }
     this->logger->info("Configuration saved");
     this->pendingLimitsReload = true;
@@ -178,7 +184,7 @@ void WebApi::handleRelay(AsyncWebServerRequest* request)
         sendResult(request, 404, "No relay on this board");
         return;
     }
-    if (this->monitor->limits().relayMode() != LimitMonitor::RelayMode::MANUAL) {
+    if (this->monitor->relayMode() != LimitMonitor::RelayMode::MANUAL) {
         sendResult(request, 409, "Relay follows the limit rule");
         return;
     }
@@ -297,7 +303,7 @@ void WebApi::handleWebSocketMessage(AsyncWebSocketClient* client, void* arg, uin
 
 void WebApi::writeStatus(JsonDocument& doc)
 {
-    StatusJson::write(doc, {this->activePlugin, this->logger, this->monitor, this->storage, this->mqttConnected});
+    StatusJson::write(doc, {this->hub, this->logger, this->monitor, this->storage, this->mqttConnected});
 }
 
 void WebApi::broadcastStats()
@@ -327,9 +333,11 @@ void WebApi::processActions()
         this->pendingRelay = -1;
         this->monitor->commandRelay(relay == 1, "WEB UI", millis());
     }
-    if (this->pendingAlertAck) {
-        this->pendingAlertAck = false;
-        this->monitor->dismissAlert();
+    const int ack = this->pendingAlertAck;
+    if (ack != -2) {
+        this->pendingAlertAck = -2;
+        if (ack == -1) this->monitor->dismissAll();
+        else if (ack >= 0) this->monitor->dismissAlert((size_t)ack);
     }
 }
 

@@ -20,6 +20,7 @@ void Display::begin()
 void Display::run(const DisplayFrame& frame)
 {
     u8g2.clearBuffer();
+    if (this->page >= PortraitPages::pageCount(frame.screens.size())) this->page = 0;
     PortraitPages(u8g2).draw(frame, this->page);
     u8g2.sendBuffer();
 }
