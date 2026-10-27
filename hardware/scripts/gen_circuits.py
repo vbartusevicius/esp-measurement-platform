@@ -171,7 +171,7 @@ def collect_assembly_parts(variant, spec):
     items.append({
         "item": "Case cover (snap-fit, no screws)",
         "qty": 1,
-        "part": "enclosure/cover.stl (or cover_embossed.stl / cover_color.3mf)",
+        "part": "enclosure/cover.stl (or cover_embossed.stl)",
         "description": "PETG or ASA, 0.2 mm layers, front face down; the two button bumps stand 0.6 mm proud, so enable "
                        "supports from the build plate (or set BUTTON_TAB boss_height = 0 for a flat face); "
                        "buttons are C-shaped spring tabs in the front wall with plungers (no separate parts); "

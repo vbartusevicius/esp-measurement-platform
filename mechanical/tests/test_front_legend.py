@@ -29,9 +29,9 @@ def test_labels_clear_openings_and_each_other(labels):
     assert not hits and not pairs, (hits, pairs, len(boxes))
 
 
-def test_colour_inlays_fill_exactly_what_they_cut_from_the_cover():
+def test_engraving_removes_exactly_the_legend_bodies_from_the_cover():
     import build_enclosure as be
-    import legend_color_model as lcm
+    import legend_engraving as lcm
 
     legend = lcm.legend_bodies()
     cover = be.build_cover()

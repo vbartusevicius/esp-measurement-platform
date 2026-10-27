@@ -8,9 +8,12 @@ the assembly parts list and the enclosure are always refreshed.
 <version> defaults to the variant's product.release (v1 -> v1, v2 -> v2).
 
 Writes hardware/releases/<version>/<board>/ for every board: KiCad sources,
-Gerbers and drill files (one zip for upload), JLCPCB BOM and placement files
-for the parts JLCPCB assembles, an assembly check report, a hand-fit list, a
-STEP model, renders and the DRC report. Stops without writing a board when its
+Gerbers, drill files and the IPC-D-356 test netlist (one zip for upload),
+ODB++ and IPC-2581 (with part numbers, for AISLER, Eurocircuits and other
+fabs that assemble from them), a fab-neutral BOM and placement list (PCBWay,
+Eurocircuits, ...), JLCPCB BOM and placement files for the parts JLCPCB
+assembles, an assembly check report, a hand-fit list, a STEP model, renders
+and the DRC report. Stops without writing a board when its
 DRC has an error or an unrouted connection, when a part is neither orderable
 nor hand-fit, or when jlc_parts.py finds a JLC part that is not what the
 circuit wants, would not land pin for pin, or is short of stock. Placement
@@ -80,6 +83,8 @@ def gate(board, out, checks):
 
 
 def gerbers(board, out):
+    """Gerber X2 + Excellon (plated / non-plated apart) + the job file and the IPC-D-356
+    netlist for the electrical test: the data set every fab takes, assembly or not."""
     pcb = pcbnew.LoadBoard(str(layout_path(board)))
     copper = [pcbnew.LayerName(layer) for layer in pcb.GetEnabledLayers().CuStack()]
     layers = copper + ["F.Mask", "B.Mask", "F.Paste", "B.Paste", "F.SilkS", "B.SilkS", "Edge.Cuts"]
@@ -89,8 +94,78 @@ def gerbers(board, out):
         "--layers", ",".join(layers), "--no-protel-ext", str(layout_path(board)))
     run("kicad-cli", "pcb", "export", "drill", "--output", f"{target}/",
         "--format", "excellon", "--excellon-separate-th", str(layout_path(board)))
+    run("kicad-cli", "pcb", "export", "ipcd356", "--output", str(target / f"{board}-netlist.ipc"),
+        str(layout_path(board)))
     shutil.make_archive(str(out / f"{board}_gerbers"), "zip", target)
     shutil.rmtree(target)
+
+
+def fab_board(board):
+    """A copy of the layout carrying what assembly houses read from CAD data: MPN and
+    Manufacturer (and the LCSC number) on every footprint, hand-fit parts flagged Do Not
+    Populate. ODB++, IPC-2581 and the placement list come from it; the stored layout and
+    its released copy stay as routed."""
+    pcb = pcbnew.LoadBoard(str(layout_path(board)))
+    by_ref = {p["ref"]: p for p in parts(board)}
+    for fp in pcb.GetFootprints():
+        p = by_ref.get(fp.GetReference())
+        if not p:
+            continue
+        for name, value in (("MPN", p["mpn"]), ("Manufacturer", p["mfr"]), ("LCSC", p["lcsc"])):
+            if value:
+                fp.SetField(name, value)
+        if p["assembly"] == "hand":
+            fp.SetDNP(True)
+            fp.SetExcludedFromBOM(True)
+            fp.SetExcludedFromPosFiles(True)
+    path = REPO / "hardware/build" / VARIANT / board / "fab" / f"{board}.kicad_pcb"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pcb.Save(str(path))
+    shutil.copy(layout_path(board).with_suffix(".kicad_pro"), path.with_suffix(".kicad_pro"))
+    return path
+
+
+def mount_type(fp):
+    return "THT" if fp.GetAttributes() & pcbnew.FP_THROUGH_HOLE else "SMD"
+
+
+def generic_assembly_files(board, out):
+    """Fab-neutral assembly data: ODB++ (AISLER assembles from it; MPN fields auto-assign
+    parts), IPC-2581 with its BOM, and a CSV BOM + placement list in the column names
+    PCBWay, Eurocircuits and most assemblers expect. Coordinates are those of the Gerbers;
+    rotations follow KiCad's footprint zero orientation (confirm in the fab's preview)."""
+    fab = fab_board(board)
+    run("kicad-cli", "pcb", "export", "odb", "--output", str(out / f"{board}_odb.zip"),
+        "--compression", "zip", "--units", "mm", str(fab))
+    run("kicad-cli", "pcb", "export", "ipc2581", "--output", str(out / f"{board}_ipc2581.zip"), "--compress",
+        "--bom-col-mfg-pn", "MPN", "--bom-col-mfg", "Manufacturer", "--bom-col-dist-pn", "LCSC",
+        "--bom-col-dist", "LCSC", str(fab))
+
+    pcb = pcbnew.LoadBoard(str(fab))
+    fps = {fp.GetReference(): fp for fp in pcb.GetFootprints()}
+    groups = {}
+    for p in parts(board):
+        key = (p["assembly"] == "hand", p["mfr"], p["mpn"], p["value"], p["footprint"].split(":")[1])
+        groups.setdefault(key, []).append(p)
+    with open(out / f"{board}_bom.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["Item", "Qty", "Designator", "Value", "Manufacturer", "MPN", "LCSC", "Package", "Type",
+                    "Place", "Description"])
+        for item, ((hand, mfr, mpn, value, package), group) in enumerate(sorted(groups.items()), start=1):
+            refs = sorted(p["ref"] for p in group)
+            w.writerow([item, len(refs), ",".join(refs), value, mfr, mpn, group[0]["lcsc"], package,
+                        mount_type(fps[refs[0]]), "NO" if hand else "YES",
+                        ("Hand-fitted after assembly: " if hand else "") + group[0]["source"]])
+
+    pos = REPO / "hardware/build" / VARIANT / board / "fab" / f"{board}-pos.csv"
+    run("kicad-cli", "pcb", "export", "pos", "--output", str(pos), "--format", "csv", "--units", "mm",
+        "--side", "both", "--exclude-dnp", str(fab))
+    with open(pos, newline="") as f, open(out / f"{board}_cpl.csv", "w", newline="") as o:
+        w = csv.writer(o)
+        w.writerow(["Designator", "Mid X", "Mid Y", "Rotation", "Layer", "Value", "Package", "Type"])
+        for r in sorted(csv.DictReader(f), key=lambda r: r["Ref"]):
+            w.writerow([r["Ref"], f"{float(r['PosX']):.3f}", f"{float(r['PosY']):.3f}", f"{float(r['Rot']):.1f}",
+                        "Top" if r["Side"] == "top" else "Bottom", r["Val"], r["Package"], mount_type(fps[r["Ref"]])])
 
 
 def assembly_files(board, out, checks):
@@ -149,6 +224,7 @@ def release_board(board, root):
     for suffix in (".kicad_pcb", ".kicad_pro", ".kicad_dru"):
         shutil.copy(layout_path(board).with_suffix(suffix), out)
     gerbers(board, out)
+    generic_assembly_files(board, out)
     placement = assembly_files(board, out, checks)
     step = REPO / "hardware/build" / VARIANT / board / f"{board}.step"
     run("kicad-cli", "pcb", "export", "step", "--grid-origin", "--subst-models", "--force",

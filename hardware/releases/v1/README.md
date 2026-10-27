@@ -14,6 +14,22 @@ Independent pre-order review: `.claude/skills/manufacturing-readiness-review/` (
 | **Optical Dial Reader (water / gas / oil dials)** | ![Reader Inside](accessories/dial_reader/renders/dial_reader_inside.png) ![Reader Assembled](accessories/dial_reader/renders/dial_reader_assembled.png) ![Reader Exploded](accessories/dial_reader/renders/dial_reader_exploded.png) |
 | **Universal Distance Sensor Pod** | ![Distance Pod Inside](accessories/distance_sensor_pod/renders/distance_pod_inside.png) ![Distance Pod Assembled](accessories/distance_sensor_pod/renders/distance_pod_assembled.png) ![Distance Pod Exploded](accessories/distance_sensor_pod/renders/distance_pod_exploded.png) |
 
+### Which files to upload
+
+Every board folder (`main/`, `ui/`, `reader/`) holds the same set; `<b>` is the board name.
+
+| Fab | Bare PCB | Assembly (PCBA) |
+|---|---|---|
+| **JLCPCB** | `<b>_gerbers.zip` (or `panel/panel_gerbers.zip` for `main` + `ui` in one order) | `<b>_bom_jlc.csv` + `<b>_cpl_jlc.csv`: LCSC numbers, rotations and centres fitted to JLC's own footprints |
+| **AISLER** | `<b>_odb.zip` (ODB++) | the same `<b>_odb.zip`: AISLER assembles only from ODB++ or native files, not from Gerbers. Parts auto-assign from the `MPN` field; hand-fit parts carry ODB++'s `.no_pop` flag |
+| **Eurocircuits** | `<b>_odb.zip` or `<b>_gerbers.zip` | `<b>_bom.csv` + `<b>_cpl.csv` (they ignore the BOM inside CAD data and ask for a separate one) |
+| **PCBWay** and most others | `<b>_gerbers.zip` | `<b>_bom.csv` + `<b>_cpl.csv`; `<b>_ipc2581.zip` (IPC-2581 C with the BOM) where accepted |
+
+- **`<b>_gerbers.zip`:** Gerber X2 copper, mask, paste, silkscreen and outline, Excellon drills with plated and non-plated holes in separate files, the Gerber job file, and `<b>-netlist.ipc` (IPC-D-356) for the electrical test.
+- **`<b>_bom.csv`:** grouped by part: Qty, Designator, Value, Manufacturer, MPN, LCSC, Package, SMD/THT, Place (`NO` = hand-fitted after assembly, e.g. the XIAO module) and a description.
+- **`<b>_cpl.csv`:** every machine-placed part (hand-fit parts left out) in mm, in the Gerbers' coordinates. Rotations follow KiCad's footprint orientation: check polarised parts in the fab's placement preview, as with JLC.
+- **Panel:** only JLCPCB gets the ready-made `main` + `ui` panel; other fabs take the two boards as separate designs.
+
 ---
 
 ## 1. Universal 1-DIN (`18 mm`) Sensor Controller (`main` + `ui`)
@@ -49,7 +65,7 @@ All JLC-assembled. Bottom: Kefa `KF142R-5.08` spring terminals (250 V / 15 A, 0.
 
 ## 2. Printable Enclosures & Plugin Accessories
 
-- **`enclosure/`** — 1-DIN (`18 mm`) side-opening clamshell (`base.stl`, `cover.stl`, `cover_embossed.stl`, `cover_color.3mf`, `assembly.step`), PETG/ASA, 0.2 mm layers.
+- **`enclosure/`** — 1-DIN (`18 mm`) side-opening clamshell (`base.stl`, `cover.stl`, `cover_embossed.stl`, `assembly.step`), PETG/ASA, 0.2 mm layers.
   - **Assembly:** solder the XIAO sockets, clip all THT solder tails on the back of `main` to ≤ 2.5 mm, slide the populated `main` into the base from the open left side (the terminal blocks run into the top/bottom wall slots, 0.2 mm clearance all round). Stick two strips of 3.0 mm foam tape on the UI board front under the OLED's long edges (on top of the panel's 1.0 mm VHB), snap the UI board into the cover, fit the FFC, then slide the cover on from the left until the four side hooks click. The cover's filler bars close the terminal slots and its side wall has recesses over the THT tails.
   - **Front:** the OLED panel face sits in a 1.0 mm pocket behind the active-area window, pressed forward by the foam; the two buttons are C / mirrored-C spring tabs in the front wall (same design as knx-dali-gateway v3): a 0.7 mm pad on an arm rooted at a shared centre bridge, a rounded 0.6 mm bump on the front for the finger, and a plunger behind ending 0.1 mm above the B3U actuator (no separate parts); LEDs shine through 0.6 mm skins inside baffles.
 - **`box_enclosure/`** — wall-mount alternative to the DIN case for the same boards (no PCB changes): `box_base.stl` (back tray with the wall ears) and `box_lid.stl` (the face), 26.4 × 81 × 70.4 mm (93.4 mm wide over the ears), PETG/ASA, 0.2 mm layers, lid face down on the bed.

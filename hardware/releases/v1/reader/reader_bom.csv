@@ -1,0 +1,15 @@
+Item,Qty,Designator,Value,Manufacturer,MPN,LCSC,Package,Type,Place,Description
+1,1,RV1,10k,Bourns,TC33X-2-103E,C719176,Potentiometer_Bourns_TC33X_Vertical,SMD,YES,"Threshold trimmer (0-4.7 V), adjusted through the lid"
+2,1,D2,red,Foshan NationStar,NCD0805R1,C84256,LED_0805_2012Metric,SMD,YES,"Red indicator, on while the output is low: set the trimmer so it blinks once per wheel turn"
+3,1,D1,B5819W,Jiangsu Changjing,B5819W SL,C8598,D_SOD-123,SMD,YES,Reverse-polarity protection: a swapped +5V/GND cable can't reach the comparator
+4,1,C1,10u 10V,Samsung,CL10A106KP8NNNC,C19702,C_0603_1608Metric,SMD,YES,+5V_S decoupling
+5,1,U2,LMV331,Texas Instruments,LMV331IDBVR,C34731,SOT-23-5,SMD,YES,"Open-collector comparator, 2.7-5.5 V, 60 uA"
+6,1,R5,1k,UNI-ROYAL,0603WAF1001T5E,C21190,R_0603_1608Metric,SMD,YES,Indicator LED feed (~3 mA) and local output pull-up
+7,1,R3,10k,UNI-ROYAL,0603WAF1002T5E,C25804,R_0603_1608Metric,SMD,YES,Comparator input resistor (hysteresis divider with the 390k)
+8,1,R1,220R,UNI-ROYAL,0603WAF2200T5E,C22962,R_0603_1608Metric,SMD,YES,TCRT5000 emitter: (4.7 V - 1.2 V) / 220R = 16 mA (60 mA max)
+9,1,R6,330R,UNI-ROYAL,0603WAF3300T5E,C23138,R_0603_1608Metric,SMD,YES,Output series resistor (cable ESD / short protection)
+10,1,R4,390k,UNI-ROYAL,0603WAF3903T5E,C23150,R_0603_1608Metric,SMD,YES,Positive feedback: ~3.2 V x 10k / 400k = 80 mV hysteresis
+11,1,R2,4k7,UNI-ROYAL,0603WAF4701T5E,C23162,R_0603_1608Metric,SMD,YES,Phototransistor emitter load: 0.2-0.9 mA -> 0.9-4.2 V
+12,1,U1,TCRT5000,Vishay,TCRT5000,C2984661,Vishay_TCRT5000_Clips,THT,YES,"Reflective IR sensor (950 nm, peak at 2.5 mm, 0.2-15 mm range) on the back, looking at the metallic half-disc through the dial glass"
+13,1,J1,2059-303/998-403,WAGO,2059-303/998-403,C3309252,TerminalBlock_WAGO_2059-303_SMD,SMD,YES,"3-pole 3 mm SMD push-in terminal (0.14-0.34 mm2 solid) to the main unit: 1=+5V, 2=GND, 3=PULSE (IO4)"
+14,3,"C2,C3,C4",100n 50V,YAGEO,CC0603KRX7R9BB104,C14663,C_0603_1608Metric,SMD,YES,+5V_S decoupling

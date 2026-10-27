@@ -213,7 +213,7 @@ def terminal_legend():
 def ui_legend():
     """The DIN front's button and LED labels and LED rings, rotated with the UI front."""
     import front_legend as fl
-    import legend_color_model as lcm
+    import legend_engraving as lcm
 
     bodies = [lcm.inlay(label.path(), ef.TOTAL_D) for label in fl.labels() if fl.face_of(label.y) == "front"]
     bodies += [lcm.led_ring(w) for w in ef.led_windows()]

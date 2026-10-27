@@ -73,6 +73,11 @@ range, pin mapping, reference-circuit values. Minimum checklist:
 - For every LCSC number in all `*_bom_jlc.csv`: model matches MPN, stock >= order qty x 2, Basic vs Extended
   (JLC charges a per-unique-Extended-part fee), unit price at order quantity. Flag stock < 1000 and single-source parts.
 - Hand-fit parts: an orderable source, lead time, and that the exact variant (pre-soldered headers, FPC tail) exists.
+- Other fabs (AISLER, Eurocircuits, PCBWay): each board also ships `<b>_odb.zip` (ODB++, MPN/Manufacturer/LCSC
+  fields, hand-fit parts flagged `.no_pop`), `<b>_ipc2581.zip`, and a fab-neutral `<b>_bom.csv` / `<b>_cpl.csv`
+  (KiCad origin and rotation, Gerber coordinates); the Gerber zip carries the IPC-D-356 netlist.
+  `test_release_current.py` checks these against a fresh export. JLC rotations differ from KiCad's for some parts,
+  so for non-JLC assembly confirm polarised parts in that fab's preview.
 - Sum BOM cost per board + Extended-part fees + hand-fit parts.
 
 ## 4. PCB layout / assembly

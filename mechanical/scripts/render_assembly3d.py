@@ -13,7 +13,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "mechanical/scripts"))
 import build_enclosure as be
 import enclosure_features as ef
-import legend_color_model as lcm
+import legend_engraving as lcm
 import oled_page1_bitmap as oled_bmp
 from build_enclosure import box, cylinder
 
