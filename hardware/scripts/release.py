@@ -18,6 +18,8 @@ DRC has an error or an unrouted connection, when a part is neither orderable
 nor hand-fit, or when jlc_parts.py finds a JLC part that is not what the
 circuit wants, would not land pin for pin, or is short of stock. Placement
 rotations and centres come from that fit, not from KiCad's footprint origin.
+Also writes order_lcsc.csv / order_mouser.csv / order_elsewhere.csv
+(parts_orders.py) for buying one device's parts to assemble by hand.
 Enclosure files are copied from mechanical/build/<variant>/ (1-DIN) and
 mechanical/build/<variant>-box/ (wall-mount box) when present.
 """
@@ -31,6 +33,7 @@ from pathlib import Path
 
 import jlc_parts
 import panelize
+import parts_orders
 import pcbnew
 import yaml
 
@@ -264,6 +267,10 @@ def main(version, boards=BOARDS):
         w.writerow(["Item", "Qty", "Part", "Description", "Source"])
         for p in yaml.safe_load(assembly_parts_path().read_text()):
             w.writerow([p["item"], p["qty"], p["part"], p["description"], p["source"]])
+    # Self-assembly orders for one device, checked live against LCSC (stock there differs from JLC's)
+    lcsc_rows = parts_orders.write(root)
+    for problem in parts_orders.check_live(lcsc_rows):
+        print(f"  order_lcsc.csv: {problem}")
     enclosure = REPO / "mechanical/build" / VARIANT
     if enclosure.exists():
         shutil.copytree(enclosure, root / "enclosure", dirs_exist_ok=True,

@@ -30,6 +30,25 @@ Every board folder (`main/`, `ui/`, `reader/`) holds the same set; `<b>` is the 
 - **`<b>_cpl.csv`:** every machine-placed part (hand-fit parts left out) in mm, in the Gerbers' coordinates. Rotations follow KiCad's footprint orientation: check polarised parts in the fab's placement preview, as with JLC.
 - **Panel:** only JLCPCB gets the ready-made `main` + `ui` panel; other fabs take the two boards as separate designs.
 
+### Parts for assembling one device yourself
+
+`hardware/scripts/parts_orders.py` writes these with every release and looks every LCSC number up live on LCSC: it reports numbers that don't exist, aren't on sale or are short of the quantity. Quantities cover one complete device (`main` + `ui` + `reader`).
+
+| File | Upload to | Map the columns |
+|---|---|---|
+| `order_lcsc.csv` | [LCSC BOM Tool](https://www.lcsc.com/bom) | **LCSC Part Number** → "LCSC Part #", **Quantity** → "Quantity". Optional: **Manufacturer Part Number** → "Manufacture Part #", **Designators** → "Customer #" / comment. Leave **Value** and **Footprint** unmapped. LCSC raises each line to its minimum order itself (e.g. 100 for 0603 resistors). |
+| `order_mouser.csv` | [Mouser BOM Tool](https://www.mouser.com/bom/) ("Upload a BOM") | **Mouser Part Number** → "Mouser Part Number", **Quantity** → "Quantity 1"; **Part** / **Item** → "Description" / "Customer Part Number" (optional). |
+| `order_elsewhere.csv` | Digi-Key / TME by hand (or their BOM tools, mapping **Digi-Key** / **TME** + **Quantity**), the rest from the named source | Includes the three WAGO terminal blocks: JLCPCB assembles them, but LCSC doesn't sell them. |
+
+- **One line per LCSC number** in `order_lcsc.csv`, with designators as `board:ref` (`off-board` for the XIAO sockets and the FFC cable).
+- **Not ordered:** printed parts and tools.
+- **LCSC replacements (2026-10-29):** LCSC had no stock of C14663, C25804 and C28323 and doesn't sell C82401, all four only in JLCPCB's own assembly library. They were replaced in the circuit (`hardware/circuits/common.py`, `blocks/power_24v.py`) by same-package, same-rating parts both LCSC and JLCPCB stock:
+  - C14663 → C149620 (YAGEO AC0603KRX7R9BB104, 100 nF 50 V X7R 0603);
+  - C25804 → C98220 (YAGEO RC0603FR-0710KL, 10 kΩ 1 % 0603);
+  - C28323 → C91185 (YAGEO CC0805KKX7R9BB105, 1 µF 50 V X7R 0805);
+  - C82401 → C167838 (CJ FNR4020S220MT, 22 µH 4×4×2.0 mm shielded, 1.1 A Isat, 0.87 A Irms, 455 mΩ; the Sunlord part was 1.05 A / 0.62 A / 455 mΩ).
+- **Distributor numbers:** checked by hand on 2026-10-29 and stored in `hardware/scripts/gen_circuits.py` (off-board parts) and `hardware/product/lcsc_unavailable.yaml` (assembled parts LCSC doesn't sell). Mouser and Digi-Key block automated lookups, so only the LCSC numbers are re-checked on each release.
+
 ---
 
 ## 1. Universal 1-DIN (`18 mm`) Sensor Controller (`main` + `ui`)
@@ -37,7 +56,7 @@ Every board folder (`main/`, `ui/`, `reader/`) holds the same set; `<b>` is the 
 | Board | Size | Layers | Thickness | Role | Folder |
 |---|---|---|---|---|---|
 | **Breakaway Panel (`panel`)** | see `panel/` | 4 | 1.2 mm | Combined `main` + `ui` with mouse-bite tabs (1 PCB + 1 PCBA order) | `panel/` |
-| Main (`main`) | 39.8 × 77.4 mm | 4 | 1.2 mm | Vertical board along the left wall (0.2 mm clearance to the 77.8 mm cavity at both ends). 24 V input: 1.1 A PTC, `SS36` 60 V reverse-polarity Schottky, `SMAJ30A` TVS (48.4 V clamp); `SCT2601` 4.5–60 V (65 V abs max) 700 kHz buck → 5.05 V / 600 mA with `SS36` catch diode and 22 µH `SWPA4020S220MT`; `LM66100` ideal diode into the XIAO ESP32-C6 (on 5 mm female headers); dedicated 4–20 mA input (50 mA PTC + 120 Ω shunt); 0–10 V input (22 k / 10 k); four protected digital channels (IO1–IO4); all six signal inputs clamped to GND/+3V3 by `BAT54S` (2 µA, 10 pF max); Omron `G6B-2114P-US DC5` relay (1a + 1b joined as a changeover) for **230 VAC loads up to 2 A**, 6 mm creepage + milled slot to the SELV side, 2.5 mm between the relay nets | `main/` |
+| Main (`main`) | 39.8 × 77.4 mm | 4 | 1.2 mm | Vertical board along the left wall (0.2 mm clearance to the 77.8 mm cavity at both ends). 24 V input: 1.1 A PTC, `SS36` 60 V reverse-polarity Schottky, `SMAJ30A` TVS (48.4 V clamp); `SCT2601` 4.5–60 V (65 V abs max) 700 kHz buck → 5.05 V / 600 mA with `SS36` catch diode and 22 µH `FNR4020S220MT` (4×4×2 mm, drop-in for Sunlord `SWPA4020S220MT`); `LM66100` ideal diode into the XIAO ESP32-C6 (on 5 mm female headers); dedicated 4–20 mA input (50 mA PTC + 120 Ω shunt); 0–10 V input (22 k / 10 k); four protected digital channels (IO1–IO4); all six signal inputs clamped to GND/+3V3 by `BAT54S` (2 µA, 10 pF max); Omron `G6B-2114P-US DC5` relay (1a + 1b joined as a changeover) for **230 VAC loads up to 2 A**, 6 mm creepage + milled slot to the SELV side, 2.5 mm between the relay nets | `main/` |
 | UI (`ui`) | 13.8 × 40.5 mm | 4 | 1.2 mm | 0.96" 64×128 SSD1312 OLED (`QG-6428TSWCG02` / `JLX12864OLED-S096W` / `NFP1312-15AY`, 14-pin 0.62 mm solder-tail FPC on `J2`), two Omron `B3U-1000P` switches under C-shaped spring tabs in the front wall, three `SK6805-EC15` RGB LEDs, 8-pin 0.5 mm FFC (`J1`) to `main J3` | `ui/` |
 
 ### Terminal Pinout & Plugin Wiring

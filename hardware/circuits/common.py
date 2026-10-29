@@ -36,7 +36,7 @@ PASSIVES = {
     ("R", "1k", "0603"): ("C21190", "UNI-ROYAL", "0603WAF1001T5E"),
     ("R", "4k7", "0603"): ("C23162", "UNI-ROYAL", "0603WAF4701T5E"),
     ("R", "5k1", "0603"): ("C23186", "UNI-ROYAL", "0603WAF5101T5E"),
-    ("R", "10k", "0603"): ("C25804", "UNI-ROYAL", "0603WAF1002T5E"),
+    ("R", "10k", "0603"): ("C98220", "YAGEO", "RC0603FR-0710KL"),   # C25804: none at LCSC (2026-10)
     ("R", "20k", "0603"): ("C4184", "UNI-ROYAL", "0603WAF2002T5E"),
     ("R", "22k", "0603"): ("C31850", "UNI-ROYAL", "0603WAF2202T5E"),
     ("R", "51k", "0603"): ("C23196", "UNI-ROYAL", "0603WAF5102T5E"),
@@ -49,11 +49,11 @@ PASSIVES = {
     ("R", "27R", "2512"): ("C25478", "UNI-ROYAL", "25121WJ0270T4E"),
     ("C", "18p C0G 50V", "0603"): ("C1647", "Samsung", "CL10C180JB8NNNC"),
     ("C", "47n 50V", "0603"): ("C1622", "Samsung", "CL10B473KB8NNNC"),
-    ("C", "100n 50V", "0603"): ("C14663", "YAGEO", "CC0603KRX7R9BB104"),
+    ("C", "100n 50V", "0603"): ("C149620", "YAGEO", "AC0603KRX7R9BB104"),   # C14663: none at LCSC (2026-10)
     ("C", "220n 50V", "0603"): ("C64705", "Samsung", "CL10B224KB8NNNC"),
     ("C", "1u 50V", "0603"): ("C15849", "Samsung", "CL10A105KB8NNNC"),
     ("C", "10u 10V", "0603"): ("C19702", "Samsung", "CL10A106KP8NNNC"),
-    ("C", "1u 50V", "0805"): ("C28323", "Samsung", "CL21B105KBFNNNE"),
+    ("C", "1u 50V", "0805"): ("C91185", "YAGEO", "CC0805KKX7R9BB105"),   # C28323: none at LCSC (2026-10)
     ("C", "10u 25V", "0805"): ("C15850", "Samsung", "CL21A106KAYNNNE"),
     ("C", "10u 50V", "0805"): ("C440198", "Murata", "GRM21BR61H106KE43L"),
     ("C", "22u 25V", "0805"): ("C45783", "Samsung", "CL21A226MAQNNNE"),

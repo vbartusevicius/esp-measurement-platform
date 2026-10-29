@@ -89,9 +89,10 @@ def build(gnd):
     d_catch["A"] += gnd
     d_catch["K"] += sw
 
+    # FNR4020S is a 4x4x2.0 mm drop-in for Sunlord SWPA4020S220MT (C82401), which LCSC does not sell
     l1 = part("Device", "L", "22uH", "Inductor_SMD:L_Sunlord_SWPA4020S",
-              src(mpn="SWPA4020S220MT", mfr="Sunlord", lcsc="C82401",
-                  source="SCT2601 table 2: 22 uH for 5 V out; 1.05 A Isat, 0.62 A Irms, 4x4x2 mm shielded"),
+              src(mpn="FNR4020S220MT", mfr="Changjiang Microelectronics", lcsc="C167838",
+                  source="SCT2601 table 2: 22 uH for 5 V out; 1.1 A Isat, 0.87 A Irms, 455 mOhm, 4x4x2 mm shielded"),
               ref="L1")
     l1[1] += sw
     l1[2] += v5

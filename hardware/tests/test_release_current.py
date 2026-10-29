@@ -79,3 +79,36 @@ def test_generic_placement_lists_every_assembled_part_in_gerber_coordinates(boar
         assert float(r["Mid X"]) == pytest.approx(fp.GetPosition().x / 1e6, abs=0.002), ref
         assert float(r["Mid Y"]) == pytest.approx(-fp.GetPosition().y / 1e6, abs=0.002), ref
         assert r["Layer"] == ("Bottom" if fp.IsFlipped() else "Top"), ref
+
+
+ORDERS = ("order_lcsc.csv", "order_mouser.csv", "order_elsewhere.csv")
+
+
+def test_parts_orders_match_a_fresh_export(tmp_path):
+    import parts_orders
+
+    parts_orders.write(tmp_path)
+    for name in ORDERS:
+        assert (tmp_path / name).read_text() == (LATEST / name).read_text(), f"{LATEST.name}/{name}"
+
+
+def test_lcsc_order_has_one_line_per_number_and_every_assembled_part_once():
+    import csv
+    from collections import Counter
+
+    import parts_orders
+
+    rows = list(csv.DictReader(open(LATEST / "order_lcsc.csv")))
+    numbers = Counter(r["LCSC Part Number"] for r in rows)
+    assert all(n == 1 for n in numbers.values()), [c for c, n in numbers.items() if n > 1]
+    elsewhere = parts_orders.lcsc_unavailable()
+    ordered = Counter(ref for r in rows for ref in r["Designators"].split(",") if ref != "off-board")
+    for r in csv.DictReader(open(LATEST / "order_elsewhere.csv")):
+        if ": " in r["Item"] and "assembled" in r["Item"]:
+            ordered.update(r["Item"].split(": ", 1)[1].split(","))
+    expected = Counter(f"{b}:{p['ref']}" for b in parts_orders.BOARDS for p in parts_orders.board_parts(b)
+                       if p["assembly"] == "jlc" and p["lcsc"])
+    assert ordered == expected
+    for r in rows:
+        assert int(r["Quantity"]) >= len([x for x in r["Designators"].split(",") if x != "off-board"]), r
+        assert r["LCSC Part Number"] not in elsewhere, r

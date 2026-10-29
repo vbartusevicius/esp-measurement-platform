@@ -1,0 +1,14 @@
+# Assembled parts that JLCPCB stocks for its own assembly service but LCSC does not sell
+# (wmsc.lcsc.com product API and lcsc.com product page: not found, checked 2026-10-29).
+# A self-assembly order buys them from these distributors instead; numbers checked the same day
+# (Digi-Key product listings; TME listing where given). parts_orders.py routes them by LCSC number.
+C3309718:
+  part: WAGO 2086-1204/700-000/997-605 (4-pole 3.5 mm SMD push-in terminal block)
+  digikey: 2946-2086-1204/700-000/997-605CT-ND
+C3309626:
+  part: WAGO 2086-1203/700-000/997-605 (3-pole 3.5 mm SMD push-in terminal block)
+  digikey: 2946-2086-1203/700-000/997-605CT-ND
+C3309252:
+  part: WAGO 2059-303/998-403 (3-pole 3 mm SMD push-wire terminal block)
+  digikey: 2946-2059-303/998-403CT-ND
+  tme: 2059-303/998-403

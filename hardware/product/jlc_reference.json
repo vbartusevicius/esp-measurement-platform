@@ -91,22 +91,22 @@
         "1": "1"
       }
     },
-    "C14663": {
+    "C149620": {
       "record": {
-        "componentModelEn": "CC0603KRX7R9BB104",
+        "componentModelEn": "AC0603KRX7R9BB104",
         "componentBrandEn": "YAGEO",
         "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
-        "componentLibraryType": "base",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_1811082127_YAGEO-AC0603KRX7R9BB104_C149620.pdf",
+        "componentLibraryType": "expand",
         "attributes": [
           {
             "attribute_name_en": "Voltage Rating",
-            "component_code": "C14663",
+            "component_code": "C149620",
             "attribute_value_name": "50V"
           },
           {
             "attribute_name_en": "Capacitance",
-            "component_code": "C14663",
+            "component_code": "C149620",
             "attribute_value_name": "100nF"
           }
         ]
@@ -192,6 +192,33 @@
       "pin_names": {
         "2": "A",
         "1": "K"
+      }
+    },
+    "C167838": {
+      "record": {
+        "componentModelEn": "FNR4020S220MT",
+        "componentBrandEn": "cjiang (Changjiang Microelectronics Tech)",
+        "componentSpecificationEn": "SMD,4x4mm",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_cjiang--Changjiang-Microelectronics-Tech-FNR4020S220MT_C167838.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "IND-SMD_L4.0-W4.0_FNR40XXS",
+      "pads": [
+        [
+          "1",
+          -1.5001239999999871,
+          -0.0
+        ],
+        [
+          "2",
+          1.5001240000001026,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
       }
     },
     "C17961": {
@@ -620,77 +647,6 @@
       "pin_names": {
         "2": "2",
         "1": "1"
-      }
-    },
-    "C25804": {
-      "record": {
-        "componentModelEn": "0603WAF1002T5E",
-        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C25804",
-            "attribute_value_name": "10kΩ"
-          }
-        ]
-      },
-      "footprint": "R0603",
-      "pads": [
-        [
-          "2",
-          0.7533639999999732,
-          -0.0
-        ],
-        [
-          "1",
-          -0.7533639999999732,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "2": "2",
-        "1": "1"
-      }
-    },
-    "C28323": {
-      "record": {
-        "componentModelEn": "CL21B105KBFNNNE",
-        "componentBrandEn": "Samsung Electro-Mechanics",
-        "componentSpecificationEn": "0805",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21B105KBFNNNE_C28323.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Voltage Rating",
-            "component_code": "C28323",
-            "attribute_value_name": "50V"
-          },
-          {
-            "attribute_name_en": "Capacitance",
-            "component_code": "C28323",
-            "attribute_value_name": "1uF"
-          }
-        ]
-      },
-      "footprint": "C0805",
-      "pads": [
-        [
-          "2",
-          0.9999979999999742,
-          -0.0
-        ],
-        [
-          "1",
-          -0.9999979999999742,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "1": "1",
-        "2": "2"
       }
     },
     "C2856797": {
@@ -1513,33 +1469,6 @@
         "5": "VCC"
       }
     },
-    "C82401": {
-      "record": {
-        "componentModelEn": "SWPA4020S220MT",
-        "componentBrandEn": "Sunlord",
-        "componentSpecificationEn": "SMD,4x4mm",
-        "dataManualUrl": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2310251551_Sunlord-SWPA4020S220MT_C82401.pdf",
-        "componentLibraryType": "expand",
-        "attributes": []
-      },
-      "footprint": "IND-SMD_L4.0-W4.0",
-      "pads": [
-        [
-          "2",
-          1.5999459999999945,
-          -0.0
-        ],
-        [
-          "1",
-          -1.5999459999999945,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "2": "2",
-        "1": "1"
-      }
-    },
     "C84256": {
       "record": {
         "componentModelEn": "NCD0805R1",
@@ -1619,6 +1548,77 @@
       "pin_names": {
         "2": "A",
         "1": "K"
+      }
+    },
+    "C91185": {
+      "record": {
+        "componentModelEn": "CC0805KKX7R9BB105",
+        "componentBrandEn": "YAGEO",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2409272231_YAGEO-CC0805KKX7R9BB105_C91185.pdf",
+        "componentLibraryType": "expand",
+        "attributes": [
+          {
+            "attribute_name_en": "Voltage Rating",
+            "component_code": "C91185",
+            "attribute_value_name": "50V"
+          },
+          {
+            "attribute_name_en": "Capacitance",
+            "component_code": "C91185",
+            "attribute_value_name": "1uF"
+          }
+        ]
+      },
+      "footprint": "C0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2"
+      }
+    },
+    "C98220": {
+      "record": {
+        "componentModelEn": "RC0603FR-0710KL",
+        "componentBrandEn": "YAGEO",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_YAGEO-RC0603FR-0710KL_C98220.pdf",
+        "componentLibraryType": "expand",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C98220",
+            "attribute_value_name": "10kΩ"
+          }
+        ]
+      },
+      "footprint": "R0603",
+      "pads": [
+        [
+          "2",
+          0.7533639999999732,
+          -0.0
+        ],
+        [
+          "1",
+          -0.7533639999999732,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
       }
     },
     "C9900124963": {

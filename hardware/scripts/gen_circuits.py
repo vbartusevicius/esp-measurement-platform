@@ -115,13 +115,17 @@ def collect_assembly_parts(variant, spec):
             "part": "Seeed Studio XIAO ESP32C6 Pre-Soldered (SKU 102010636)",
             "description": f"ESP32-C6 module with pre-soldered 2x7 pin headers; plugs into the two 5.0 mm female sockets ({locs})",
             "source": "Seeed Studio / Digi-Key / Mouser",
+            # distributor numbers checked 2026-10-29 (Mouser listing via Findchips, Digi-Key product page)
+            "mouser": "713-102010636",
+            "digikey": "1597-102010636-ND",
         })
         items.append({
             "item": "XIAO sockets (hand-soldered)",
             "qty": 2 * len(hand_by_mpn["102010636"]["locs"]),
-            "part": "1x7 2.54 mm female header, 5.0 mm tall (e.g. Hong Cheng HC-PM254-5.0H)",
+            "part": "Hong Cheng HC-PM254-5.0H-1x7PZ (LCSC C27985232): 1x7 2.54 mm female header, 5.0 mm tall",
             "description": f"1x7 female header, 2.54 mm, 5.0 mm tall, soldered into {locs}; the XIAO stays detachable",
-            "source": "LCSC / AliExpress",
+            "source": "LCSC",
+            "lcsc": "C27985232",
         })
     if any(p["mpn"] in ("QG-6428TSWCG02", "FPC-05F-14PH20") for _, p in all_parts):
         items.append({
@@ -149,6 +153,7 @@ def collect_assembly_parts(variant, spec):
             "part": "SHOU HAN FFC-0.5-8P-50mm-B (LCSC C42416274)",
             "description": f"8-pin 0.5 mm reverse/opposite-side (Type B) FFC, 50 mm; {pairs}",
             "source": "LCSC",
+            "lcsc": "C42416274",
         })
 
     if any(p["ref"] == "JP1" for _, p in all_parts):
@@ -158,6 +163,7 @@ def collect_assembly_parts(variant, spec):
             "part": "LCSC C100114",
             "description": "2.54 mm closed jumper cap on main JP1 (closed = 165R 4-20 mA shunt enabled; open = 0-3.3 V voltage input)",
             "source": "LCSC",
+            "lcsc": "C100114",
         })
 
     items.append({

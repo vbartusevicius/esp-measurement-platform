@@ -179,7 +179,8 @@ derived:
     io4_pulse:
       pin: D10/GPIO18
       net: IO4_MCU
-      note: 'Protected sensor IO4: water meter open-collector pulse (J2 pole 8)'
+      note: 'Protected sensor IO4: meter pulse (dial reader / open collector) (J2
+        pole 8)'
   net_classes:
     main:
       SELV:

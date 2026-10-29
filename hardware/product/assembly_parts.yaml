@@ -6,12 +6,16 @@
   description: ESP32-C6 module with pre-soldered 2x7 pin headers; plugs into the two
     5.0 mm female sockets (main U3)
   source: Seeed Studio / Digi-Key / Mouser
+  mouser: 713-102010636
+  digikey: 1597-102010636-ND
 - item: XIAO sockets (hand-soldered)
   qty: 2
-  part: 1x7 2.54 mm female header, 5.0 mm tall (e.g. Hong Cheng HC-PM254-5.0H)
+  part: 'Hong Cheng HC-PM254-5.0H-1x7PZ (LCSC C27985232): 1x7 2.54 mm female header,
+    5.0 mm tall'
   description: 1x7 female header, 2.54 mm, 5.0 mm tall, soldered into main U3; the
     XIAO stays detachable
-  source: LCSC / AliExpress
+  source: LCSC
+  lcsc: C27985232
 - item: OLED display (14-pin 0.62 mm solder FPC)
   qty: 1
   part: QG-6428TSWCG02 / JLX12864OLED-S096W / NFP1312-15AY (0.96 in 64x128 SSD1312
@@ -34,6 +38,7 @@
   description: 8-pin 0.5 mm reverse/opposite-side (Type B) FFC, 50 mm; main J3 <->
     ui J1
   source: LCSC
+  lcsc: C42416274
 - item: Case base (snap-fit, no screws)
   qty: 1
   part: enclosure/base.stl
