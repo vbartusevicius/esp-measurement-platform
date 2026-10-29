@@ -501,6 +501,9 @@ def save(board, plan, board_name, hidden_refs=()):
             ref.SetVisible(False)
     if plan["frame"].get("silk_inside"):
         place_references_inside(board, plan["frame"])
+    seated = seat_track_ends(board)
+    if seated:
+        print(f"{board_name}: seated / removed {seated} track ends that only grazed their pad / via / track")
     add_3d_models(board)
     fill_zones(board)
     board.Save(str(path))
@@ -882,6 +885,97 @@ def import_ses(board_name):
     print(f"{board_name}: imported {ses.relative_to(REPO)}")
 
 
+def seat_track_ends(board, passes=5):
+    """A track end whose round cap only grazes its pad, via or another track (Freerouting, neck-down
+    or ground-pruning leftovers) is a hairline joint on the real board: extend it into the pad / via
+    centre or onto the other track's centreline. An orphan tail (nothing of its net within two track
+    widths of the free end) is removed. Repeats until stable, since a removed tail can free another
+    end. hardware/tests/test_track_joints.py checks the result. Returns the number of changes."""
+    import math
+    tol = pcbnew.FromMM(0.005)
+
+    def nearest(p, t):
+        a, b = t.GetStart(), t.GetEnd()
+        dx, dy = b.x - a.x, b.y - a.y
+        length2 = dx * dx + dy * dy
+        u = 0.0 if length2 == 0 else max(0.0, min(1.0, ((p.x - a.x) * dx + (p.y - a.y) * dy) / length2))
+        q = pcbnew.VECTOR2I(int(a.x + u * dx), int(a.y + u * dy))
+        return q, math.hypot(p.x - q.x, p.y - q.y)
+
+    def dist(p, q):
+        return math.hypot(p.x - q.x, p.y - q.y)
+
+    fill_zones(board)
+    changes = 0
+    for _ in range(passes):
+        tracks = [t for t in board.GetTracks() if t.Type() == pcbnew.PCB_TRACE_T]
+        vias = [v for v in board.GetTracks() if v.Type() == pcbnew.PCB_VIA_T]
+        pads = list(board.GetPads())
+        added, orphans = [], []
+        for t in tracks:
+            for end in (t.GetStart(), t.GetEnd()):
+                net, layer, w = t.GetNetCode(), t.GetLayer(), t.GetWidth()
+                same = [o for o in tracks if o is not t and o.GetNetCode() == net and o.GetLayer() == layer]
+                net_vias = [v for v in vias if v.GetNetCode() == net]
+                mine = [p for p in pads if p.GetNetCode() == net and p.IsOnLayer(layer)]
+                if (any(nearest(end, o)[1] <= tol for o in same)
+                        or any(dist(end, v.GetPosition()) <= v.GetWidth(layer) / 2 for v in net_vias)
+                        or any(p.HitTest(end) for p in mine)
+                        or any(z.GetNetCode() == net and z.IsOnLayer(layer) and z.HitTestFilledArea(layer, end)
+                               for z in board.Zones())):
+                    continue
+                target = next((p.GetPosition() for p in mine if p.HitTest(end, w // 2 + tol)), None)
+                if target is None:
+                    hits = [(nearest(end, o), o) for o in same]
+                    hits = [(q, d) for (q, d), o in hits if d <= (w + o.GetWidth()) / 2 + tol]
+                    target = min(hits, key=lambda h: h[1])[0] if hits else None
+                if target is None:
+                    target = next((v.GetPosition() for v in net_vias
+                                   if dist(end, v.GetPosition()) <= v.GetWidth(layer) / 2 + w / 2 + tol), None)
+                if target is None:
+                    reach = 2 * w
+                    near = (any(p.HitTest(end, reach) for p in mine)
+                            or any(dist(end, v.GetPosition()) <= reach + v.GetWidth(layer) / 2 for v in net_vias)
+                            or any(nearest(end, o)[1] <= reach for o in same))
+                    if not near:
+                        orphans.append(t)
+                        continue
+                    target = next((p.GetPosition() for p in mine if p.HitTest(end, reach)), None)
+                    if target is None:
+                        continue
+                added.append((end, target, w, layer, net))
+        for end, target, w, layer, net in added:
+            seg = pcbnew.PCB_TRACK(board)
+            seg.SetStart(end)
+            seg.SetEnd(target)
+            seg.SetWidth(w)
+            seg.SetLayer(layer)
+            board.Add(seg)
+            seg.SetNetCode(net)
+        unique = {id(t): t for t in orphans}.values()
+        for t in unique:
+            board.Remove(t)
+        if not added and not orphans:
+            break
+        changes += len(added) + len(unique)
+        fill_zones(board)
+    return changes
+
+
+def seat_joints(board_name):
+    """Seat grazing track ends of the stored board without re-routing; only the tracks change
+    (save() would also regenerate the rules and silkscreen)."""
+    path = stored_board_path(board_name)
+    board = pcbnew.LoadBoard(str(path))
+    seated = seat_track_ends(board)
+    if not seated:
+        print(f"{board_name}: every track end lands on a pad, via, track or pour")
+        return
+    fill_zones(board)
+    board.Save(str(path))
+    print(f"{board_name}: seated / removed {seated} track ends that only grazed their pad / via / track")
+
+
 FREEROUTING = ["java", "-jar", os.environ.get("FREEROUTING_JAR", "/opt/freerouting.jar"),
                "-mp", "100", "-mt", "4", "--gui.enabled=false"]
 
@@ -940,6 +1034,8 @@ if __name__ == "__main__":
         unroute(name)
     elif command == "route":
         route(name, *(int(a) for a in args))
+    elif command == "seat-joints":
+        seat_joints(name)
     elif command == "export-dsn":
         export_dsn(name)
     elif command == "import-ses":

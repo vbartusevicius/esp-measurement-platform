@@ -145,6 +145,10 @@ Fixed in the follow-up (re-check they stay fixed; regressions are easy):
 - Cover lip vs J1, cover side wall 0 mm clearance, OLED rails inside the 14 mm panel, missing button plungers
   (now C-shaped spring tabs with front bump + plunger, same geometry as knx-dali-gateway v3 BUTTON_TAB), UI board free in x/y (now ribs), THT tails vs cover wall (now recesses).
 - Freerouting necks RELAY-Power tracks to 0.64 mm on In2; layout.py restore_relay_widths() puts them back to 0.85.
+- Track joints (2026-10-29): 18 GND track ends on main/ui only grazed their target (4 stopped 0.035-0.07 mm short of
+  pads D3.1/D4.1/D8.2 on main and R3.2 on ui; others overlapped a track off its centreline or were ground-pruning stubs).
+  KiCad DRC counts those as connected. `test_track_joints.py` checks every end lands in a pad / via / pour or on a
+  track centreline; `layout.py <board> seat-joints` (also run by every layout save) seats or removes them.
 - MQTT (2026-10-26): `MQTTClient client;` used arduino-mqtt's 128-byte default buffer, which silently refuses every
   HA discovery config (largest ~620 B) and most state payloads, so Home Assistant would have discovered nothing.
   Now `HaDiscovery::MQTT_BUFFER_SIZE` (1024); `test_all_sensors.cpp` runs all five plugins at once through SensorHub
