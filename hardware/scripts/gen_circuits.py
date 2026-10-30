@@ -142,6 +142,7 @@ def collect_assembly_parts(variant, spec):
             "description": "on the UI board front under the left/right back edges of the 14.0 x 28.0 mm OLED; "
                            "compresses to 3.8 mm and presses the panel face into the cover's 1.0 mm pocket behind the window",
             "source": "any",
+            "kind": "utility",   # tapes, screws, ...: in assembly_parts only, not in the electronics orders
         })
 
     ffc_links = [lk for lk in spec["boards"].get("interconnects", []) if lk.get("type") == "ffc"]

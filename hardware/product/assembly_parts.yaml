@@ -32,6 +32,7 @@
     28.0 mm OLED; compresses to 3.8 mm and presses the panel face into the cover's
     1.0 mm pocket behind the window
   source: any
+  kind: utility
 - item: Main-to-UI FFC cable
   qty: 1
   part: SHOU HAN FFC-0.5-8P-50mm-B (LCSC C42416274)

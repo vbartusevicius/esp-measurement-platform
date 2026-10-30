@@ -18,7 +18,7 @@ DRC has an error or an unrouted connection, when a part is neither orderable
 nor hand-fit, or when jlc_parts.py finds a JLC part that is not what the
 circuit wants, would not land pin for pin, or is short of stock. Placement
 rotations and centres come from that fit, not from KiCad's footprint origin.
-Also writes order_lcsc.csv / order_mouser.csv / order_elsewhere.csv
+Also writes order_lcsc.csv / order_elsewhere.csv
 (parts_orders.py) for buying one device's parts to assemble by hand.
 Enclosure files are copied from mechanical/build/<variant>/ (1-DIN) and
 mechanical/build/<variant>-box/ (wall-mount box) when present.

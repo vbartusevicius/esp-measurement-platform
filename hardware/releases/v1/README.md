@@ -37,11 +37,11 @@ Every board folder (`main/`, `ui/`, `reader/`) holds the same set; `<b>` is the 
 | File | Upload to | Map the columns |
 |---|---|---|
 | `order_lcsc.csv` | [LCSC BOM Tool](https://www.lcsc.com/bom) | **LCSC Part Number** → "LCSC Part #", **Quantity** → "Quantity". Optional: **Manufacturer Part Number** → "Manufacture Part #", **Designators** → "Customer #" / comment. Leave **Value** and **Footprint** unmapped. LCSC raises each line to its minimum order itself (e.g. 100 for 0603 resistors). |
-| `order_mouser.csv` | [Mouser BOM Tool](https://www.mouser.com/bom/) ("Upload a BOM") | **Mouser Part Number** → "Mouser Part Number", **Quantity** → "Quantity 1"; **Part** / **Item** → "Description" / "Customer Part Number" (optional). |
-| `order_elsewhere.csv` | Digi-Key / TME by hand (or their BOM tools, mapping **Digi-Key** / **TME** + **Quantity**), the rest from the named source | Includes the three WAGO terminal blocks: JLCPCB assembles them, but LCSC doesn't sell them. |
+| `order_elsewhere.csv` | Electronics LCSC doesn't sell: pick one shop per line ([Mouser BOM Tool](https://www.mouser.com/bom/), [Digi-Key BOM Manager](https://www.digikey.com/en/mylists/), TME by hand) | Map that shop's column (**Mouser**, **Digi-Key** or **TME**) to its part-number field and **Quantity** to quantity. A line can list numbers at several shops; **Other source** is filled only when no shop number exists (the OLED). Includes the three WAGO terminal blocks: JLCPCB assembles them, but LCSC doesn't sell them. |
+| `assembly_parts.csv` | — | Everything off the boards: modules, cables, printed parts and general utility items (foam tape, ...). Utility and printed items appear only here. |
 
 - **One line per LCSC number** in `order_lcsc.csv`, with designators as `board:ref` (`off-board` for the XIAO sockets and the FFC cable).
-- **Not ordered:** printed parts and tools.
+- **Not in the order files:** printed parts and general utility items (tapes, screws); they are listed in `assembly_parts.csv`.
 - **LCSC replacements (2026-10-29):** LCSC had no stock of C14663, C25804 and C28323 and doesn't sell C82401, all four only in JLCPCB's own assembly library. They were replaced in the circuit (`hardware/circuits/common.py`, `blocks/power_24v.py`) by same-package, same-rating parts both LCSC and JLCPCB stock:
   - C14663 → C149620 (YAGEO AC0603KRX7R9BB104, 100 nF 50 V X7R 0603);
   - C25804 → C98220 (YAGEO RC0603FR-0710KL, 10 kΩ 1 % 0603);

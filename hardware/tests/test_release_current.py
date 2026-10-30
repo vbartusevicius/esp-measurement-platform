@@ -81,7 +81,7 @@ def test_generic_placement_lists_every_assembled_part_in_gerber_coordinates(boar
         assert r["Layer"] == ("Bottom" if fp.IsFlipped() else "Top"), ref
 
 
-ORDERS = ("order_lcsc.csv", "order_mouser.csv", "order_elsewhere.csv")
+ORDERS = ("order_lcsc.csv", "order_elsewhere.csv")
 
 
 def test_parts_orders_match_a_fresh_export(tmp_path):
@@ -112,3 +112,16 @@ def test_lcsc_order_has_one_line_per_number_and_every_assembled_part_once():
     for r in rows:
         assert int(r["Quantity"]) >= len([x for x in r["Designators"].split(",") if x != "off-board"]), r
         assert r["LCSC Part Number"] not in elsewhere, r
+
+
+def test_elsewhere_order_is_electronics_only_with_a_shop_or_source_each():
+    import csv
+
+    import parts_orders
+
+    assert not (LATEST / "order_mouser.csv").exists()
+    utility = {i["item"] for i in parts_orders.off_board_parts()
+               if i.get("kind") == "utility" or i["source"] in parts_orders.SKIP_SOURCES}
+    for r in csv.DictReader(open(LATEST / "order_elsewhere.csv")):
+        assert r["Item"] not in utility, r
+        assert r["Mouser"] or r["Digi-Key"] or r["TME"] or r["Other source"], r
