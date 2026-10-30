@@ -1,6 +1,6 @@
-Item,Quantity,Part,Digi-Key,TME,Source
-2059-303/998-403 (assembled; LCSC does not sell C3309252): reader:J1,1,WAGO 2059-303/998-403 (3-pole 3 mm SMD push-wire terminal block),2946-2059-303/998-403CT-ND,2059-303/998-403,
-"2086-1203/700-000/997-605 (assembled; LCSC does not sell C3309626): main:J5,main:J6",2,WAGO 2086-1203/700-000/997-605 (3-pole 3.5 mm SMD push-in terminal block),2946-2086-1203/700-000/997-605CT-ND,,
-2086-1204/700-000/997-605 (assembled; LCSC does not sell C3309718): main:J2,1,WAGO 2086-1204/700-000/997-605 (4-pole 3.5 mm SMD push-in terminal block),2946-2086-1204/700-000/997-605CT-ND,,
-OLED display (14-pin 0.62 mm solder FPC),1,QG-6428TSWCG02 / JLX12864OLED-S096W / NFP1312-15AY (0.96 in 64x128 SSD1312 I2C),,,AliExpress (1005003749452625) / Panelook / JLX
-OLED backing foam,2,"3.0 mm closed-cell PE double-sided foam tape, 2 strips 1.4 x 26 mm (stacked on the 1.0 mm VHB pre-applied on NFP1312-15AY = 4.0 mm)",,,any
+Item,Quantity,Part,Mouser,Digi-Key,TME,Other source
+2059-303/998-403 (assembled; LCSC does not sell C3309252): reader:J1,1,WAGO 2059-303/998-403 (3-pole 3 mm SMD push-wire terminal block),,2946-2059-303/998-403CT-ND,2059-303/998-403,
+"2086-1203/700-000/997-605 (assembled; LCSC does not sell C3309626): main:J5,main:J6",2,WAGO 2086-1203/700-000/997-605 (3-pole 3.5 mm SMD push-in terminal block),,2946-2086-1203/700-000/997-605CT-ND,,
+2086-1204/700-000/997-605 (assembled; LCSC does not sell C3309718): main:J2,1,WAGO 2086-1204/700-000/997-605 (4-pole 3.5 mm SMD push-in terminal block),,2946-2086-1204/700-000/997-605CT-ND,,
+MCU module (hand-fitted into sockets),1,Seeed Studio XIAO ESP32C6 Pre-Soldered (SKU 102010636),713-102010636,1597-102010636-ND,,
+OLED display (14-pin 0.62 mm solder FPC),1,QG-6428TSWCG02 / JLX12864OLED-S096W / NFP1312-15AY (0.96 in 64x128 SSD1312 I2C),,,,AliExpress (1005003749452625) / Panelook / JLX
