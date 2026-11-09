@@ -350,12 +350,14 @@ def test_every_main_part_body_clears_the_case(solids):
 # The release must ship the case this code builds
 
 
-@pytest.mark.parametrize(("built", "released"), [("v1", "enclosure"), ("v1-box", "box_enclosure")])
-def test_released_case_files_match_the_build(built, released):
-    """release.py copies mechanical/build; running it before the CAD build shipped the previous
-    case (KF142R windows over J1 and J4) while every test here passed on the new one."""
-    src, dst = REPO / "mechanical/build" / built, REPO / "hardware/releases" / ef.VARIANT / released
-    stls = sorted(src.glob("*.stl"))
-    assert stls, f"no CAD build in {src}"
+@pytest.mark.parametrize("released", ["enclosure", "box_enclosure"])
+def test_released_case_files_match_a_fresh_export(tmp_path, released):
+    """release.py copies mechanical/build (git-ignored); running it before the CAD build shipped
+    the previous case (KF142R windows over J1 and J4) while every test here passed on the new one."""
+    import build_box_enclosure as bx
+    (be if released == "enclosure" else bx).export_parts(tmp_path)
+    dst = REPO / "hardware/releases" / ef.VARIANT / released
+    stls = sorted(tmp_path.glob("*.stl"))
+    assert stls
     stale = [p.name for p in stls if (dst / p.name).read_bytes() != p.read_bytes()]
-    assert not stale, f"{dst} differs from {src}: {stale}; run the CAD build, then release.py"
+    assert not stale, f"{dst} differs from a fresh export: {stale}; run the CAD build, then release.py"
