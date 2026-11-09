@@ -55,6 +55,8 @@ MODELS_3D = {
     "TerminalBlock_Kefa_KF142R-5.08-7P": ("TerminalBlock_Kefa_KF142R-5.08-7P.step", 0),
     "TerminalBlock_WAGO_2086-1204_SMD": ("TerminalBlock_WAGO_2086-1204_SMD.step", 0),
     "TerminalBlock_WAGO_2086-1203_SMD": ("TerminalBlock_WAGO_2086-1203_SMD.step", 0),
+    "TerminalBlock_WAGO_2086-1202_SMD": ("TerminalBlock_WAGO_2086-1202_SMD.step", 0),
+    "TerminalBlock_Degson_DG127R-5.08-03P": ("TerminalBlock_Degson_DG127R-5.08-03P.step", 0),
     "TerminalBlock_WAGO_2059-303_SMD": ("TerminalBlock_WAGO_2059-303_SMD.step", 0),
     "Vishay_TCRT5000_Clips": ("Vishay_TCRT5000_Clips.step", 0),
     "Relay_DPDT_Omron_G6K-2F-Y": ("Relay_DPDT_Omron_G6K-2F-Y.step", 0),
@@ -451,15 +453,16 @@ RAISED_BODIES = {"XIAO_ESP32C6_Header"}
 
 
 def body_box(fp):
-    """Courtyard box; for modules raised on sockets the courtyard is only the
-    pad field (parts may sit underneath), so the body is their Fab outline."""
+    """Courtyard box grown to the Fab outline (the datasheet body): the KF142R
+    courtyards are symmetric and short, but the body runs 3.30 mm before pin 1
+    and 4.32 mm after the last pin. For modules raised on sockets the
+    courtyard is only the pad field, so the Fab outline is the body there."""
     fp.BuildCourtyardCaches()
     bb = fp.GetCourtyard(pcbnew.B_CrtYd if fp.IsFlipped() else pcbnew.F_CrtYd).BBox()
-    if str(fp.GetFPID().GetLibItemName()) in RAISED_BODIES:
-        fab = pcbnew.B_Fab if fp.IsFlipped() else pcbnew.F_Fab
-        for item in fp.GraphicalItems():
-            if item.GetLayer() == fab and item.Type() == pcbnew.PCB_SHAPE_T:
-                bb.Merge(item.GetBoundingBox())
+    fab = pcbnew.B_Fab if fp.IsFlipped() else pcbnew.F_Fab
+    for item in fp.GraphicalItems():
+        if item.GetLayer() == fab and item.Type() == pcbnew.PCB_SHAPE_T:
+            bb.Merge(item.GetBoundingBox())
     return bb
 
 

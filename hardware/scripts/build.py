@@ -90,6 +90,7 @@ def run_cad(*, do_test=False):
             "mechanical/tests/test_accessories.py",
             "mechanical/tests/test_box_enclosure.py",
             "mechanical/tests/test_dial_reader.py",
+            "mechanical/tests/test_print_rules.py",
             "-q", "-p", "no:cacheprovider",
         ], cwd=REPO, check=True)
 
@@ -122,6 +123,7 @@ def run_variant_on_host(variant, args):
                    "python3 -m pytest mechanical/tests/test_enclosure_probe.py "
                    "mechanical/tests/test_front_legend.py mechanical/tests/test_accessories.py "
                    "mechanical/tests/test_box_enclosure.py mechanical/tests/test_dial_reader.py "
+                   "mechanical/tests/test_print_rules.py "
                    "-q -p no:cacheprovider --tb=short")
 
 

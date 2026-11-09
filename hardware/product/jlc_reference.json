@@ -1380,6 +1380,39 @@
         "2": "K"
       }
     },
+    "C699499": {
+      "record": {
+        "componentModelEn": "DG127R-5.08-03P-14-00A(H)",
+        "componentBrandEn": "DEGSON",
+        "componentSpecificationEn": "Push-Pull,P=5.08mm",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2007101236_DEGSON-DG127R-5-08-03P-14-00A-H_C699499.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
+      },
+      "footprint": "CONN-TH_DG127R-5.08-03P-14-00A",
+      "pads": [
+        [
+          "1",
+          -5.08,
+          -0.0
+        ],
+        [
+          "2",
+          0.0,
+          -0.0
+        ],
+        [
+          "3",
+          5.08,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2",
+        "3": "3"
+      }
+    },
     "C719176": {
       "record": {
         "componentModelEn": "TC33X-2-103E",

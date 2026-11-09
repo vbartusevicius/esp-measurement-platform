@@ -1,2 +1,3 @@
 Designator,Value,Manufacturer part,Notes
+J1,2086-1202/700-000/997-604,2086-1202/700-000/997-604,"Bottom-front 2-pole 3.5 mm SMD push-in terminal (SELV): 1=GND, 2=VIN+ (9-30 V)"
 U3,XIAO ESP32C6,102010636,XIAO ESP32C6 Pre-Soldered on two 1x7 5.0 mm female socket strips

@@ -1,14 +1,16 @@
 """V1 main board (vertical along the left wall of the 1-DIN case, 39.8 x 77.4 mm,
 4 layers, 1.2 mm).
 
-Connectors (all JLC-assembled push-in spring terminals: Kefa KF142R-5.08 at the bottom,
-WAGO 2086 3.5 mm SMD at the top):
+Connectors (wire entries parallel to the board; WAGO 2086 3.5 mm SMD push-in with the release
+buttons in the wire-entry face, except the 230 V relay output, which is a screw terminal: no
+side-entry push-in at 5 mm pitch rated >= 250 V fits under the 11.6 mm to the case wall
+with its release reachable, and a KF142R's levers would stand 13.7 mm, out of the case side):
   - Bottom shoulder (wire entry facing -y, flush with y=0):
-      J1 (KF142R-5.08-2P, 2 poles, SELV domain):
+      J1 (WAGO 2086-1202, 2 poles, SELV domain; hand-fitted, JLC has no stock):
         1 = GND  (DC input ground — on the far side)
         2 = VIN+ (9-30 V DC input, nominal 24 V)
       --- 6.0 mm creepage keepout + milled PCB slot ---
-      J4 (KF142R-5.08-3P, 3 poles, RELAY domain, 230 VAC up to 2 A
+      J4 (Degson DG127R-5.08-03P screw terminal, 3 poles, RELAY domain, 230 VAC up to 2 A
           resistive via Omron G6B-2114P; 1.5 A inductive):
         1 = COM  (Relay Common)
         2 = NO   (Relay Normally Open)
@@ -35,8 +37,8 @@ from blocks import mcu_xiao, power_24v, sensor_io
 from common import block, part, power, power_flag, src
 
 FPC_8P = "gateway_fp:FPC_Kinghelm_KH-FPC0.5-H1.2SMT-8P"
-TERM_2P = "gateway_fp:TerminalBlock_Kefa_KF142R-5.08-2P"
-TERM_3P = "gateway_fp:TerminalBlock_Kefa_KF142R-5.08-3P"
+WAGO_2P = "gateway_fp:TerminalBlock_WAGO_2086-1202_SMD"
+SCREW_3P = "gateway_fp:TerminalBlock_Degson_DG127R-5.08-03P"
 WAGO_4P = "gateway_fp:TerminalBlock_WAGO_2086-1204_SMD"
 WAGO_3P = "gateway_fp:TerminalBlock_WAGO_2086-1203_SMD"
 UI_LINK = ("+3V3", "GND", "BTN_LADDER", "LED_DATA", "+5V", "I2C_SDA", "I2C_SCL", "GND")
@@ -65,17 +67,18 @@ def build():
     ui = mcu_xiao.build(gnd, v3, v5, s_io)
 
     block("terminals_bottom")
-    j1 = part("Connector", "Screw_Terminal_01x02", "KF142R-5.08-2P", TERM_2P,
-              src(mpn="KF142R-5.08-2P", mfr="Cixi Kefa Elec", lcsc="C475144",
-                  source="Bottom-front 2-pole 5.08 mm push-in terminal (SELV): 1=GND, 2=VIN+ (9-30 V)"),
+    j1 = part("Connector", "Screw_Terminal_01x02", "2086-1202/700-000/997-604", WAGO_2P,
+              src(mpn="2086-1202/700-000/997-604", mfr="WAGO", hand=True,
+                  source="Bottom-front 2-pole 3.5 mm SMD push-in terminal (SELV): 1=GND, 2=VIN+ (9-30 V)"),
               ref="J1")
     j1[1] += gnd
     j1[2] += vin_raw
     power_flag(vin_raw)
 
-    j4 = part("Connector", "Screw_Terminal_01x03", "KF142R-5.08-3P", TERM_3P,
-              src(mpn="KF142R-5.08-3P", mfr="Cixi Kefa Elec", lcsc="C475145",
-                  source="Bottom-rear 3-pole 5.08 mm push-in terminal (230 VAC relay output): 1=COM, 2=NO, 3=NC"),
+    j4 = part("Connector", "Screw_Terminal_01x03", "DG127R-5.08-03P", SCREW_3P,
+              src(mpn="DG127R-5.08-03P-14-00A(H)", mfr="DEGSON", lcsc="C699499",
+                  source="Bottom-rear 3-pole 5.08 mm screw terminal (230 VAC relay output, IEC 250 V / 15 A): "
+                         "1=COM, 2=NO, 3=NC; screws reached through the case's right side"),
               ref="J4")
     j4[1] += s_io["relay_com"]
     j4[2] += s_io["relay_no"]

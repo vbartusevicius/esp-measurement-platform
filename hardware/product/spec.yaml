@@ -70,8 +70,8 @@ terminals:
     shoulder: bottom
     ref: J1
     poles: 2
-    pitch: 5.08
-    type: push-in spring (Kefa KF142R-5.08-2P)
+    pitch: 3.5
+    type: push-in spring, push-button in the wire-entry face (WAGO 2086-1202/700-000/997-604, hand-fitted)
     labels: [GND, VIN+]
   relay_out:
     board: main
@@ -79,7 +79,7 @@ terminals:
     ref: J4
     poles: 3
     pitch: 5.08
-    type: push-in spring (Kefa KF142R-5.08-3P)
+    type: screw, M2.5 in the top face, reached through holes in the case's right side (Degson DG127R-5.08-03P, IEC 250 V / 15 A)
     labels: ["COM", "NO", "NC"]  # quoted: YAML 1.1 reads a bare NO as false
     rating: "230 VAC: 2 A resistive / 1.5 A inductive (cos phi 0.4) per Omron G6B-2114P (5 A 250 VAC rated, 3 kVAC / 6 kV coil-contacts); fuse the load circuit at <= 2 A"
   sensor_io:

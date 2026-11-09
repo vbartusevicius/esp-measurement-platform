@@ -74,11 +74,16 @@ STANDOFF_DIAMETER = 2.4
 LED_WINDOW = 2.2
 BAFFLE_WALL = 0.4
 BUTTON_HOLE = 2.6  # legend ring diameter drawn around each button tongue
+# Printed in PA12 on MJF / SLS (powder bed). Gaps inside one printed part narrower than
+# MIN_PRINT_GAP fuse; FDM_CLEAR is only used between separately printed parts or a part and a
+# PCB / terminal body, which cannot fuse (see the release README, "Printing").
+MIN_PRINT_GAP = 0.6
+PART_AIR = 0.3     # air around every part body (supports stop closer: BOARD_SUPPORT_GAP)
 FDM_CLEAR = 0.2    # per side, between printed parts and around PCB/terminal bodies
 # C-shaped spring tab per button (same geometry as knx-dali-gateway v3): a
 # round pad over the switch on an arm rooted at a shared centre bridge, both
 # thinned to `thickness`; rounded bump on the front, plunger behind the pad.
-BUTTON_TAB = {"pad": 2.6, "arm": 2.0, "root_x": 0.9, "slot": 0.45, "thickness": 0.7, "nub": 1.4,
+BUTTON_TAB = {"pad": 2.6, "arm": 2.0, "root_x": 0.9, "slot": MIN_PRINT_GAP, "thickness": 0.7, "nub": 1.4,
               "nub_gap": 0.1, "boss": 2.0, "boss_height": 0.6, "boss_round": 0.25}
 THT_TAIL = 2.5     # max solder-tail protrusion behind the main board (clip longer leads)
 THT_RECESS = 1.0   # recess depth in the cover's left wall over THT tails
@@ -87,15 +92,31 @@ SCREW_HOLE = 3.2
 CASE_SCREW = {"pilot": 2.2, "clearance": 2.8, "depth": 8.5, "z": BASE_TOP_Z - 2.0}
 SCREW_TAB = {"width": 4.0, "depth": 8.5, "z0": 39.85}
 LIP = {"thickness": 1.2, "depth": 2.0}
-SNAP = {"overlap": 0.5, "width": 6.0, "slot": 0.5, "hook_height": 1.8, "free_end_below_board": 1.8,
+SNAP = {"overlap": 0.5, "width": 6.0, "slot": MIN_PRINT_GAP, "hook_height": 1.8, "free_end_below_board": 1.8,
         "y": (FRONT_Y_START + 12, FRONT_Y_END - 12)}
 
 RAIL = {"centre": HIDDEN_H / 2, "slot": 35.4, "lip": 1.0, "clearance": 0.1}
 BACK_DEPTH = 5.0
 HOOK_REACH = 1.5
-LATCH = {"half_width": min(5.0, WIDTH / 2 - 4.5), "gap": 0.4, "tab_bottom": -6.0, "beam": 0.8,
-         "beam_ys": (9.0, 11.4), "beam_reach": min(16.0, WIDTH / 2 - 1.5), "hole": (4.0, 2.0),
-         "hole_y": -4.0, "travel": 2.0}
+LATCH_MAX_STRAIN = 0.025  # PA12 flexure, repeated use
+LATCH = {"half_width": 1.8 if WIDTH < 30 else 5.0, "tab_half_width": 3.0 if WIDTH < 30 else 5.0,
+         "gap": 0.7, "tab_bottom": -6.0, "beam": 0.6, "y0": 3.0, "skin": 1.0, "hole": (3.0, 1.6),
+         "hole_y": -4.0, "travel": HOOK_REACH + 0.3}
+LATCH["reach"] = min(16.0, WIDTH / 2 - LATCH["skin"] - LATCH["gap"])
+
+
+def latch_leg_length(latch=LATCH):
+    """Free length of one spring leg between its two turns."""
+    return latch["reach"] - (latch["half_width"] + latch["gap"]) - 2 * latch["beam"]
+
+
+def latch_strain(legs, latch=LATCH):
+    """Peak bending strain of a fixed-guided leg when the bar travels its full
+    release travel, shared equally by `legs` legs in series: 3 t d / L^2."""
+    return 3 * latch["beam"] * (latch["travel"] / legs) / latch_leg_length(latch) ** 2
+
+
+LATCH["legs"] = next(n for n in range(1, 40, 2) if latch_strain(n) <= LATCH_MAX_STRAIN)
 
 
 def box(x0, x1, y0, y1, z0, z1):
@@ -129,30 +150,153 @@ def rail_blocks():
 
 
 def latch_parts():
+    """Sliding latch under the rail's bottom lip. A bar carries the lip at its
+    top; its lower end is a wider tab below the case with a hole for a flat
+    screwdriver. On each side of the bar a serpentine spring of LATCH["legs"]
+    legs in series (enough that no leg bends past LATCH_MAX_STRAIN over the
+    release travel) springs it back. Every gap is at least MIN_PRINT_GAP so a
+    powder print does not fuse the latch to the case."""
     low, _ = rail_edges()
     back = -BACK_DEPTH
-    w, g, b = LATCH["half_width"], LATCH["gap"], LATCH["beam"]
-    reach = LATCH["beam_reach"]
-    y0, y1 = LATCH["beam_ys"]
-    y2 = y1 + (y1 - y0)
+    w, g, b, n = LATCH["half_width"], LATCH["gap"], LATCH["beam"], LATCH["legs"]
+    reach, pitch, y0 = LATCH["reach"], b + g, LATCH["y0"]
+    y_last = y0 + (n - 1) * pitch
     pocket = box(-w - g, w + g, LATCH["tab_bottom"] - 1, low + 1, back - 1, 0).union(
-        box(-reach - g, reach + g, y0 - LATCH["travel"], y2 + b + g, back - 1, 0))
+        box(-reach - g, reach + g, y0 - LATCH["travel"] - g, y_last + b + g, back - 1, 0))
     bar_z = (back, -g)
-    bar = box(-w, w, LATCH["tab_bottom"], low - g, *bar_z)
+    tw = LATCH["tab_half_width"]
+    latch = box(-w, w, LATCH["tab_bottom"], low - g, *bar_z).union(
+        box(-tw, tw, LATCH["tab_bottom"], -g, *bar_z))
     lip = box(-w, w, low - g, low + HOOK_REACH, *lip_z())
-    lip = lip.edges("|X and <Z and >Y").chamfer(1.0)
-    latch = bar.union(lip)
+    latch = latch.union(lip.edges("|X and <Z and >Y").chamfer(1.0))
+    x_in = w + g
     for s in (-1, 1):
-        leg1 = box(*sorted((s * w, s * (reach - g))), y0, y0 + b, *bar_z)
-        turn1 = box(*sorted((s * (reach - g - b), s * (reach - g))), y0, y1 + b, *bar_z)
-        leg2 = box(*sorted((s * (w + g), s * (reach - g))), y1, y1 + b, *bar_z)
-        turn2 = box(*sorted((s * (w + g), s * (w + g + b))), y1, y2 + b, *bar_z)
-        leg3 = box(*sorted((s * (w + g), s * (reach + g + 0.5))), y2, y2 + b, *bar_z)
-        for seg in (leg1, turn1, leg2, turn2, leg3):
-            latch = latch.union(seg)
+        for i in range(n):
+            y = y0 + i * pitch
+            start = w if i == 0 else x_in
+            end = reach + g + 0.5 if i == n - 1 else reach
+            latch = latch.union(box(*sorted((s * start, s * end)), y, y + b, *bar_z))
+            if i < n - 1:
+                x_turn = (reach - b, reach) if i % 2 == 0 else (x_in, x_in + b)
+                latch = latch.union(box(*sorted((s * x_turn[0], s * x_turn[1])), y, y + pitch + b, *bar_z))
     hole_w, hole_h = LATCH["hole"]
     hole = box(-hole_w / 2, hole_w / 2, LATCH["hole_y"] - hole_h / 2, LATCH["hole_y"] + hole_h / 2, back - 1, 1)
     return pocket, latch.cut(hole)
+
+
+BOARD_SUPPORT_GAP = 0.1   # posts stop this short of the main board's front face (< PART_AIR)
+POST_HALF = 1.0
+POST_Z_MAX = 36.0         # below the lip, the right-wall snap keepers and the cover shoulder
+
+
+def _yz_clear(boxes, y, z, half, air=PART_AIR):
+    return all(y + half + air <= b["y0"] or y - half - air >= b["y1"] or
+               z + half + air <= b["z0"] or z - half - air >= b["z1"] for b in boxes)
+
+
+def front_posts():
+    """(y, z) of the posts from the base's right wall to BOARD_SUPPORT_GAP short
+    of the main board's front face: one per quadrant of the board, in columns
+    free of parts over the whole depth (part bodies + PART_AIR), as far out
+    as the free grid allows. The knx print had no support there and its
+    tallest capacitor carried the board."""
+    slab = board_slab("main")
+    parts = [b for b in part_boxes() if b["board"] == "main"]
+    y_mid, z_mid = (slab["y0"] + slab["y1"]) / 2, (slab["z0"] + slab["z1"]) / 2
+    h, step = POST_HALF, 0.25
+    cells = [(slab["y0"] + h + 0.5 + i * step, slab["z0"] + h + 0.5 + j * step)
+             for i in range(int((slab["y1"] - slab["y0"] - 2 * h - 1) / step) + 1)
+             for j in range(int((min(slab["z1"], POST_Z_MAX) - slab["z0"] - 2 * h - 1) / step) + 1)]
+    free = [(y, z) for y, z in cells if _yz_clear(parts, y, z, h)]
+    posts = []
+    for qy in (False, True):
+        for qz in (False, True):
+            quad = [(y, z) for y, z in free if (y > y_mid) == qy and (z > z_mid) == qz]
+            if not quad:
+                raise ValueError(f"no part-free column for a main board support in quadrant {(qy, qz)}")
+            posts.append(max(quad, key=lambda c: (c[0] - y_mid) ** 2 + (c[1] - z_mid) ** 2))
+    return posts
+
+
+def post_bodies():
+    x0 = board_slab("main")["x1"] + BOARD_SUPPORT_GAP
+    return [box(x0, INNER_W / 2 + 0.01, y - POST_HALF, y + POST_HALF, z - POST_HALF, z + POST_HALF)
+            for y, z in front_posts()]
+
+
+RIB = {"half_y": 0.4, "half_z": 1.5, "gap": 0.1, "max_spacing": 40.0, "rows": 3}
+
+
+def main_ribs():
+    """(y, z) of the ribs on the cover's left wall that back the main board:
+    RIB["rows"] rows (the walls count as supports, so the spacing stays under
+    RIB["max_spacing"]) of two ribs, each clear of every THT solder-tail
+    recess (tht_tail_recesses) by PART_AIR. The cover slides on along +x, so a rib only sweeps the tail
+    columns, which it avoids."""
+    keep = []
+    for pocket in tht_tail_recesses():
+        bb = pocket.val().BoundingBox()
+        keep.append({"y0": bb.ymin - PART_AIR, "y1": bb.ymax + PART_AIR, "z0": bb.zmin - PART_AIR, "z1": bb.zmax + PART_AIR})
+    slab = board_slab("main")
+    ribs = []
+    for k in range(1, RIB["rows"] + 1):
+        target = WALL + k * INNER_H / (RIB["rows"] + 1)
+        for z_target in (slab["z0"] + (slab["z1"] - slab["z0"]) / 3, slab["z0"] + 2 * (slab["z1"] - slab["z0"]) / 3):
+            spots = [(target + dy * 0.25, z_target + dz * 0.25) for dy in range(-40, 41) for dz in range(-30, 31)]
+            spots = [(y, z) for y, z in spots if slab["y0"] + 1 < y < slab["y1"] - 1 and
+                     _yz_clear(keep, y, z, max(RIB["half_y"], RIB["half_z"]), air=0.0)]
+            if not spots:
+                raise ValueError(f"no tail-free spot for a cover rib near y {target:.1f}")
+            ribs.append(min(spots, key=lambda c: abs(c[0] - target) + abs(c[1] - z_target) / 4))
+    return ribs
+
+
+def rib_bodies():
+    back = SPEC["boards"]["main"]["x"] - MAIN_THICK
+    return [box(-INNER_W / 2 - 0.01, back - RIB["gap"], y - RIB["half_y"], y + RIB["half_y"],
+                z - RIB["half_z"], z + RIB["half_z"]) for y, z in main_ribs()]
+
+
+# Degson DG127R-5.08-03P (J4, 230 V relay output): M2.5 screws in the body's top face, which on
+# the vertical main board faces the right wall; their axes sit at mid-depth of the 8.1 mm body
+# (customer drawing rev D0). A hole through the right wall over each screw takes a 2.5 mm blade;
+# the screw heads stay 1.5 mm inside the wall, beyond the reach of an IP20 test finger.
+SCREW_REFS = ("J4",)
+SCREW_ACCESS = {"axis_from_face": 4.05, "hole": 3.0}
+
+
+def screw_holes():
+    """Screwdriver holes through the base's right wall, one per screw of SCREW_REFS."""
+    holes = []
+    for ref in SCREW_REFS:
+        body = next(b for b in part_boxes() if (b["board"], b["ref"]) == ("main", ref))
+        y = body["y0"] + SCREW_ACCESS["axis_from_face"]
+        for z in _pin_z_positions(ref).values():
+            holes.append({"ref": ref, "y": y, "z": z, "d": SCREW_ACCESS["hole"], "body_x1": body["x1"]})
+    return holes
+
+
+def screw_hole_solid(hole):
+    return (cq.Workplane("YZ").center(hole["y"], hole["z"]).circle(hole["d"] / 2)
+            .extrude(WIDTH / 2 - INNER_W / 2 + 1.02).translate((INNER_W / 2 - 0.01, 0, 0)))
+
+
+FLOOR_RELIEF = 0.6   # deepest recess into the 1.6 mm floor (1.0 mm stays)
+
+
+def floor_reliefs():
+    """Recesses in the base floor under part bodies that reach closer than
+    PART_AIR to it: J4's datasheet body (Fab outline) overhangs the main
+    board's rail-side edge and would sit 0.05 mm above the floor."""
+    cuts = []
+    for b in part_boxes():
+        if b["board"] == "main" and b["z0"] < WALL + PART_AIR:
+            z0 = b["z0"] - PART_AIR
+            if z0 < WALL - FLOOR_RELIEF:
+                raise ValueError(f"main {b['ref']} would leave less than {WALL - FLOOR_RELIEF} mm of floor")
+            cuts.append(box(b["x0"] - PART_AIR, b["x1"] + PART_AIR, b["y0"] - PART_AIR, b["y1"] + PART_AIR,
+                            z0, WALL + 0.01))
+    return cuts
 
 
 def leg_bodies():
@@ -160,34 +304,43 @@ def leg_bodies():
     return [box(p["x"] - h, p["x"] + h, p["y"] - h, p["y"] + h, WALL, MAIN_BOTTOM_Z) for p in legs()]
 
 
-SIDE_SNAP_YS = (16.0, 63.8)  # right-side snap hooks, >= 0.5 mm clear of the J1/J4 and J2/J5/J6 bodies
+# Six side clicks: two on the right wall and a pair at each end of the left edge,
+# so the cover cannot pivot about one edge (a four-click cover did on the knx print).
+SIDE_SNAPS = {"right_y": (16.0, 63.8), "left_z": ((8.0, 13.0), (30.0, 35.0)), "half": 1.2}
+SIDE_SNAP_YS = SIDE_SNAPS["right_y"]
+SNAP_FREE = 0.6   # free gap each side of a right-wall snap tongue (lip notch)
 
 
 def shoulder_snap_bodies():
-    """Four side snap-click hooks on the cover locking into the base."""
+    """Side snap-click hooks on the cover locking into the base."""
     if screw_tabs():
         return []
     bodies = []
-    for y_c in SIDE_SNAP_YS:
-        tongue = box(INNER_W / 2 - 1.1, INNER_W / 2, y_c - 1.2, y_c + 1.2, 39.2, BASE_TOP_Z + 0.4)
-        barb = box(INNER_W / 2 - 1.1, INNER_W / 2 + 0.5, y_c - 1.2, y_c + 1.2, 39.2, 40.4)
+    half = SIDE_SNAPS["half"]
+    for y_c in SIDE_SNAPS["right_y"]:
+        tongue = box(INNER_W / 2 - 1.1, INNER_W / 2, y_c - half, y_c + half, 39.2, BASE_TOP_Z + 0.4)
+        barb = box(INNER_W / 2 - 1.1, INNER_W / 2 + 0.5, y_c - half, y_c + half, 39.2, 40.4)
         bodies.append(tongue.union(barb))
     for y_wall, d in ((WALL, 1), (HIDDEN_H - WALL, -1)):
         y0, y1 = sorted((y_wall, y_wall + d * 1.1))
         yb0, yb1 = sorted((y_wall - d * 0.5, y_wall + d * 1.1))
-        tongue = box(-WIDTH / 2, -INNER_W / 2 + 1.2, y0, y1, 9.0, 14.0)
-        barb = box(-INNER_W / 2, -INNER_W / 2 + 1.2, yb0, yb1, 9.0, 14.0)
-        bodies.append(tongue.union(barb))
+        for z0, z1 in SIDE_SNAPS["left_z"]:
+            tongue = box(-WIDTH / 2, -INNER_W / 2 + 1.2, y0, y1, z0, z1)
+            barb = box(-INNER_W / 2, -INNER_W / 2 + 1.2, yb0, yb1, z0, z1)
+            bodies.append(tongue.union(barb))
     return bodies
 
 
 def shoulder_snap_keepers():
     if screw_tabs():
         return []
-    keepers = [box(INNER_W / 2 - 0.1, INNER_W / 2 + 0.6, y_c - 1.4, y_c + 1.4, 39.0, 40.6)
-               for y_c in SIDE_SNAP_YS]
-    keepers += [box(-INNER_W / 2 - 0.1, -INNER_W / 2 + 1.3, WALL - 0.6, WALL + 0.1, 8.8, 14.2),
-                box(-INNER_W / 2 - 0.1, -INNER_W / 2 + 1.3, HIDDEN_H - WALL - 0.1, HIDDEN_H - WALL + 0.6, 8.8, 14.2)]
+    half = SIDE_SNAPS["half"] + 0.2
+    keepers = [box(INNER_W / 2 - 0.1, INNER_W / 2 + 0.6, y_c - half, y_c + half, 39.0, 40.6)
+               for y_c in SIDE_SNAPS["right_y"]]
+    for z0, z1 in SIDE_SNAPS["left_z"]:
+        keepers += [box(-INNER_W / 2 - 0.1, -INNER_W / 2 + 1.3, WALL - 0.6, WALL + 0.1, z0 - 0.2, z1 + 0.2),
+                    box(-INNER_W / 2 - 0.1, -INNER_W / 2 + 1.3, HIDDEN_H - WALL - 0.1, HIDDEN_H - WALL + 0.6,
+                        z0 - 0.2, z1 + 0.2)]
     return keepers
 
 
@@ -242,9 +395,6 @@ def walls_clip(solid):
     return solid.intersect(box(-WIDTH / 2, WIDTH / 2, 0, HIDDEN_H, -BACK_DEPTH, BASE_TOP_Z))
 
 
-SIDE_DEBOSS = 0.35
-
-
 def _pin_z_positions(ref):
     """Map pin_number -> enclosure z coordinate for a terminal block on main."""
     comp = components("main")[ref]
@@ -253,99 +403,6 @@ def _pin_z_positions(ref):
         _, _, ez = board_point("main", px, py)
         by_pin.setdefault(str(num), []).append(ez)
     return {k: sum(v) / len(v) for k, v in by_pin.items()}
-
-
-def _side_text_solid(text, z_anchor, y_centre, height, align="center"):
-    """Build a 3D text solid on the right side wall (x = WIDTH/2 - SIDE_DEBOSS .. WIDTH/2)
-    readable left-to-right when viewing the right side wall from +x (where +z is left
-    and -z is right). `align='left'` aligns the left edge of the text to `z_anchor`."""
-    from matplotlib.path import Path as MplPath
-    from matplotlib.textpath import TextPath
-    from matplotlib.transforms import Affine2D
-
-    raw = TextPath((0, 0), text, size=height, prop={"family": "DejaVu Sans", "weight": "bold"})
-    ext = raw.get_extents()
-    if align == "left":
-        tx = z_anchor + ext.x0
-    elif align == "right":
-        tx = z_anchor + ext.x0 + ext.width
-    else:
-        tx = z_anchor + ext.x0 + ext.width / 2
-    placed = raw.transformed(Affine2D().scale(-1.0, 1.0).translate(
-        tx,
-        y_centre - ext.y0 - ext.height / 2,
-    ))
-    polygons = [p for p in placed.to_polygons(closed_only=True) if len(p) > 3]
-    nested = []
-    for i, ring in enumerate(polygons):
-        depth = sum(MplPath(other).contains_point(ring[0]) for j, other in enumerate(polygons) if j != i)
-        nested.append((depth, [(float(pt[1]), float(pt[0])) for pt in ring[:-1]]))
-    nested.sort(key=lambda item: item[0])
-
-    x0 = WIDTH / 2 - SIDE_DEBOSS
-    solid = None
-    for depth, pts_yz in nested:
-        body = cq.Workplane("YZ", origin=(x0, 0, 0)).polyline(pts_yz).close().extrude(SIDE_DEBOSS)
-        if depth % 2 == 0:
-            solid = body if solid is None else solid.union(body)
-        elif solid is not None:
-            solid = solid.cut(body)
-    return solid
-
-
-def _side_line(z0, y0, z1, y1, lw=0.45):
-    """Debossed line segment on the right side wall (x = WIDTH/2 - SIDE_DEBOSS .. WIDTH/2)."""
-    import math
-    x0 = WIDTH / 2 - SIDE_DEBOSS
-    dx, dy = z1 - z0, y1 - y0
-    length = math.hypot(dx, dy)
-    if length < 1e-4:
-        return None
-    nx, ny = -dy / length * (lw / 2), dx / length * (lw / 2)
-    pts_yz = [
-        (y0 + ny, z0 + nx),
-        (y1 + ny, z1 + nx),
-        (y1 - ny, z1 - nx),
-        (y0 - ny, z0 - nx),
-    ]
-    return cq.Workplane("YZ", origin=(x0, 0, 0)).polyline(pts_yz).close().extrude(SIDE_DEBOSS)
-
-
-def _side_dot(z_c, y_c, radius=0.65):
-    x0 = WIDTH / 2 - SIDE_DEBOSS
-    return cq.Workplane("YZ", origin=(x0, 0, 0)).center(y_c, z_c).circle(radius).extrude(SIDE_DEBOSS)
-
-
-def _side_text_vertical(text, z_centre, y_top, height):
-    """Text on the right side wall reading bottom to top (rotated 90 deg
-    counter-clockwise as seen from +x), centred on z_centre, ending at y_top."""
-    from matplotlib.path import Path as MplPath
-    from matplotlib.textpath import TextPath
-
-    raw = TextPath((0, 0), text, size=height, prop={"family": "DejaVu Sans", "weight": "bold"})
-    ext = raw.get_extents()
-    b_mid = (ext.y0 + ext.y1) / 2
-    polygons = [p for p in raw.to_polygons(closed_only=True) if len(p) > 3]
-    nested = []
-    for i, ring in enumerate(polygons):
-        depth = sum(MplPath(other).contains_point(ring[0]) for j, other in enumerate(polygons) if j != i)
-        # text (a along the baseline, b up) -> wall (y = up, z = left as seen from +x)
-        nested.append((depth, [(float(y_top - ext.x1 + a), float(z_centre + b - b_mid)) for a, b in ring[:-1]]))
-    nested.sort(key=lambda item: item[0])
-    x0 = WIDTH / 2 - SIDE_DEBOSS
-    solid = None
-    for depth, pts_yz in nested:
-        body = cq.Workplane("YZ", origin=(x0, 0, 0)).polyline(pts_yz).close().extrude(SIDE_DEBOSS)
-        if depth % 2 == 0:
-            solid = body if solid is None else solid.union(body)
-        elif solid is not None:
-            solid = solid.cut(body)
-    return solid
-
-
-SENSOR_NAMES = ("+5V", "+24V", "mA", "10V", "IO1", "IO2", "IO3", "IO4", "GND", "GND")
-SENSOR_NOTES = ("5V 600mA", "VIN PASS", "4-20mA LOOP", "0-5V / 0-10V", "ECHO / SDA / RX", "TRIG / SCL / TX",
-                "GEIGER PULSE", "METER PULSE", "", "")
 
 
 def sensor_pole_z():
@@ -358,59 +415,11 @@ def sensor_pole_z():
 
 
 def side_wall_legend_bodies():
-    """Debossed terminal pole numbers, signal names and short vertical
-    explanations under each sensor pole, and the schematic changeover relay
-    symbol over NC/COM/NO on the right side wall (x = +WIDTH/2) of the base."""
-    items = []
-    # 1. Top edge: sensor pole numbers (1..10) and signal names right under the wire entries
-    for pole, (z_c, name) in enumerate(zip(sensor_pole_z(), SENSOR_NAMES), start=1):
-        items.append(_side_text_solid(str(pole), z_c, 77.2, 1.8))
-        items.append(_side_text_solid(name, z_c, 74.5, 1.0))
-
-    # 2. Short leader under each signal name, then its explanation reading upwards
-    for z_c, note in zip(sensor_pole_z(), SENSOR_NOTES):
-        if not note:
-            continue
-        items.append(_side_line(z_c, 73.6, z_c, 72.4, lw=0.24))
-        items.append(_side_text_vertical(note, z_c, 71.8, 1.0))
-
-    j1_z = _pin_z_positions("J1")
-    j4_z = _pin_z_positions("J4")
-    j1_names = {"1": "GND", "2": "VIN"}
-    j4_names = dict(zip(("1", "2", "3"), SPEC["terminals"]["relay_out"]["labels"]))
-
-    # 3. Bottom edge: J1 (1=GND, 2=VIN with 9-30VDC above it) and J4 (labels from spec.yaml)
-    for pin, z_c in sorted(j1_z.items()):
-        items.append(_side_text_solid(pin, z_c, 3.6, 2.0))
-        items.append(_side_text_solid(j1_names[pin], z_c, 6.4, 1.2))
-    z_vin = j1_z["2"]
-    items.append(_side_line(z_vin, 8.2, z_vin, 12.4, lw=0.26))
-    items.append(_side_text_solid("9-30VDC", z_vin, 14.8, 1.2, align="center"))
-
-    for pin, z_c in sorted(j4_z.items()):
-        items.append(_side_text_solid(pin, z_c, 3.6, 2.0))
-        items.append(_side_text_solid(j4_names[pin], z_c, 6.4, 1.2))
-
-    # 4. Changeover symbol over J4: COM pivot, wiper resting on NC (de-energised), NO open
-    pin_of = {name: pin for pin, name in j4_names.items()}
-    z_com, z_no, z_nc = (j4_z[pin_of[n]] for n in ("COM", "NO", "NC"))
-    toward_com_no = math.copysign(1.4, z_com - z_no)
-    items.append(_side_line(z_no, 8.2, z_no, 11.0, lw=0.26))
-    items.append(_side_line(z_no, 11.0, z_no + toward_com_no, 11.0, lw=0.26))
-    items.append(_side_dot(z_no + toward_com_no, 11.0, radius=0.40))
-    items.append(_side_line(z_nc, 8.2, z_nc, 13.0, lw=0.26))
-    items.append(_side_line(z_nc, 13.0, z_no, 13.0, lw=0.26))
-    items.append(_side_dot(z_no, 13.0, radius=0.40))
-    items.append(_side_line(z_com, 8.2, z_com, 10.0, lw=0.26))
-    items.append(_side_dot(z_com, 10.0, radius=0.45))
-    items.append(_side_line(z_com, 10.0, z_no, 12.8, lw=0.30))
-    # Rating label above the symbol (Omron G6B-2114P, 230 VAC load circuit fused <= 2 A)
-    items.append(_side_text_solid("230VAC 2A", z_no, 15.4, 1.2, align="center"))
-
-    combined = items[0]
-    for s in items[1:]:
-        if s is not None:
-            combined = combined.union(s)
+    """The right-side engraving (side_legend_cuts) as one solid, for the wall-mount box."""
+    cuts = side_legend_cuts()
+    combined = cuts[0]
+    for cut in cuts[1:]:
+        combined = combined.union(cut)
     return combined
 
 
@@ -424,13 +433,26 @@ def build_base():
         base = base.cut(box(slot["x0"], slot["x1"], slot["y0"], slot["y1"], slot["z0"], slot["z1"]))
     # Open the left side wall so the vertical main board slides in from the left (-x -> +x)
     base = base.cut(box(-WIDTH / 2 - 1, -INNER_W / 2 + 0.01, WALL, HIDDEN_H - WALL, WALL, BASE_TOP_Z + 1))
-    for body in leg_bodies() + capacitor_cradles():
+    for body in leg_bodies() + capacitor_cradles() + post_bodies():
         base = base.union(walls_clip(body))
     for keeper in shoulder_snap_keepers():
         base = base.cut(keeper)
-    # Deboss the terminal pole numbers, names, and wiring legend into the right side wall
-    base = base.cut(side_wall_legend_bodies())
+    for hole in screw_holes():
+        base = base.cut(screw_hole_solid(hole))
+    for cut in floor_reliefs():
+        base = base.cut(cut)
+    for cut in side_legend_cuts():
+        base = base.cut(cut)
     return base
+
+
+def side_legend_cuts():
+    """Connector and pole names (front_legend.side_labels) engraved INLAY_DEPTH
+    into the base's right side face, beside the terminals."""
+    import front_legend
+    import legend_engraving
+    return [legend_engraving.inlay(label.path(), 0.0).rotate((0, 0, 0), (0, 1, 0), 90).translate((WIDTH / 2, 0, 0))
+            for label in front_legend.side_labels()]
 
 
 def peg_bodies():
@@ -533,15 +555,31 @@ def snap_bodies():
     return [tongue for _, tongue in snap_geometry()]
 
 
+LIP_BOND = {"over_wall": 0.6, "height": 1.2}
+
+
 def lip_bodies():
-    """Locating lip along the base's right wall, stopped short of the
-    terminal blocks that reach up to the shoulder at both ends."""
+    """Locating lip along the base's right wall. It hangs 0.15 mm inside the
+    base wall, so a LIP_BOND bridge on top ties it into the cover's side wall
+    along its whole length (the knx print's lip was held only where it
+    crossed the snap tongues, which also locked them). Notched SNAP_FREE
+    clear of each right-wall snap tongue, and at part bodies."""
     x_out = INNER_W / 2 - 0.15
     z0 = BASE_TOP_Z - LIP["depth"]
+    top = BASE_TOP_Z + LIP_BOND["height"]
     terms = [p for p in part_boxes() if p["board"] == "main" and p["ref"] in ("J1", "J2", "J4", "J5", "J6")]
     y_lo = max([p["y1"] for p in terms if p["y0"] < HIDDEN_H / 2] + [WALL + 1]) + FDM_CLEAR
     y_hi = min([p["y0"] for p in terms if p["y0"] > HIDDEN_H / 2] + [HIDDEN_H - WALL - 1]) - FDM_CLEAR
-    return [box(*sorted((x_out, x_out - LIP["thickness"])), y_lo, y_hi, z0, BASE_TOP_Z)]
+    lip = box(x_out - LIP["thickness"], x_out, y_lo, y_hi, z0, BASE_TOP_Z).union(
+        box(x_out - LIP["thickness"], INNER_W / 2 + LIP_BOND["over_wall"], y_lo, y_hi, BASE_TOP_Z - 0.01, top))
+    free = SIDE_SNAPS["half"] + SNAP_FREE
+    notches = [box(-WIDTH / 2, WIDTH / 2, y - free, y + free, z0 - 1, top + 1) for y in SIDE_SNAPS["right_y"]]
+    reach = x_out - LIP["thickness"] - PART_AIR
+    notches += [box(b["x0"] - PART_AIR, b["x1"] + PART_AIR, b["y0"] - PART_AIR, b["y1"] + PART_AIR, z0 - 1, top + 1)
+                for b in part_boxes() if b["board"] == "main" and b["z1"] > z0 and b["x1"] > reach]
+    for notch in notches:
+        lip = lip.cut(notch)
+    return [lip]
 
 
 def shoulder_plate(side):
@@ -560,7 +598,7 @@ def build_cover():
     cover = cover.union(box(-WIDTH / 2, -INNER_W / 2, WALL + FDM_CLEAR, HIDDEN_H - WALL - FDM_CLEAR,
                             WALL + FDM_CLEAR, BASE_TOP_Z + 0.01))
     for body in (lip_bodies() + peg_bodies() + standoff_bodies() + screw_tab_bodies() + baffle_bodies()
-                 + slot_filler_bodies() + ui_rib_bodies()):
+                 + slot_filler_bodies() + ui_rib_bodies() + rib_bodies()):
         cover = cover.union(body)
     for pocket in tht_tail_recesses():
         cover = cover.cut(pocket)

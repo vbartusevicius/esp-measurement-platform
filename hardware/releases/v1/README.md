@@ -61,7 +61,11 @@ Every board folder (`main/`, `ui/`, `reader/`) holds the same set; `<b>` is the 
 
 ### Terminal Pinout & Plugin Wiring
 
-All JLC-assembled. Bottom: Kefa `KF142R-5.08` spring terminals (250 V / 15 A, 0.2–1.5 mm², strip 11 mm). Top: WAGO 2086 SMD push-in terminals with push-buttons, side entry, 3.5 mm (300 V / 10 A UL, 0.14–1.5 mm², strip 8–9 mm):
+Every wire enters parallel to the board, through the top or bottom face of the case.
+
+- **Push-in terminals:** WAGO 2086 3.5 mm SMD, with the release push-buttons in the wire-entry face (300 V / 10 A UL, 0.14–1.5 mm², strip 8–9 mm). Top bank: `J2`, `J5`, `J6`, JLC-assembled. Bottom: `J1` (2086-1202), hand-soldered because JLC has no stock.
+- **`J4` (230 V relay):** a Degson `DG127R-5.08-03P` screw terminal (IEC 250 V / 15 A, 0.75–1.5 mm², strip 6–7 mm, M2.5 at 0.4 N·m), JLC-assembled. Its screws are turned through the three holes in the case's right side, under the COM / NO / NC labels.
+- **Why not push-in on `J4`:** a 5 mm push-in terminal rated ≥ 250 V would need its release where you can reach it in an 18 mm case. The Kefa KF142R's levers stand 13.7 mm, beyond the case side, where the next DIN module would hold them open; the one fitting Phoenix SPT-SMD part is sold only in reels of 300.
 
 | Terminal | Location | Poles | Function |
 |---|---|---|---|
@@ -81,6 +85,15 @@ All JLC-assembled. Bottom: Kefa `KF142R-5.08` spring terminals (250 V / 15 A, 0.
 > - **Insulation:** the G6B's 3 kVAC / 6 kV coil–contact insulation plus the 8 mm PCB creepage is the barrier between 230 V and the SELV side. Omron does not market the G6B as "reinforced", and nothing here is a certified product.
 
 ---
+
+### Printing the 1-DIN case (`enclosure/`, `box_enclosure/`)
+
+- **Process:** sized for powder printing (MJF / SLS, PA12). Every gap inside one printed part is at least 0.6 mm (`MIN_PRINT_GAP`): the DIN latch and its springs, the button C-slots, the UI snap-tongue slots. The 0.2 mm clearances (`FDM_CLEAR`) are only between separately printed parts or between a part and a PCB / terminal body, which cannot fuse.
+- **DIN latch:** a 3.6 mm bar on two 11-leg serpentine springs (0.6 mm legs, ≤ 2.5 % strain over the 1.8 mm release travel). Release it with a flat screwdriver in the 3.0 × 1.6 mm hole of the tab below the case.
+- **Cover:** six snap clicks (two on the right wall, a pair at each end of the left edge). Its locating lip is bonded to the side wall along its length and notched clear of the snap tongues. Ribs on its left wall back the main board at least every 40 mm, and four base posts support the board's front face, 0.1 mm short, in part-free columns.
+- **Front legend:** 3 mm text engraved 0.6 mm deep. **RST** is the reset / WiFi button (tap: reboot; hold 5 s: WiFi setup; hold 15 s: factory reset) and **PG** the page button. The three LEDs are unmarked: STATUS, NET, SENS from left to right.
+- **Right side face:** each terminal pole's name is engraved beside it, 3 mm. The sensor bank reads 5V, 24V, mA, 10V, IO1–IO4, GND, GND for poles 1–10, bottom to top along the rail axis. J1 reads GND, VIN under "9-30V", and J4 reads COM, NO, NC under "230V".
+- **Terminal access:** `J1`'s push-buttons are in its wire-entry face, so the bottom-wall slot exposes them. `J4`'s screws face the right wall: a 3.0 mm hole over each takes a 2.5 mm flat blade. The screw heads stay 1.5 mm inside the wall, so an IP20 test finger cannot touch them. Wire `J4` before mounting the next DIN module beside it.
 
 ## 2. Printable Enclosures & Plugin Accessories
 

@@ -11,6 +11,8 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "mechanical/scripts"))
 sys.path.insert(0, str(REPO / ".claude/skills/manufacturing-readiness-review/scripts"))
 import build_box_enclosure as bx
+import build_enclosure as be
+import cadquery as cq
 import enclosure_features as ef
 from build_enclosure import box
 
@@ -145,3 +147,19 @@ def test_released_meshes_are_watertight_single_bodies(tmp_path):
     for name in ("box_base", "box_lid"):
         bodies, open_edges, nonmanifold = mesh_audit.bodies(mesh_audit.read_stl(tmp_path / f"{name}.stl"))
         assert (len(bodies), open_edges, nonmanifold) == (1, 0, 0), name
+
+
+def test_j4_screws_are_reachable_through_the_lid():
+    """The DG127R screws face the lid: a 2.5 mm blade reaches each one along x through nothing printed."""
+    base, lid = bx.build_base().val(), bx.build_lid().val()
+    for hole in be.screw_holes():
+        for x in [hole["body_x1"] + 0.05 + 0.5 * i for i in range(int((bx.XF + 0.5 - hole["body_x1"]) / 0.5))]:
+            for dy, dz in ((0, 0), (-1.2, 0), (1.2, 0), (0, -1.2), (0, 1.2)):
+                p = cq.Vector(x, hole["y"] + dy, hole["z"] + dz)
+                assert not base.isInside(p) and not lid.isInside(p), (hole, x)
+
+
+def test_lid_has_no_opening_over_the_push_in_power_terminal():
+    lid = bx.build_lid().val()
+    for z in be._pin_z_positions("J1").values():
+        assert lid.isInside(cq.Vector(bx.XF - 0.3, be.screw_holes()[0]["y"], z))

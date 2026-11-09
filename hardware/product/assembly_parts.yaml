@@ -16,6 +16,15 @@
     XIAO stays detachable
   source: LCSC
   lcsc: C27985232
+- item: Power terminal (hand-soldered SMD, main J1)
+  qty: 1
+  part: WAGO 2086-1202/700-000/997-604 (2-pole 3.5 mm SMD push-in, push-button, 300
+    V / 10 A UL)
+  description: J1 GND / VIN+; JLCPCB has no stock (C3309855), so it is soldered by
+    hand after assembly
+  source: Digi-Key / Newark / Mouser
+  digikey: 2946-2086-1202/700-000/997-604CT-ND
+  mouser: 1089-208612027000009
 - item: OLED display (14-pin 0.62 mm solder FPC)
   qty: 1
   part: QG-6428TSWCG02 / JLX12864OLED-S096W / NFP1312-15AY (0.96 in 64x128 SSD1312
@@ -35,11 +44,11 @@
   kind: utility
 - item: Main-to-UI FFC cable
   qty: 1
-  part: SHOU HAN FFC-0.5-8P-50mm-B (LCSC C42416274)
+  part: DEALON FC-0.5B-8P-50mm (LCSC C5242660; SHOU HAN C42416274 out of stock 2026-11-09)
   description: 8-pin 0.5 mm reverse/opposite-side (Type B) FFC, 50 mm; main J3 <->
     ui J1
   source: LCSC
-  lcsc: C42416274
+  lcsc: C5242660
 - item: Case base (snap-fit, no screws)
   qty: 1
   part: enclosure/base.stl

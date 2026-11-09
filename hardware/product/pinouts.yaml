@@ -16,6 +16,17 @@
   pads: {"2": [0, 0], "1": [5.75, 0]}
   nets: {"1": [KNX_P, AUX_IN], "2": [GND, GNDA]}
 
+"2086-1202/700-000/997-604":
+  source: >-
+    WAGO 2086 series data sheet (2086-1204/700-000/997-605, 12.09.2023): pin
+    spacing 3.5 mm, L = (poles - 1) x 3.5 + 4.2 mm, two in-line SMD solder pins
+    per pole across the depth; the 2-pole 997-604 is the same terminal on 24 mm
+    tape (WAGO 2086 catalog page). Pad pairs 8.8 mm apart as on the 2086-1203
+    land pattern JLCPCB verified pin for pin (C3309626). Pole 1 GND, pole 2 the
+    9-30 V input.
+  pads: {"1": [[0, 4.4], [0, -4.4]], "2": [[3.5, 4.4], [3.5, -4.4]]}
+  nets: {"1": GND, "2": VIN_RAW}
+
 WEA012864DWPP3N00003:
   source: >-
     Winstar WEA012864D-03 specification p.3 (contour drawing, interface pin

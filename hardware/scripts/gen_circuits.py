@@ -127,6 +127,18 @@ def collect_assembly_parts(variant, spec):
             "source": "LCSC",
             "lcsc": "C27985232",
         })
+    if "2086-1202/700-000/997-604" in hand_by_mpn:
+        locs = hand_by_mpn["2086-1202/700-000/997-604"]["locs"]
+        items.append({
+            "item": f"Power terminal (hand-soldered SMD, {', '.join(locs)})",
+            "qty": len(locs),
+            "part": "WAGO 2086-1202/700-000/997-604 (2-pole 3.5 mm SMD push-in, push-button, 300 V / 10 A UL)",
+            "description": "J1 GND / VIN+; JLCPCB has no stock (C3309855), so it is soldered by hand after assembly",
+            "source": "Digi-Key / Newark / Mouser",
+            # checked 2026-11-09 in search-result snapshots: Digi-Key 432 cut tape, Newark 284, Mouser 0
+            "digikey": "2946-2086-1202/700-000/997-604CT-ND",
+            "mouser": "1089-208612027000009",
+        })
     if any(p["mpn"] in ("QG-6428TSWCG02", "FPC-05F-14PH20") for _, p in all_parts):
         items.append({
             "item": "OLED display (14-pin 0.62 mm solder FPC)",
@@ -151,10 +163,10 @@ def collect_assembly_parts(variant, spec):
         items.append({
             "item": "Main-to-UI FFC cable",
             "qty": len(ffc_links),
-            "part": "SHOU HAN FFC-0.5-8P-50mm-B (LCSC C42416274)",
+            "part": "DEALON FC-0.5B-8P-50mm (LCSC C5242660; SHOU HAN C42416274 out of stock 2026-11-09)",
             "description": f"8-pin 0.5 mm reverse/opposite-side (Type B) FFC, 50 mm; {pairs}",
             "source": "LCSC",
-            "lcsc": "C42416274",
+            "lcsc": "C5242660",
         })
 
     if any(p["ref"] == "JP1" for _, p in all_parts):

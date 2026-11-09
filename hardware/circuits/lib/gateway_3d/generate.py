@@ -27,6 +27,8 @@ PARTS = {
     "TerminalBlock_Kefa_KF142R-5.08-7P": (37.1, 14.2, 11.1),
     "TerminalBlock_WAGO_2086-1204_SMD": (14.7, 13.6, 8.3),
     "TerminalBlock_WAGO_2086-1203_SMD": (11.2, 13.6, 8.3),
+    "TerminalBlock_WAGO_2086-1202_SMD": (7.7, 13.6, 8.3),
+    "TerminalBlock_Degson_DG127R-5.08-03P": (15.24, 8.1, 10.1),
     "TerminalBlock_WAGO_2059-303_SMD": (7.9, 8.9, 2.7),
     "Vishay_TCRT5000_Clips": (10.2, 5.8, 7.0),
     "Relay_DPDT_Omron_G6K-2F-Y": (6.5, 10.0, 5.2),

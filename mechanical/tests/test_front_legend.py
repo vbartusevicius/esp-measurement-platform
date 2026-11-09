@@ -2,7 +2,6 @@
 openings and the other labels."""
 
 import sys
-from itertools import pairwise
 from pathlib import Path
 
 import pytest
@@ -39,8 +38,9 @@ def test_engraving_removes_exactly_the_legend_bodies_from_the_cover():
     assert removed == pytest.approx(legend.val().Volume(), rel=1e-4)
 
 
-def test_led_labels_keep_their_distance(labels):
+def test_leds_carry_no_words_or_rings(labels):
+    """3 mm words do not fit three LEDs on the 18 mm face; the release README gives the order."""
     names = {led["id"].upper() for led in ef.SPEC["front_ui"]["leds"]}
-    row = sorted((lb for lb in labels if lb.text in names and fl.face_of(lb.y) == "front"), key=lambda lb: lb.x)
-    assert len(row) == 3
-    assert all(b.box()[0] - a.box()[2] >= 0.8 for a, b in pairwise(row))
+    assert not names & {lb.text for lb in labels}
+    import legend_engraving
+    assert len(ef.led_windows()) == 3 and not hasattr(legend_engraving, "led_ring")

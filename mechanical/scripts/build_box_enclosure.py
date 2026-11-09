@@ -10,7 +10,8 @@ base   back tray: back wall behind the main board's solder tails, four posts
        -x), four M3 screw bosses in the side margins and one wall-mount ear on
        each side.
 lid    the face parallel to the main board (the DIN enclosure's legend side):
-       the debossed terminal legend as on the DIN case and, beside it, the DIN
+       the debossed terminal legend as on the DIN case, a screwdriver hole over
+       each screw of the J4 relay terminal (its top face points at the lid) and, beside it, the DIN
        cover's UI front rotated 90 deg about y so it faces +x (OLED pocket +
        window, C-shaped spring button tabs, LED baffle windows, standoffs,
        locating blocks and snap arms); filler bars closing the terminal
@@ -216,7 +217,6 @@ def ui_legend():
     import legend_engraving as lcm
 
     bodies = [lcm.inlay(label.path(), ef.TOTAL_D) for label in fl.labels() if fl.face_of(label.y) == "front"]
-    bodies += [lcm.led_ring(w) for w in ef.led_windows()]
     combined = bodies[0]
     for body in bodies[1:]:
         combined = combined.union(body)
@@ -242,6 +242,8 @@ def build_lid():
     for y in BOSS_Y:
         for z in BOSS_Z:
             lid = lid.cut(x_cylinder(y, z, XI - 1, XF + 1, BOSS["hole"]))
+    for hole in be.screw_holes():
+        lid = lid.cut(x_cylinder(hole["y"], hole["z"], XI - 1, XF + 1, hole["d"]))
     return lid.cut(legend())
 
 

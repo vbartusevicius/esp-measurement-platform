@@ -41,10 +41,10 @@ frame:
 
 heights:
   default: 1.2
-  J1: 11.1
+  J1: 8.3
   J2: 8.3
   J3: 1.2
-  J4: 11.1
+  J4: 10.1
   J5: 8.3
   J6: 8.3
   U3: 11.0
@@ -65,13 +65,15 @@ heights:
 
 parts:
   # --- Bottom-left (SELV): 2-pole power terminal J1 (1:GND, 2:VIN+) + 24V protection ---
-  J1:  { x: 6.4,   y: 6.6,   rot: 0,   block: terminals_bottom, locked: true }
+  # WAGO 2086-1202: wire-entry face 9.05 mm ahead of the pad centre line, flush with the case bottom (board y -1.8)
+  J1:  { x: 6.4,   y: 7.25,  rot: 0,   block: terminals_bottom, locked: true }
   F1:  { x: 4.5,   y: 16.5,  rot: 0,   block: pwr_in }
   D2:  { x: 4.5,   y: 21.0,  rot: 0,   block: pwr_in }
   D1:  { x: 4.5,   y: 25.5,  rot: 0,   block: pwr_in }
 
   # --- Bottom-right (RELAY, 230 VAC): 3-pole relay terminal J4 (1:COM, 2:NO, 3:NC) ---
-  J4:  { x: 30.8,  y: 6.6,   rot: 0,   block: terminals_bottom, locked: true }
+  # Degson DG127R-5.08-03P: wire-entry face 4.8 mm ahead of the pin row, flush with the case bottom (board y -1.8)
+  J4:  { x: 30.8,  y: 3.0,   rot: 0,   block: terminals_bottom, locked: true }
 
   # --- Omron G6B-2114P relay K1 bridging SELV (coil pins x=14.0) and RELAY (contacts x=24.16, 31.78) ---
   K1:  { x: 22.89, y: 18.2,  rot: 0,   block: relay, locked: true }

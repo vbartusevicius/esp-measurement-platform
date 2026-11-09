@@ -3,4 +3,5 @@ Item,Quantity,Part,Mouser,Digi-Key,TME,Other source
 "2086-1203/700-000/997-605 (assembled; LCSC does not sell C3309626): main:J5,main:J6",2,WAGO 2086-1203/700-000/997-605 (3-pole 3.5 mm SMD push-in terminal block),,2946-2086-1203/700-000/997-605CT-ND,,
 2086-1204/700-000/997-605 (assembled; LCSC does not sell C3309718): main:J2,1,WAGO 2086-1204/700-000/997-605 (4-pole 3.5 mm SMD push-in terminal block),,2946-2086-1204/700-000/997-605CT-ND,,
 MCU module (hand-fitted into sockets),1,Seeed Studio XIAO ESP32C6 Pre-Soldered (SKU 102010636),713-102010636,1597-102010636-ND,,
+"Power terminal (hand-soldered SMD, main J1)",1,"WAGO 2086-1202/700-000/997-604 (2-pole 3.5 mm SMD push-in, push-button, 300 V / 10 A UL)",1089-208612027000009,2946-2086-1202/700-000/997-604CT-ND,,
 OLED display (14-pin 0.62 mm solder FPC),1,QG-6428TSWCG02 / JLX12864OLED-S096W / NFP1312-15AY (0.96 in 64x128 SSD1312 I2C),,,,AliExpress (1005003749452625) / Panelook / JLX

@@ -134,7 +134,8 @@ Fixed in the follow-up (re-check they stay fixed; regressions are easy):
   (65 V abs max, async: needs the SS36 catch diode D9 and 22 uH per its datasheet table 2).
 - ADC clamps: SS34 (0.5 mA leak, 250 pF) -> BAT54S to GND and +3V3 (2 uA, 10 pF).
 - 4-20 mA: 165 ohm (20 mA = 3.30 V, no headroom, burns on a +24 V mis-wire) -> 50 mA PTC F2 + 120 ohm (2x240R 1206).
-- Main board 78.0 mm in a 77.8 mm cavity -> 77.4 mm, y_offset 1.8; terminal faces flush (J1/J4 KF142R at y 6.6;
+- Main board 78.0 mm in a 77.8 mm cavity -> 77.4 mm, y_offset 1.8; terminal faces flush (J1 WAGO 2086-1202 at y 7.25,
+  J4 Degson DG127R-5.08-03P at y 3.0 (2026-11-09; was KF142R at y 6.6);
   J2/J5/J6 WAGO 2086 at y 70.15, front 9.05 mm ahead of the pads = board y 79.2).
 - Sensor bank (2026-10-24): 7-pole KF142R 4P+3P -> 10-pole WAGO 2086 3.5 mm SMD (J2 2086-1204, J5/J6 2086-1203):
   +5V, +24V, 4-20mA, 0-10V, IO1..IO4, GND, GND. IO3 = D9/GPIO20 (Geiger), IO4 = D10/GPIO18 (water meter), with
@@ -163,8 +164,14 @@ Still open (verify every time):
 - FFC Type A/B vs connector contact sides.
 - Side-wall/lid legend for the sensor bank is generated from the pad positions (SENSOR_NAMES / SENSOR_NOTES in
   build_enclosure.py); keep it in sync with main.py and spec.yaml terminals.sensor_io.labels.
-- DRU `courtyard_clearance (min -100mm)` applies to anything near U3 (parts under the raised XIAO) and the
-  KF142R courtyards are trimmed: DRC will not catch overlaps there; check component boxes in 3D instead.
+- DRU `courtyard_clearance (min -100mm)` applies to anything near U3 (parts under the raised XIAO): DRC will not
+  catch overlaps there; check component boxes in 3D instead. `layout.body_box()` grows the courtyard to the Fab
+  outline: the old KF142R courtyards were short and centred while the datasheet body is not.
+- Check terminal HEIGHTS including levers / buttons against the datasheet drawing, not a "height" table: the KF142R
+  housing is 10.45 mm but its release levers stand 13.7 mm (REF), 0.5 mm out of the 18 mm case side. On the
+  vertical main board a terminal's top face faces the right wall: top-face buttons or screws need a reachable
+  opening there and must never protrude (the next DIN module would press them). Powder-print rules, side legend
+  and terminal access are pinned by `mechanical/tests/test_print_rules.py` (knx-dali-gateway print, 2026-11-09).
 - Accessory boards (`spec.yaml variants.v1.accessory_boards`, now `reader`): generated, routed, JLC-checked and
   released like main/ui but never panelised (`release.py PANEL_BOARDS`). Optical dial reader housing
   (`build_dial_reader.py`, `test_dial_reader.py`): lock ring (bayonet + spring fingers) over a rotatable carrier; hook
