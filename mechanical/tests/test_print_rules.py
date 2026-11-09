@@ -350,14 +350,31 @@ def test_every_main_part_body_clears_the_case(solids):
 # The release must ship the case this code builds
 
 
+def stl_shape(path):
+    """(volume, bbox min, bbox max) of a binary STL; the bytes differ between machines
+    (tessellation, float formatting), the geometry must not."""
+    data = path.read_bytes()
+    count = int.from_bytes(data[80:84], "little")
+    records = np.frombuffer(data, dtype=np.dtype([("n", "<f4", 3), ("v", "<f4", (3, 3)), ("a", "<u2")]),
+                            count=count, offset=84)
+    v = records["v"].astype(np.float64)
+    volume = np.einsum("ij,ij->i", v[:, 0], np.cross(v[:, 1], v[:, 2])).sum() / 6
+    points = v.reshape(-1, 3)
+    return volume, points.min(axis=0), points.max(axis=0)
+
+
 @pytest.mark.parametrize("released", ["enclosure", "box_enclosure"])
 def test_released_case_files_match_a_fresh_export(tmp_path, released):
     """release.py copies mechanical/build (git-ignored); running it before the CAD build shipped
-    the previous case (KF142R windows over J1 and J4) while every test here passed on the new one."""
+    the previous case (KF142R windows over J1 and J4, ~1 % of the base volume) while every test
+    here passed on the new one. The J4 screw holes alone are ~0.3 %."""
     import build_box_enclosure as bx
     (be if released == "enclosure" else bx).export_parts(tmp_path)
     dst = REPO / "hardware/releases" / ef.VARIANT / released
     stls = sorted(tmp_path.glob("*.stl"))
     assert stls
-    stale = [p.name for p in stls if (dst / p.name).read_bytes() != p.read_bytes()]
-    assert not stale, f"{dst} differs from a fresh export: {stale}; run the CAD build, then release.py"
+    for fresh in stls:
+        v_new, lo_new, hi_new = stl_shape(fresh)
+        v_rel, lo_rel, hi_rel = stl_shape(dst / fresh.name)
+        assert v_rel == pytest.approx(v_new, rel=1e-3), f"{dst / fresh.name}: run the CAD build, then release.py"
+        assert np.allclose(lo_rel, lo_new, atol=0.05) and np.allclose(hi_rel, hi_new, atol=0.05), fresh.name
