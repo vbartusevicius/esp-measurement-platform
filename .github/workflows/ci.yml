@@ -73,9 +73,11 @@ jobs:
       - name: Build the EDA and CAD containers
         run: docker compose --profile hardware build eda cad
 
-      # The enclosure tests read the part boxes of the stored layouts (git-ignored build output)
-      - name: Export part boxes from the stored layouts
+      # The enclosure and assembly-drawing tests read the parts lists and the part boxes of the
+      # stored layouts (git-ignored build output)
+      - name: Export parts lists and part boxes from the stored layouts
         run: |
+          docker compose --profile hardware run --rm -T eda "cd hardware/circuits && python3 ../scripts/gen_circuits.py"
           for board in main ui reader; do
             docker compose --profile hardware run --rm -T eda "python3 hardware/scripts/layout.py $board components"
           done
@@ -86,4 +88,5 @@ jobs:
           "python3 -m pytest -q -p no:cacheprovider --tb=short
           mechanical/tests/test_enclosure_probe.py mechanical/tests/test_front_legend.py
           mechanical/tests/test_accessories.py mechanical/tests/test_box_enclosure.py
-          mechanical/tests/test_dial_reader.py mechanical/tests/test_print_rules.py"
+          mechanical/tests/test_dial_reader.py mechanical/tests/test_print_rules.py
+          mechanical/tests/test_assembly_drawing.py"

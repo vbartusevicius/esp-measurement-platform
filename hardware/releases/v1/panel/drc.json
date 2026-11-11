@@ -1,7 +1,7 @@
 {
     "$schema": "https://schemas.kicad.org/drc.v1.json",
     "coordinate_units": "mm",
-    "date": "2026-11-11T20:22:49",
+    "date": "2026-11-11T21:45:43",
     "ignored_checks": [
         {
             "description": "Footprint has no courtyard defined",
@@ -42,7 +42,7 @@
                         "x": 39.8,
                         "y": -31.975
                     },
-                    "uuid": "e8cfbc85-0c4b-4f81-9f8c-97991c3cc361"
+                    "uuid": "9ff3c555-5f74-4810-9c83-93a38ba2bb25"
                 },
                 {
                     "description": "Segment on F.Silkscreen",
@@ -88,7 +88,7 @@
                         "x": 41.8,
                         "y": -40.5
                     },
-                    "uuid": "5d771a42-3e43-448a-8a9f-a6212646f794"
+                    "uuid": "601c56d6-0da0-4587-b8fe-e50cd912c6c4"
                 },
                 {
                     "description": "Segment on F.Silkscreen",
@@ -180,7 +180,7 @@
                         "x": 39.949999,
                         "y": -31.275
                     },
-                    "uuid": "2c752743-789b-42cf-96ce-3d2a2c3ee8c0"
+                    "uuid": "65174b65-b9cc-412d-84cb-94fc7580b7d3"
                 },
                 {
                     "description": "NPTH pad of MOUSE_BITES",
@@ -188,30 +188,7 @@
                         "x": 39.949999,
                         "y": -30.675
                     },
-                    "uuid": "59f0d080-a8f3-4df7-98c5-f76fb636b5fc"
-                }
-            ],
-            "severity": "warning",
-            "type": "hole_to_hole"
-        },
-        {
-            "description": "Drilled hole too close to other hole (board setup constraints min 0.2500 mm; actual 0.1000 mm)",
-            "items": [
-                {
-                    "description": "NPTH pad of MOUSE_BITES",
-                    "pos": {
-                        "x": 39.949999,
-                        "y": -30.675
-                    },
-                    "uuid": "59f0d080-a8f3-4df7-98c5-f76fb636b5fc"
-                },
-                {
-                    "description": "NPTH pad of MOUSE_BITES",
-                    "pos": {
-                        "x": 39.949999,
-                        "y": -30.075
-                    },
-                    "uuid": "9a92fbbb-875b-43bf-a623-195eb9358a3a"
+                    "uuid": "b19060b8-0dd8-46e1-a671-4ceb74c66078"
                 }
             ],
             "severity": "warning",
@@ -226,7 +203,30 @@
                         "x": 39.949999,
                         "y": -30.075
                     },
-                    "uuid": "9a92fbbb-875b-43bf-a623-195eb9358a3a"
+                    "uuid": "43866687-1d31-4b1a-a0b8-d3e42ea0f18c"
+                },
+                {
+                    "description": "NPTH pad of MOUSE_BITES",
+                    "pos": {
+                        "x": 39.949999,
+                        "y": -30.675
+                    },
+                    "uuid": "b19060b8-0dd8-46e1-a671-4ceb74c66078"
+                }
+            ],
+            "severity": "warning",
+            "type": "hole_to_hole"
+        },
+        {
+            "description": "Drilled hole too close to other hole (board setup constraints min 0.2500 mm; actual 0.1000 mm)",
+            "items": [
+                {
+                    "description": "NPTH pad of MOUSE_BITES",
+                    "pos": {
+                        "x": 39.949999,
+                        "y": -30.075
+                    },
+                    "uuid": "43866687-1d31-4b1a-a0b8-d3e42ea0f18c"
                 },
                 {
                     "description": "NPTH pad of MOUSE_BITES",
@@ -234,7 +234,7 @@
                         "x": 39.949999,
                         "y": -29.475
                     },
-                    "uuid": "f3baf3e7-6c46-49d3-bc5e-ecc114cae402"
+                    "uuid": "691ba5db-c77a-4702-a827-0d4540b3f4c0"
                 }
             ],
             "severity": "warning",
@@ -243,36 +243,13 @@
         {
             "description": "Drilled hole too close to other hole (board setup constraints min 0.2500 mm; actual 0.1000 mm)",
             "items": [
-                {
-                    "description": "NPTH pad of MOUSE_BITES",
-                    "pos": {
-                        "x": 39.949999,
-                        "y": -10.425
-                    },
-                    "uuid": "7b60d02a-ff02-4c75-8f30-097d853fb896"
-                },
                 {
                     "description": "NPTH pad of MOUSE_BITES",
                     "pos": {
                         "x": 39.949999,
                         "y": -11.025
                     },
-                    "uuid": "e92748f8-7ccf-437c-a8bf-2576273f6587"
-                }
-            ],
-            "severity": "warning",
-            "type": "hole_to_hole"
-        },
-        {
-            "description": "Drilled hole too close to other hole (board setup constraints min 0.2500 mm; actual 0.1000 mm)",
-            "items": [
-                {
-                    "description": "NPTH pad of MOUSE_BITES",
-                    "pos": {
-                        "x": 39.949999,
-                        "y": -9.825
-                    },
-                    "uuid": "5e41dd1c-656b-40c0-985a-b8b015e7badd"
+                    "uuid": "17486153-ecd9-49da-8ac6-09d7a84cf1d8"
                 },
                 {
                     "description": "NPTH pad of MOUSE_BITES",
@@ -280,7 +257,7 @@
                         "x": 39.949999,
                         "y": -10.425
                     },
-                    "uuid": "7b60d02a-ff02-4c75-8f30-097d853fb896"
+                    "uuid": "a6453a9d-ddf3-4556-9cc0-ede95822b99a"
                 }
             ],
             "severity": "warning",
@@ -289,21 +266,21 @@
         {
             "description": "Drilled hole too close to other hole (board setup constraints min 0.2500 mm; actual 0.1000 mm)",
             "items": [
-                {
-                    "description": "NPTH pad of MOUSE_BITES",
-                    "pos": {
-                        "x": 39.949999,
-                        "y": -9.225
-                    },
-                    "uuid": "304c7824-ac12-4737-afb8-6f46e5e5604d"
-                },
                 {
                     "description": "NPTH pad of MOUSE_BITES",
                     "pos": {
                         "x": 39.949999,
                         "y": -9.825
                     },
-                    "uuid": "5e41dd1c-656b-40c0-985a-b8b015e7badd"
+                    "uuid": "a0cbbf3a-826c-40cc-86a4-0c06635286aa"
+                },
+                {
+                    "description": "NPTH pad of MOUSE_BITES",
+                    "pos": {
+                        "x": 39.949999,
+                        "y": -10.425
+                    },
+                    "uuid": "a6453a9d-ddf3-4556-9cc0-ede95822b99a"
                 }
             ],
             "severity": "warning",
@@ -312,21 +289,44 @@
         {
             "description": "Drilled hole too close to other hole (board setup constraints min 0.2500 mm; actual 0.1000 mm)",
             "items": [
+                {
+                    "description": "NPTH pad of MOUSE_BITES",
+                    "pos": {
+                        "x": 39.949999,
+                        "y": -9.825
+                    },
+                    "uuid": "a0cbbf3a-826c-40cc-86a4-0c06635286aa"
+                },
+                {
+                    "description": "NPTH pad of MOUSE_BITES",
+                    "pos": {
+                        "x": 39.949999,
+                        "y": -9.225
+                    },
+                    "uuid": "aa1ec100-470f-4bb0-bb16-aa73d7402d9f"
+                }
+            ],
+            "severity": "warning",
+            "type": "hole_to_hole"
+        },
+        {
+            "description": "Drilled hole too close to other hole (board setup constraints min 0.2500 mm; actual 0.1000 mm)",
+            "items": [
+                {
+                    "description": "NPTH pad of MOUSE_BITES",
+                    "pos": {
+                        "x": 41.65,
+                        "y": -30.675
+                    },
+                    "uuid": "5e29f1fb-3686-4101-80fc-81aeda910a19"
+                },
                 {
                     "description": "NPTH pad of MOUSE_BITES",
                     "pos": {
                         "x": 41.65,
                         "y": -31.275
                     },
-                    "uuid": "716c9488-a5d5-4a8d-9773-c976acd31913"
-                },
-                {
-                    "description": "NPTH pad of MOUSE_BITES",
-                    "pos": {
-                        "x": 41.65,
-                        "y": -30.675
-                    },
-                    "uuid": "cd196cef-51b2-4716-8651-ed56d145e638"
+                    "uuid": "f66d2744-002a-4e9c-b977-a27e14c8cf68"
                 }
             ],
             "severity": "warning",
@@ -341,7 +341,7 @@
                         "x": 41.65,
                         "y": -30.075
                     },
-                    "uuid": "4e18828b-883f-44b9-a48a-8d5aafeff011"
+                    "uuid": "29a19a2f-a7d1-422f-895d-04877a7b37a2"
                 },
                 {
                     "description": "NPTH pad of MOUSE_BITES",
@@ -349,7 +349,7 @@
                         "x": 41.65,
                         "y": -30.675
                     },
-                    "uuid": "cd196cef-51b2-4716-8651-ed56d145e638"
+                    "uuid": "5e29f1fb-3686-4101-80fc-81aeda910a19"
                 }
             ],
             "severity": "warning",
@@ -364,7 +364,7 @@
                         "x": 41.65,
                         "y": -30.075
                     },
-                    "uuid": "4e18828b-883f-44b9-a48a-8d5aafeff011"
+                    "uuid": "29a19a2f-a7d1-422f-895d-04877a7b37a2"
                 },
                 {
                     "description": "NPTH pad of MOUSE_BITES",
@@ -372,7 +372,7 @@
                         "x": 41.65,
                         "y": -29.475
                     },
-                    "uuid": "f54f6cb6-7eb7-4e4f-a35d-2bcb6e4f0e73"
+                    "uuid": "6f8b94d5-661f-40b2-ac32-2d18b2c40922"
                 }
             ],
             "severity": "warning",
@@ -381,21 +381,21 @@
         {
             "description": "Drilled hole too close to other hole (board setup constraints min 0.2500 mm; actual 0.1000 mm)",
             "items": [
-                {
-                    "description": "NPTH pad of MOUSE_BITES",
-                    "pos": {
-                        "x": 41.65,
-                        "y": -10.425
-                    },
-                    "uuid": "a18e6ed4-2cd3-43e5-8b99-2435b2096a8e"
-                },
                 {
                     "description": "NPTH pad of MOUSE_BITES",
                     "pos": {
                         "x": 41.65,
                         "y": -11.025
                     },
-                    "uuid": "a8b8c530-c7bf-43d8-842f-8c97af2070e4"
+                    "uuid": "0c867bba-c18f-4af2-9b64-03cfff20203b"
+                },
+                {
+                    "description": "NPTH pad of MOUSE_BITES",
+                    "pos": {
+                        "x": 41.65,
+                        "y": -10.425
+                    },
+                    "uuid": "43fe5d08-79bc-4bb6-ba7d-fa697b7a59b4"
                 }
             ],
             "severity": "warning",
@@ -410,7 +410,7 @@
                         "x": 41.65,
                         "y": -10.425
                     },
-                    "uuid": "a18e6ed4-2cd3-43e5-8b99-2435b2096a8e"
+                    "uuid": "43fe5d08-79bc-4bb6-ba7d-fa697b7a59b4"
                 },
                 {
                     "description": "NPTH pad of MOUSE_BITES",
@@ -418,7 +418,7 @@
                         "x": 41.65,
                         "y": -9.825
                     },
-                    "uuid": "fb8a5b6d-eaa8-4584-8c7e-c832dba70bd9"
+                    "uuid": "da829bb6-c9ab-4724-acbd-ec935d79e36d"
                 }
             ],
             "severity": "warning",
@@ -433,7 +433,7 @@
                         "x": 41.65,
                         "y": -9.225
                     },
-                    "uuid": "0d841d97-c45c-4681-9f65-9feb2f6749a2"
+                    "uuid": "bb5b64d6-ad3b-482e-8afd-463892e8779c"
                 },
                 {
                     "description": "NPTH pad of MOUSE_BITES",
@@ -441,7 +441,7 @@
                         "x": 41.65,
                         "y": -9.825
                     },
-                    "uuid": "fb8a5b6d-eaa8-4584-8c7e-c832dba70bd9"
+                    "uuid": "da829bb6-c9ab-4724-acbd-ec935d79e36d"
                 }
             ],
             "severity": "warning",
@@ -1809,7 +1809,7 @@
                         "x": 41.65,
                         "y": -31.275
                     },
-                    "uuid": "716c9488-a5d5-4a8d-9773-c976acd31913"
+                    "uuid": "f66d2744-002a-4e9c-b977-a27e14c8cf68"
                 }
             ],
             "severity": "warning",
@@ -1832,7 +1832,7 @@
                         "x": 41.65,
                         "y": -30.675
                     },
-                    "uuid": "cd196cef-51b2-4716-8651-ed56d145e638"
+                    "uuid": "5e29f1fb-3686-4101-80fc-81aeda910a19"
                 }
             ],
             "severity": "warning",
@@ -1855,7 +1855,7 @@
                         "x": 41.65,
                         "y": -30.075
                     },
-                    "uuid": "4e18828b-883f-44b9-a48a-8d5aafeff011"
+                    "uuid": "29a19a2f-a7d1-422f-895d-04877a7b37a2"
                 }
             ],
             "severity": "warning",
@@ -1878,7 +1878,7 @@
                         "x": 41.65,
                         "y": -29.475
                     },
-                    "uuid": "f54f6cb6-7eb7-4e4f-a35d-2bcb6e4f0e73"
+                    "uuid": "6f8b94d5-661f-40b2-ac32-2d18b2c40922"
                 }
             ],
             "severity": "warning",
