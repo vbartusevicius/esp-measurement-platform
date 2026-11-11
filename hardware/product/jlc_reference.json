@@ -129,36 +129,36 @@
         "2": "2"
       }
     },
-    "C15849": {
+    "C15850": {
       "record": {
-        "componentModelEn": "CL10A105KB8NNNC",
+        "componentModelEn": "CL21A106KAYNNNE",
         "componentBrandEn": "Samsung Electro-Mechanics",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL10A105KB8NNNC_C15849.pdf",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21A106KAYNNNE_C15850.pdf",
         "componentLibraryType": "base",
         "attributes": [
           {
             "attribute_name_en": "Voltage Rating",
-            "component_code": "C15849",
-            "attribute_value_name": "50V"
+            "component_code": "C15850",
+            "attribute_value_name": "25V"
           },
           {
             "attribute_name_en": "Capacitance",
-            "component_code": "C15849",
-            "attribute_value_name": "1uF"
+            "component_code": "C15850",
+            "attribute_value_name": "10uF"
           }
         ]
       },
-      "footprint": "C0603",
+      "footprint": "C0805",
       "pads": [
         [
           "2",
-          0.700023999999964,
+          0.9999979999999742,
           -0.0
         ],
         [
           "1",
-          -0.700023999999964,
+          -0.9999979999999742,
           -0.0
         ]
       ],
@@ -221,6 +221,303 @@
         "1": "1"
       }
     },
+    "C17414": {
+      "record": {
+        "componentModelEn": "0805W8F1002T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2411221126_UNI-ROYAL-Uniroyal-Elec-0805W8F1002T5E_C17414.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C17414",
+            "attribute_value_name": "10kΩ"
+          }
+        ]
+      },
+      "footprint": "R0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C17513": {
+      "record": {
+        "componentModelEn": "0805W8F1001T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2205311800_UNI-ROYAL-Uniroyal-Elec-0805W8F1001T5E_C17513.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C17513",
+            "attribute_value_name": "1kΩ"
+          }
+        ]
+      },
+      "footprint": "R0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C17557": {
+      "record": {
+        "componentModelEn": "0805W8F2200T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-0805W8F2200T5E_C17557.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C17557",
+            "attribute_value_name": "220Ω"
+          }
+        ]
+      },
+      "footprint": "R0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C17560": {
+      "record": {
+        "componentModelEn": "0805W8F2202T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-0805W8F2202T5E_C17560.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C17560",
+            "attribute_value_name": "22kΩ"
+          }
+        ]
+      },
+      "footprint": "R0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C17630": {
+      "record": {
+        "componentModelEn": "0805W8F3300T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2205311830_UNI-ROYAL-Uniroyal-Elec-0805W8F3300T5E_C17630.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C17630",
+            "attribute_value_name": "330Ω"
+          }
+        ]
+      },
+      "footprint": "R0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C17656": {
+      "record": {
+        "componentModelEn": "0805W8F3903T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-0805W8F3903T5E_C17656.pdf",
+        "componentLibraryType": "expand",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C17656",
+            "attribute_value_name": "390kΩ"
+          }
+        ]
+      },
+      "footprint": "R0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C17673": {
+      "record": {
+        "componentModelEn": "0805W8F4701T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-0805W8F4701T5E_C17673.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C17673",
+            "attribute_value_name": "4.7kΩ"
+          }
+        ]
+      },
+      "footprint": "R0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C17710": {
+      "record": {
+        "componentModelEn": "0805W8F4700T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-0805W8F4700T5E_C17710.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C17710",
+            "attribute_value_name": "470Ω"
+          }
+        ]
+      },
+      "footprint": "R0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C17756": {
+      "record": {
+        "componentModelEn": "0805W8F5602T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010200_UNI-ROYAL-Uniroyal-Elec-0805W8F5602T5E_C17756.pdf",
+        "componentLibraryType": "expand",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C17756",
+            "attribute_value_name": "56kΩ"
+          }
+        ]
+      },
+      "footprint": "R0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
     "C17961": {
       "record": {
         "componentModelEn": "1206W4F2400T5E",
@@ -252,44 +549,6 @@
       "pin_names": {
         "2": "2",
         "1": "1"
-      }
-    },
-    "C19702": {
-      "record": {
-        "componentModelEn": "CL10A106KP8NNNC",
-        "componentBrandEn": "Samsung Electro-Mechanics",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL10A106KP8NNNC_C19702.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Voltage Rating",
-            "component_code": "C19702",
-            "attribute_value_name": "10V"
-          },
-          {
-            "attribute_name_en": "Capacitance",
-            "component_code": "C19702",
-            "attribute_value_name": "10uF"
-          }
-        ]
-      },
-      "footprint": "C0603",
-      "pads": [
-        [
-          "2",
-          0.700023999999964,
-          -0.0
-        ],
-        [
-          "1",
-          -0.700023999999964,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "1": "1",
-        "2": "2"
       }
     },
     "C20526": {
@@ -325,70 +584,43 @@
         "2": "E"
       }
     },
-    "C21190": {
+    "C22371519": {
       "record": {
-        "componentModelEn": "0603WAF1001T5E",
-        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF1001T5E_C21190.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C21190",
-            "attribute_value_name": "1kΩ"
-          }
-        ]
+        "componentModelEn": "WS2812B-MINI-V3J",
+        "componentBrandEn": "Worldsemi",
+        "componentSpecificationEn": "SMD-4P,3.5x3.5mm",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2412021734_Worldsemi-WS2812B-MINI-V3J_C22371519.pdf",
+        "componentLibraryType": "expand",
+        "attributes": []
       },
-      "footprint": "R0603",
+      "footprint": "LED-SMD_4P-L3.5-W3.5-P1.80-LS6.2_WS2812B-MINI-V3J",
       "pads": [
         [
+          "4",
+          -0.9000489999999409,
+          -2.799969000000061
+        ],
+        [
+          "3",
+          0.9000490000000564,
+          -2.799969000000061
+        ],
+        [
           "2",
-          0.7533639999999732,
-          -0.0
+          0.9000490000000564,
+          2.7999689999999453
         ],
         [
           "1",
-          -0.7533639999999732,
-          -0.0
+          -0.9000489999999409,
+          2.7999689999999453
         ]
       ],
       "pin_names": {
-        "2": "2",
-        "1": "1"
-      }
-    },
-    "C22962": {
-      "record": {
-        "componentModelEn": "0603WAF2200T5E",
-        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF2200T5E_C22962.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C22962",
-            "attribute_value_name": "220Ω"
-          }
-        ]
-      },
-      "footprint": "R0603",
-      "pads": [
-        [
-          "2",
-          0.7533639999999732,
-          -0.0
-        ],
-        [
-          "1",
-          -0.7533639999999732,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "2": "2",
-        "1": "1"
+        "1": "VDD",
+        "2": "DOUT",
+        "3": "GND",
+        "4": "DIN"
       }
     },
     "C231329": {
@@ -490,105 +722,6 @@
         "1": "1"
       }
     },
-    "C23162": {
-      "record": {
-        "componentModelEn": "0603WAF4701T5E",
-        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF4701T5E_C23162.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C23162",
-            "attribute_value_name": "4.7kΩ"
-          }
-        ]
-      },
-      "footprint": "R0603",
-      "pads": [
-        [
-          "2",
-          0.7533639999999732,
-          -0.0
-        ],
-        [
-          "1",
-          -0.7533639999999732,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "2": "2",
-        "1": "1"
-      }
-    },
-    "C23179": {
-      "record": {
-        "componentModelEn": "0603WAF4700T5E",
-        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF4700T5E_C23179.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C23179",
-            "attribute_value_name": "470Ω"
-          }
-        ]
-      },
-      "footprint": "R0603",
-      "pads": [
-        [
-          "2",
-          0.7533639999999732,
-          -0.0
-        ],
-        [
-          "1",
-          -0.7533639999999732,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "2": "2",
-        "1": "1"
-      }
-    },
-    "C23206": {
-      "record": {
-        "componentModelEn": "0603WAF5602T5E",
-        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF5602T5E_C23206.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C23206",
-            "attribute_value_name": "56kΩ"
-          }
-        ]
-      },
-      "footprint": "R0603",
-      "pads": [
-        [
-          "2",
-          0.7533639999999732,
-          -0.0
-        ],
-        [
-          "1",
-          -0.7533639999999732,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "2": "2",
-        "1": "1"
-      }
-    },
     "C236111": {
       "record": {
         "componentModelEn": "MMSZ5V6T1G",
@@ -614,39 +747,6 @@
       "pin_names": {
         "1": "C",
         "2": "A"
-      }
-    },
-    "C25803": {
-      "record": {
-        "componentModelEn": "0603WAF1003T5E",
-        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C25803",
-            "attribute_value_name": "100kΩ"
-          }
-        ]
-      },
-      "footprint": "R0603",
-      "pads": [
-        [
-          "2",
-          0.7533639999999732,
-          -0.0
-        ],
-        [
-          "1",
-          -0.7533639999999732,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "2": "2",
-        "1": "1"
       }
     },
     "C2856797": {
@@ -722,96 +822,6 @@
         "8": "8",
         "9": "9",
         "10": "10"
-      }
-    },
-    "C2869734": {
-      "record": {
-        "componentModelEn": "LM66100DCKR",
-        "componentBrandEn": "Texas Instruments",
-        "componentSpecificationEn": "SC-70-6",
-        "dataManualUrl": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2205311630_Texas-Instruments-LM66100DCKR_C2869734.pdf",
-        "componentLibraryType": "expand",
-        "attributes": []
-      },
-      "footprint": "SC-70-6_L2.0-W1.3-P0.65-LS2.1-BL",
-      "pads": [
-        [
-          "1",
-          -0.6499860000000499,
-          -1.1000740000000333
-        ],
-        [
-          "2",
-          0.0,
-          -1.1000740000000333
-        ],
-        [
-          "3",
-          0.6499860000000499,
-          -1.1000740000000333
-        ],
-        [
-          "4",
-          0.6499860000000499,
-          1.1000740000000333
-        ],
-        [
-          "5",
-          0.0,
-          1.1000740000000333
-        ],
-        [
-          "6",
-          -0.6499860000000499,
-          1.1000740000000333
-        ]
-      ],
-      "pin_names": {
-        "1": "VIN",
-        "2": "GND",
-        "3": "CE#",
-        "4": "NC",
-        "5": "ST",
-        "6": "VOUT"
-      }
-    },
-    "C2890035": {
-      "record": {
-        "componentModelEn": "SK6805-EC15",
-        "componentBrandEn": "OPSCO Optoelectronics",
-        "componentSpecificationEn": "SMD-4P,1.5x1.5mm",
-        "dataManualUrl": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2108251530_OPSCO-Optoelectronics-SK6805-EC15_C2890035.pdf",
-        "componentLibraryType": "expand",
-        "attributes": []
-      },
-      "footprint": "LED-SMD_4P-L1.5-W1.5-BL",
-      "pads": [
-        [
-          "4",
-          -0.47510699999999817,
-          0.47510699999999817
-        ],
-        [
-          "1",
-          -0.47510699999999817,
-          -0.4748530000000619
-        ],
-        [
-          "2",
-          0.47510699999999817,
-          -0.47510699999999817
-        ],
-        [
-          "3",
-          0.47510699999999817,
-          0.47510699999999817
-        ]
-      ],
-      "pin_names": {
-        "1": "DIN",
-        "2": "VDD",
-        "3": "DOUT",
-        "4": "GND"
       }
     },
     "C2931912": {
@@ -900,39 +910,6 @@
       "pin_names": {
         "4": "4",
         "3": "3",
-        "2": "2",
-        "1": "1"
-      }
-    },
-    "C31850": {
-      "record": {
-        "componentModelEn": "0603WAF2202T5E",
-        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010030_UNI-ROYAL-Uniroyal-Elec-0603WAF2202T5E_C31850.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C31850",
-            "attribute_value_name": "22kΩ"
-          }
-        ]
-      },
-      "footprint": "R0603",
-      "pads": [
-        [
-          "2",
-          0.7533639999999732,
-          -0.0
-        ],
-        [
-          "1",
-          -0.7533639999999732,
-          -0.0
-        ]
-      ],
-      "pin_names": {
         "2": "2",
         "1": "1"
       }
@@ -1186,6 +1163,39 @@
         "1": "1"
       }
     },
+    "C4328": {
+      "record": {
+        "componentModelEn": "0805W8F2002T5E",
+        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010216_UNI-ROYAL-Uniroyal-Elec-0805W8F2002T5E_C4328.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C4328",
+            "attribute_value_name": "20kΩ"
+          }
+        ]
+      },
+      "footprint": "R0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
     "C440198": {
       "record": {
         "componentModelEn": "GRM21BR61H106KE43L",
@@ -1262,91 +1272,6 @@
         "2": "2"
       }
     },
-    "C475144": {
-      "record": {
-        "componentModelEn": "KF142R-5.08-2P",
-        "componentBrandEn": "Cixi Kefa Elec",
-        "componentSpecificationEn": "Push-Pull,P=5.08mm",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2303170930_Cixi-Kefa-Elec-KF142R-5-08-2P_C475144.pdf",
-        "componentLibraryType": "expand",
-        "attributes": []
-      },
-      "footprint": "CONN-TH_2P-P5.08_KF142R-5.08-2P",
-      "pads": [
-        [
-          "1",
-          -2.54,
-          3.81
-        ],
-        [
-          "2",
-          2.54,
-          3.81
-        ],
-        [
-          "1",
-          -2.54,
-          -3.81
-        ],
-        [
-          "2",
-          2.54,
-          -3.81
-        ]
-      ],
-      "pin_names": {
-        "1": "1",
-        "2": "2"
-      }
-    },
-    "C475145": {
-      "record": {
-        "componentModelEn": "KF142R-5.08-3P",
-        "componentBrandEn": "Cixi Kefa Elec",
-        "componentSpecificationEn": "Push-Pull,P=5.08mm",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2303170930_Cixi-Kefa-Elec-KF142R-5-08-3P_C475145.pdf",
-        "componentLibraryType": "expand",
-        "attributes": []
-      },
-      "footprint": "CONN-TH_3P-P5.08_KF142R-5.08-3P",
-      "pads": [
-        [
-          "1",
-          -5.08,
-          3.81
-        ],
-        [
-          "2",
-          0.0,
-          3.81
-        ],
-        [
-          "3",
-          5.08,
-          3.81
-        ],
-        [
-          "1",
-          -5.08,
-          -3.81
-        ],
-        [
-          "2",
-          0.0,
-          -3.81
-        ],
-        [
-          "3",
-          5.08,
-          -3.81
-        ]
-      ],
-      "pin_names": {
-        "1": "1",
-        "2": "2",
-        "3": "3"
-      }
-    },
     "C47546": {
       "record": {
         "componentModelEn": "BAT54S,215",
@@ -1378,6 +1303,82 @@
         "1": "A",
         "3": "AK",
         "2": "K"
+      }
+    },
+    "C49678": {
+      "record": {
+        "componentModelEn": "CC0805KRX7R9BB104",
+        "componentBrandEn": "YAGEO",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_YAGEO-CC0805KRX7R9BB104_C49678.pdf",
+        "componentLibraryType": "base",
+        "attributes": [
+          {
+            "attribute_name_en": "Voltage Rating",
+            "component_code": "C49678",
+            "attribute_value_name": "50V"
+          },
+          {
+            "attribute_name_en": "Capacitance",
+            "component_code": "C49678",
+            "attribute_value_name": "100nF"
+          }
+        ]
+      },
+      "footprint": "C0805",
+      "pads": [
+        [
+          "2",
+          0.9999979999999742,
+          -0.0
+        ],
+        [
+          "1",
+          -0.9999979999999742,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
+      }
+    },
+    "C559769": {
+      "record": {
+        "componentModelEn": "CC0603KRX7R9BB105",
+        "componentBrandEn": "YAGEO",
+        "componentSpecificationEn": "0603",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2005260932_YAGEO-CC0603KRX7R9BB105_C559769.pdf",
+        "componentLibraryType": "expand",
+        "attributes": [
+          {
+            "attribute_name_en": "Voltage Rating",
+            "component_code": "C559769",
+            "attribute_value_name": "50V"
+          },
+          {
+            "attribute_name_en": "Capacitance",
+            "component_code": "C559769",
+            "attribute_value_name": "1uF"
+          }
+        ]
+      },
+      "footprint": "C0603",
+      "pads": [
+        [
+          "2",
+          0.700023999999964,
+          -0.0
+        ],
+        [
+          "1",
+          -0.700023999999964,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "1": "1",
+        "2": "2"
       }
     },
     "C699499": {
@@ -1619,6 +1620,39 @@
       "pin_names": {
         "1": "1",
         "2": "2"
+      }
+    },
+    "C96346": {
+      "record": {
+        "componentModelEn": "RC0805FR-07100KL",
+        "componentBrandEn": "YAGEO",
+        "componentSpecificationEn": "0805",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2412232102_YAGEO-RC0805FR-07100KL_C96346.pdf",
+        "componentLibraryType": "expand",
+        "attributes": [
+          {
+            "attribute_name_en": "Resistance",
+            "component_code": "C96346",
+            "attribute_value_name": "100kΩ"
+          }
+        ]
+      },
+      "footprint": "R0805_NEW",
+      "pads": [
+        [
+          "1",
+          -0.9662160000000222,
+          -0.0
+        ],
+        [
+          "2",
+          0.9662160000000222,
+          -0.0
+        ]
+      ],
+      "pin_names": {
+        "2": "2",
+        "1": "1"
       }
     },
     "C98220": {

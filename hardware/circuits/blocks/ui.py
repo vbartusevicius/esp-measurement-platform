@@ -5,9 +5,9 @@
 from common import block, part, src
 from skidl import Net
 
-R0603 = "Resistor_SMD:R_0603_1608Metric"
-C0603 = "Capacitor_SMD:C_0603_1608Metric"
-LED_RGB = "gateway_fp:LED_SK6805-EC15_1.5x1.5mm"
+R0603 = "Resistor_SMD:R_0805_2012Metric"   # 0805 throughout: hand-soldered
+C0603 = "Capacitor_SMD:C_0805_2012Metric"
+LED_RGB = "gateway_fp:LED_WS2812B-MINI-V3J"
 SOT23_5 = "Package_TO_SOT_SMD:SOT-23-5"
 C0805 = "Capacitor_SMD:C_0805_2012Metric"
 STATUS_LEDS = ("STATUS", "NET", "SENS")
@@ -39,18 +39,18 @@ def status_leds(gnd, v5, led_data):
     c_buf = cap("100n 50V", src(source="74AHCT1G125 decoupling"))
     c_buf[1] += v5
     c_buf[2] += gnd
-    series = res("330R", src(source="SK6805-EC15 datasheet: series resistor at DIN"))
+    series = res("330R", src(source="WS2812B datasheet: series resistor at DIN"))
     buffer[4] += series[1]
     data = series[2]
     for i, name in enumerate(STATUS_LEDS):
-        led = part("gateway", "SK6805-EC15", "SK6805-EC15", LED_RGB,
-                   src(mpn="SK6805-EC15", mfr="OPSCO", lcsc="C2890035",
-                       source=f"SK6805-EC15 RGB LED ({name})"),
+        led = part("gateway", "WS2812B-MINI-V3J", "WS2812B-MINI-V3J", LED_RGB,
+                   src(mpn="WS2812B-MINI-V3J", mfr="Worldsemi", lcsc="C22371519",
+                       source=f"WS2812B-MINI-V3J RGB LED with gull-wing legs, hand-solderable ({name})"),
                    ref=f"D{i + 1}")
         led["DIN"] += data
         led["VDD"] += v5
         led["GND"] += gnd
-        c = cap("100n 50V", src(source="SK6805-EC15 datasheet: decoupling per LED"))
+        c = cap("100n 50V", src(source="WS2812B-MINI-V3J datasheet: decoupling per LED"))
         c[1] += v5
         c[2] += gnd
         data = Net(f"LED_CHAIN{i + 1}") if i < len(STATUS_LEDS) - 1 else None

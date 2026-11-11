@@ -12,10 +12,10 @@
   (condition "A.hasNetclass('RELAY-Power')"))
 (rule power_neck_down_at_fine_pitch_pins
   (constraint track_width (min 0.15mm))
-  (condition "(A.hasNetclass('SELV-Power') || A.hasNetclass('KNX-Power') || A.hasNetclass('DALI-Power') || A.hasNetclass('AUX-Power')) && (A.intersectsCourtyard('U1') || A.intersectsCourtyard('U2') || A.intersectsCourtyard('J3'))"))
+  (condition "(A.hasNetclass('SELV-Power') || A.hasNetclass('KNX-Power') || A.hasNetclass('DALI-Power') || A.hasNetclass('AUX-Power')) && (A.intersectsCourtyard('U1') || A.intersectsCourtyard('J3'))"))
 (rule neck_down_at_fine_pitch_pins
   (constraint track_width (min 0.1mm))
-  (condition "A.intersectsCourtyard('U1') || A.intersectsCourtyard('U2') || A.intersectsCourtyard('J3')"))
+  (condition "A.intersectsCourtyard('U1') || A.intersectsCourtyard('J3')"))
 (rule parts_under_raised_modules
   (constraint courtyard_clearance (min -100mm))
   (condition "A.Reference == 'U3' || B.Reference == 'U3'"))

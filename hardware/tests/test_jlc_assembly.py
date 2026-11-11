@@ -109,7 +109,7 @@ def test_refresh_fetches_even_when_download_cache_exists(monkeypatch, tmp_path):
 
 def test_missing_reference_fails_without_network_fallback(monkeypatch):
     references = jp.load_reference()
-    references.pop("C2890035")
+    references.pop("C22371519")
     monkeypatch.setattr(jp, "load_reference", lambda: references)
     pcb = pcbnew.LoadBoard(str(layout_path("ui")))
     parts = json.loads(build_path("ui", "parts.json").read_text())

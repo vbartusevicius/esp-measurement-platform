@@ -119,7 +119,7 @@ mcu:
   package: "21 x 17.8 mm, 14 edge pads (2x7, 2.54 mm pitch, 15.24 mm row spacing)"
   board: main
   mounting: "2 x 7 female 2.54 mm headers, 5.0 mm height (+ 2.5 mm pin header plastic + 3.5 mm XIAO = 11.0 mm); 5 V buck and passives underneath"
-  power_feed: "5V pin via TI LM66100 ideal diode from 24V->5V SCT2601 buck (60 V rated); XIAO onboard regulator outputs +3V3 for logic and OLED"
+  power_feed: "5V pin via SS34 Schottky (D12, ~0.45 V at the 350 mA WiFi peak) from 24V->5V SCT2601 buck (60 V rated); XIAO onboard regulator outputs +3V3 for logic and OLED"
 
 checks:
   hole_to_actuator_max_offset: 0.3
@@ -150,7 +150,7 @@ derived:
     led_data:
       pin: D3/GPIO21
       net: LED_DATA
-      note: SK6805 RGB LED chain via 5 V buffer on UI
+      note: WS2812B-MINI-V3J RGB LED chain via 5 V buffer on UI
     i2c_sda:
       pin: D4/GPIO22
       net: I2C_SDA

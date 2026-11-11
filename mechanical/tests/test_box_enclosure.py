@@ -138,7 +138,8 @@ def test_terminal_legend_stays_clear_of_the_ui_openings():
 
 
 def test_ui_labels_stay_clear_of_the_terminal_legend():
-    assert bx.ui_legend().val().distance(bx.terminal_legend().val()) >= 3.0
+    ui = bx.ui_legend()   # None while the button markings are pending (front_legend.labels)
+    assert ui is None or ui.val().distance(bx.terminal_legend().val()) >= 3.0
 
 
 def test_released_meshes_are_watertight_single_bodies(tmp_path):

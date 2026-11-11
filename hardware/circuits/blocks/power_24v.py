@@ -14,8 +14,8 @@ Input range: 9-30 V DC (nominal 24 V DC).
 from common import block, part, power_flag, src
 from skidl import Net
 
-R0603 = "Resistor_SMD:R_0603_1608Metric"
-C0603 = "Capacitor_SMD:C_0603_1608Metric"
+R0603 = "Resistor_SMD:R_0805_2012Metric"   # 0805 throughout: hand-soldered
+C0603 = "Capacitor_SMD:C_0805_2012Metric"
 C0805 = "Capacitor_SMD:C_0805_2012Metric"
 SMA = "Diode_SMD:D_SMA"
 FUSE_1812 = "Fuse:Fuse_1812_4532Metric"

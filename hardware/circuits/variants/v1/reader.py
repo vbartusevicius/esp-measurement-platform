@@ -22,8 +22,8 @@ J1 (WAGO 2059-303 SMD push-in, 2.7 mm tall, wire entry towards the cable hole, t
 from common import block, part, power, power_flag, src
 from skidl import Net
 
-R0603 = "Resistor_SMD:R_0603_1608Metric"
-C0603 = "Capacitor_SMD:C_0603_1608Metric"
+R0603 = "Resistor_SMD:R_0805_2012Metric"   # 0805 throughout: hand-soldered
+C0603 = "Capacitor_SMD:C_0805_2012Metric"
 
 
 def res(value, source):
@@ -59,7 +59,7 @@ def build():
               ref="D1")
     d1["A"] += v5_in
     d1["K"] += v5
-    for value in ("10u 10V", "100n 50V"):
+    for value in ("10u 25V", "100n 50V"):
         c = cap(value, "+5V_S decoupling")
         c[1] += v5
         c[2] += gnd

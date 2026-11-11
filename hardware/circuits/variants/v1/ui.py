@@ -2,7 +2,7 @@
 OLED (QG-6428TSWCG02 / JLX12864OLED-S096W / NFP1312-15AY, 14.0 x 28.0 x 1.22 mm)
 connected via a 14-pin 0.62 mm pitch direct-solder FPC footprint J2 on the back
 with its 3.3 V charge-pump passives on the back, two Omron B3U-1000P switches
-pressed through printed plungers, and three SK6805 RGB LEDs below the buttons;
+pressed through printed plungers, and three WS2812B-MINI-V3J RGB LEDs (gull-wing legs) below the buttons;
 FFC J1 to the main board."""
 
 from blocks import ui

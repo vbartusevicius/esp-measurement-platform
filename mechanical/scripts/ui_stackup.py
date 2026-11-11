@@ -43,7 +43,7 @@ POCKET_CLEARANCE = 0.3
 TACTILE_LENGTHS = [7.0]
 BUTTON_PROTRUSION = (0.5, 2.0)
 
-LED_HEIGHT = 0.65
+LED_HEIGHT = 1.57   # WS2812B-MINI-V3J
 LED_WINDOW_SKIN = 0.6
 LED_SKIN_RANGE = (0.4, 0.8)
 LED_BAFFLE_GAP = 0.1  # baffle tube starts this far above the LED top, so board play never presses it on an LED

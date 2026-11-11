@@ -27,9 +27,9 @@
 from common import block, part, src
 from skidl import Net
 
-R0603 = "Resistor_SMD:R_0603_1608Metric"
+R0603 = "Resistor_SMD:R_0805_2012Metric"   # 0805 throughout: hand-soldered
 R1206 = "Resistor_SMD:R_1206_3216Metric"
-C0603 = "Capacitor_SMD:C_0603_1608Metric"
+C0603 = "Capacitor_SMD:C_0805_2012Metric"
 SMA = "Diode_SMD:D_SMA"
 FUSE_1210 = "Fuse:Fuse_1210_3225Metric"
 SOD123 = "Diode_SMD:D_SOD-123"

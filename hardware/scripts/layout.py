@@ -67,6 +67,7 @@ MODELS_3D = {
     "Phoenix_PST_1,0-2-5,75_R32_1x02_P5.75mm": ("Phoenix_PST_1,0-2-5,75_R32.step", 0),
     "CP_Radial_D10.0mm_P5.00mm_Horizontal_Bent": ("CP_Radial_D10.0mm_P5.00mm_Horizontal_Bent.step", 0),
     "LED_SK6805-EC15_1.5x1.5mm": ("LED_SK6805-EC15_1.5x1.5mm.step", 0),
+    "LED_WS2812B-MINI-V3J": ("LED_WS2812B-MINI-V3J.step", 0),
     "FPC_Kinghelm_KH-FPC0.5-H1.2SMT-8P": ("FPC_Kinghelm_KH-FPC0.5-H1.2SMT-8P.step", 0),
     "FPC_XUNPU_FPC-05F-14PH20": ("FPC_XUNPU_FPC-05F-14PH20.step", 0),
 }

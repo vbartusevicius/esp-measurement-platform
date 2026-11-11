@@ -236,6 +236,8 @@ def release_board(board, root):
     run("python3", str(REPO / "hardware/scripts/render_board.py"), board, "release")
     renders = REPO / "hardware/build" / VARIANT / board / "render/release"
     shutil.copytree(renders, out / "renders", ignore=shutil.ignore_patterns("drc.json", "zoom_*"))
+    # where every part goes, also where the silkscreen reference had to be hidden
+    run("python3", str(REPO / "hardware/scripts/assembly_drawing.py"), board, str(out / f"{board}_assembly.pdf"))
     return [], placement, checks
 
 

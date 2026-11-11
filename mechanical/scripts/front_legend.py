@@ -111,9 +111,10 @@ def labels():
     connector names are engraved beside the connectors (side_labels). The
     release README explains RST, PG and the LED order."""
     holes = ef.button_holes()
-    above = max(be.button_tab_outline(h, be.BUTTON_TAB["slot"])[0][1] + be.button_tab_outline(h, be.BUTTON_TAB["slot"])[0][2] / 2
-                for h in holes.values()) + LABEL_SPACING + 0.4 + LABEL_H / 2
-    return [Label("RST", holes["RESET"]["x"], above, LABEL_H), Label("PG", holes["PROG"]["x"], above, LABEL_H)]
+    # Temporarily on the bottom shoulder, under their buttons: the front strip has no
+    # room above the lying buttons now (button markings to be decided)
+    y = ef.FRONT_Y_START - EDGE - LABEL_H / 2 - 0.5
+    return [Label("RST", holes["RESET"]["x"], y, LABEL_H), Label("PG", holes["PROG"]["x"], y, LABEL_H)]
 
 
 SIDE_GAP = 0.6   # between side labels and windows / keepers / each other

@@ -217,6 +217,8 @@ def ui_legend():
     import legend_engraving as lcm
 
     bodies = [lcm.inlay(label.path(), ef.TOTAL_D) for label in fl.labels() if fl.face_of(label.y) == "front"]
+    if not bodies:
+        return None
     combined = bodies[0]
     for body in bodies[1:]:
         combined = combined.union(body)
@@ -225,7 +227,8 @@ def ui_legend():
 
 def legend():
     """Debossed lid legend: terminal legend + UI labels."""
-    return terminal_legend().union(ui_legend())
+    ui = ui_legend()
+    return terminal_legend() if ui is None else terminal_legend().union(ui)
 
 
 def build_lid():

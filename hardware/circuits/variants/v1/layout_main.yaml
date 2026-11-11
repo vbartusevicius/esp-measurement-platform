@@ -18,7 +18,7 @@ frame:
   min_track: 0.12
   edge_clearance: 0.3
   silk_inside: true
-  fine_pitch_power_pads: [U1, U2, J3]
+  fine_pitch_power_pads: [U1, J3]
   raised_modules: [U3]
   plane_layers: [In1.Cu]
   domains: [SELV, RELAY]
@@ -58,6 +58,7 @@ heights:
   D5: 1.1
   D6: 1.1
   D7: 2.0
+  D12: 2.3
   D8: 1.4
   D9: 2.0
   F2: 1.0
@@ -105,12 +106,12 @@ parts:
   C7:  { x: 30.8,  y: 40.5,  rot: 0,   block: buck5v }
   R1:  { x: 18.2,  y: 45.0,  rot: 90,  block: buck5v }
   R2:  { x: 15.2,  y: 45.0,  rot: 90,  block: buck5v }
-  R3:  { x: 30.4,  y: 36.5,  rot: 0,   block: buck5v }
-  R4:  { x: 30.4,  y: 38.3,  rot: 0,   block: buck5v }
+  R3:  { x: 30.4,  y: 36.3,  rot: 0,   block: buck5v }
+  R4:  { x: 30.4,  y: 38.4,  rot: 0,   block: buck5v }
   D9:  { x: 17.1,  y: 40.9,  rot: 180, block: buck5v }
 
   # --- Ideal diode + MCU decoupling + OLED I2C pull-ups ---
-  U2:  { x: 34.2,  y: 44.3,  rot: 0,   block: mcu_power }
+  D12: { x: 35.0,  y: 44.8,  rot: 0,   block: mcu_power }
   C10: { x: 34.8,  y: 40.5,  rot: 0,   block: mcu_power }
   C11: { x: 34.8,  y: 36.5,  rot: 0,   block: mcu }
   R16: { x: 11.5,  y: 42.5,  rot: 0,   block: mcu }
@@ -142,7 +143,7 @@ parts:
   #     (courtyard y <= 48.65) and the sensor bank (y >= 63.5), left of D3 (x >= 6.53) and D8 ---
   D10: { x: 2.3,   y: 50.6,  rot: 0,   block: digital_io2 }
   D11: { x: 2.3,   y: 54.4,  rot: 0,   block: digital_io2 }
-  R18: { x: 5.4,   y: 50.3,  rot: 90,  block: digital_io2 }
-  R19: { x: 5.4,   y: 53.5,  rot: 90,  block: digital_io2 }
+  R18: { x: 5.4,   y: 50.4,  rot: 90,  block: digital_io2 }
+  R19: { x: 5.4,   y: 53.95,  rot: 90,  block: digital_io2 }
   R21: { x: 2.15,  y: 57.3,  rot: 0,   block: digital_io2 }
   R20: { x: 2.15,  y: 59.4,  rot: 0,   block: digital_io2 }

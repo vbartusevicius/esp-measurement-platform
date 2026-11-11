@@ -51,6 +51,7 @@ from enclosure_features import (
     screw_tabs,
     shoulder_of,
     standoffs,
+    ui_to_enc,
     wire_entries,
 )
 from ui_stackup import compute_ui_stackup
@@ -460,10 +461,26 @@ def peg_bodies():
             for p in pegs()]
 
 
+UI_EDGE_STOP = {"overlap": 0.4, "board_y": (0.6, 7.0)}
+
+
+def ui_edge_stops():
+    """Columns from the front wall onto the UI board's side edges beside the LED
+    row, UI_EDGE_STOP["overlap"] onto the board (inside its 0.3 mm copper-free edge
+    plus the LED courtyards' clearance): with the buttons lying above the LEDs there
+    is no room for standoffs, and something must hold the board's lower end off the
+    button tabs and LED baffles."""
+    half = UI_W / 2
+    y0, y1 = (ui_to_enc(0, y)[1] for y in UI_EDGE_STOP["board_y"])
+    return [box(*sorted((s * (half - UI_EDGE_STOP["overlap"]), s * (INNER_W / 2 + 0.01))), y0, y1,
+                UI_BOARD_TOP_Z, FRONT_INNER_Z + 0.01) for s in (-1, 1)]
+
+
 def standoff_bodies():
-    """Columns from the front wall onto the UI board front, between the buttons
-    and the OLED panel (the snap hooks hold the board from behind)."""
-    return [cylinder(p["x"], p["y"], UI_BOARD_TOP_Z, FRONT_INNER_Z + 0.01, STANDOFF_DIAMETER) for p in standoffs()]
+    """Columns from the front wall onto the UI board front (the snap hooks hold
+    the board from behind): layout standoffs plus the edge stops."""
+    return [cylinder(p["x"], p["y"], UI_BOARD_TOP_Z, FRONT_INNER_Z + 0.01, STANDOFF_DIAMETER)
+            for p in standoffs()] + ui_edge_stops()
 
 
 def ui_rib_bodies():
