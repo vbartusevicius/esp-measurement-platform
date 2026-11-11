@@ -46,7 +46,7 @@ BUTTON_PROTRUSION = (0.5, 2.0)
 LED_HEIGHT = 1.57   # WS2812B-MINI-V3J
 LED_WINDOW_SKIN = 0.6
 LED_SKIN_RANGE = (0.4, 0.8)
-LED_BAFFLE_GAP = 0.1  # baffle tube starts this far above the LED top, so board play never presses it on an LED
+LED_BAFFLE_GAP = 0.3  # above the LED top: hand-soldered gull-wing LEDs sit up to ~0.15 mm high on their solder, plus ~0.1 mm body tolerance
 
 
 @dataclass
