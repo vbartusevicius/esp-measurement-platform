@@ -158,9 +158,37 @@ def test_stroke_check_catches_the_old_small_text():
     assert thin_fraction(fl.Label("STATUS", 0, 0, 0.85).path()) > 0.5
 
 
-def test_front_carries_no_connector_names_or_long_words():
-    texts = {lb.text for lb in fl.labels()}
-    assert texts == {"RST", "PG"}, texts
+def test_front_carries_no_text():
+    """Connector names sit beside the connectors; the buttons carry pad marks instead of RST / PG."""
+    assert fl.labels() == []
+
+
+def _bump_top(hole):
+    return ef.TOTAL_D + be.BUTTON_TAB["boss_height"]
+
+
+def test_reset_pad_carries_a_recessed_x_and_the_page_pad_a_plain_dot(solids):
+    """User decision 2026-11-11: dot = page / acknowledge (SW1), X = reset / WiFi (SW2)."""
+    _, cover = solids
+    holes = {"SW1": ef.button_holes()["PROG"], "SW2": ef.button_holes()["RESET"]}
+    m = be.BUTTON_MARK
+    z = _bump_top(None) - m["depth"] / 2
+    reach = be.BUTTON_TAB["boss"] / 2 * 0.7071 - 0.05   # along each diagonal, out to the rim
+    cross, dot = holes[m["cross"]], holes[m["dot"]]
+    for t in (-reach, -reach / 2, 0.0, reach / 2, reach):
+        for sx, sy in ((1, 1), (1, -1)):
+            assert not inside(cover, cross["x"] + sx * t, cross["y"] + sy * t, z), ("X not cut", t)
+            assert inside(cover, dot["x"] + sx * t, dot["y"] + sy * t, z), ("dot pad not plain", t)
+    # between the arms, the bump stays solid: an X, not a pocket
+    for dx, dy in ((0.55, 0.0), (-0.55, 0.0), (0.0, 0.55), (0.0, -0.55)):
+        assert inside(cover, cross["x"] + dx, cross["y"] + dy, z), (dx, dy)
+
+
+def test_x_mark_survives_a_powder_print():
+    m = be.BUTTON_MARK
+    assert m["width"] >= fl.MIN_STROKE + 0.1
+    assert m["depth"] < be.BUTTON_TAB["boss_height"] - 0.2      # a floor stays under the X
+    assert m["length"] > be.BUTTON_TAB["boss"]                    # the bars cut out through the rim
 
 
 # 4. Connector names beside their connectors, really engraved

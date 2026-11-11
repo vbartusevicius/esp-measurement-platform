@@ -24,7 +24,7 @@ A 1-DIN rail sensor node and its firmware: tank level (4–20 mA or ultrasonic),
 | **Power** | 9–30 V DC (24 V nominal), reverse and surge protected, 5 V / 600 mA buck |
 | **Inputs** | 10-pole push-in sensor bank: 4–20 mA (120 Ω shunt, 50 mA fuse), 0–10 V, four protected digital lines (ultrasonic, Geiger pulses, meter pulses, I²C/UART), +24 V / +5 V sensor supply |
 | **Output** | Relay, COM / NO / NC, 230 VAC up to 2 A, off at power-up |
-| **Front** | 0.96" 64×128 OLED, PAGE and RST/WIFI buttons, STATUS / NET / SENS LEDs |
+| **Front** | 0.96" 64×128 OLED, two buttons marked ● (page) and ✕ (reset / WiFi) on their pads, STATUS / NET / SENS LEDs |
 
 Full design, BOM, ordering files, wiring examples, mains-safety notes and open items: **[hardware/releases/v1](hardware/releases/v1/README.md)**.
 
@@ -59,8 +59,8 @@ The same boards in a 26 × 81 × 70 mm box with screw ears: the main board drops
 <details>
 <summary><b>Buttons and LEDs</b></summary>
 
-- **PAGE:** moves to the next sensor (then the DEV, LOG and WIFI pages), or acknowledges a pending alert.
-- **RST/WIFI:** tap to reboot; hold 5 s to reboot into the WiFi setup portal (settings are kept; hold 5 s again to leave it); hold 15 s for a factory reset.
+- **● button** (plain round pad, left): moves to the next sensor (then the DEV, LOG and WIFI pages), or acknowledges a pending alert.
+- **✕ button** (pad with an X, right): tap to reboot; hold 5 s to reboot into the WiFi setup portal (settings are kept; hold 5 s again to leave it); hold 15 s for a factory reset. The OLED shows these marks as ● and ✕ in its help lines.
 - **STATUS** heartbeat · **NET** green = MQTT, amber = WiFi only, blinking blue = setup portal, blinking red = offline · **SENS** flashes on every sample.
 </details>
 
@@ -72,7 +72,7 @@ The same boards in a 26 × 81 × 70 mm box with screw ears: the main board drops
   <img src="doc/images/oled-pages.png" alt="OLED pages of a device running four sensors: tank, pressure, radiation and water-meter pages, DEV, LOG, WIFI, alert and WiFi setup pop-ups" width="900">
 </p>
 
-Each running sensor has one page: its reading with a 56-point trend and its alert limits as dotted lines, two secondary values, then its own diagnostics: sensor state and terminal signal, plus two rows, the 24 h low/high, or for a pulse meter the time since the last pulse and the 24 h peak flow (its 24 h low is always 0). Device-wide information is shown once instead of on every sensor page: **DEV** has MQTT, WiFi, the relay and which sensor drives it, memory, errors, uptime and the IP; **LOG** the last device events; **WIFI** how to reach the setup portal. Every header shows the WiFi bars, an **M** while the MQTT broker is connected (gone when it is not) and the page number. An alert pops up, naming its sensor, until PAGE is pressed. If the first board shows the image upside down, set `DISPLAY_ROTATION` to 3 in `lib/Display/Display.cpp`.
+Each running sensor has one page: its reading with a 56-point trend and its alert limits as dotted lines, two secondary values, then its own diagnostics: sensor state and terminal signal, plus two rows, the 24 h low/high, or for a pulse meter the time since the last pulse and the 24 h peak flow (its 24 h low is always 0). Device-wide information is shown once instead of on every sensor page: **DEV** has MQTT, WiFi, the relay and which sensor drives it, memory, errors, uptime and the IP; **LOG** the last device events; **WIFI** how to reach the setup portal. Every header shows the WiFi bars, an **M** while the MQTT broker is connected (gone when it is not) and the page number. An alert pops up, naming its sensor, until ● is pressed. If the first board shows the image upside down, set `DISPLAY_ROTATION` to 3 in `lib/Display/Display.cpp`.
 
 ### Web UI
 

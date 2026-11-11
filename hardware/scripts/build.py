@@ -68,14 +68,11 @@ def run_cad(*, do_test=False):
     import build_radiation_duct
     import fit_drawing
     import front_legend
-    import legend_engraving
     import render_assembly3d
     import render_box
 
     build_enclosure.export_parts(REPO / "mechanical/build" / build_enclosure.VARIANT)
     fit_drawing.main()
-    front_legend.main()
-    legend_engraving.main()
     render_assembly3d.main()
     build_box_enclosure.export_parts()
     render_box.main()

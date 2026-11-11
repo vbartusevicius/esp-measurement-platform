@@ -41,6 +41,9 @@ class PortraitPages
         void drawGauge(const ScreenModel& screen, const LimitMonitor& limits, int top, int boxHeight);
         void drawPill(int x, int y, const char* label, bool ok);
         void drawText(int x, int top, const char* text);
+        enum class Mark { DOT, CROSS };
+        // The button's cover mark as a 7x7 icon, top-aligned with drawText(); returns its width.
+        int drawMark(int x, int top, Mark mark);
         void drawRow(int top, const char* label, const String& value);
         void drawIpFooter();
         void axisRange(const ScreenModel& screen, const LimitMonitor* limits, float& lo, float& hi) const;

@@ -28,14 +28,11 @@ def test_labels_clear_openings_and_each_other(labels):
     assert not hits and not pairs, (hits, pairs, len(boxes))
 
 
-def test_engraving_removes_exactly_the_legend_bodies_from_the_cover():
-    import build_enclosure as be
+def test_front_carries_no_text_so_there_is_no_separate_engraved_cover():
+    """The buttons are told apart by their pad marks (test_print_rules); no text, no cover_embossed."""
     import legend_engraving as lcm
 
-    legend = lcm.legend_bodies()
-    cover = be.build_cover()
-    removed = cover.val().Volume() - cover.cut(legend).val().Volume()
-    assert removed == pytest.approx(legend.val().Volume(), rel=1e-4)
+    assert fl.labels() == [] and lcm.legend_bodies() is None
 
 
 def test_leds_carry_no_words_or_rings(labels):

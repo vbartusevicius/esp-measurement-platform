@@ -330,15 +330,16 @@ def main():
     inside = boards + parts + supports
     legend = lcm.legend_bodies()
     side_legend = be.side_wall_legend_bodies()
-    cover_silk = cover.cut(legend)
+    cover_silk = cover if legend is None else cover.cut(legend)
+    legend_actors = [] if legend is None else [(legend, (0.10, 0.10, 0.12), 1.0)]
     SILK = (0.10, 0.10, 0.12)
     iso = (150, 150, 190)
     oled_act = oled_pixels_actor(0.0)
-    render("front", [(base, CASE, 1.0), (cover_silk, CASE, 1.0), (legend, SILK, 1.0), (side_legend, SILK, 1.0)] + inside + led_lenses,
+    render("front", [(base, CASE, 1.0), (cover_silk, CASE, 1.0)] + legend_actors + [(side_legend, SILK, 1.0)] + inside + led_lenses,
            (0, 40.5, 300), zoom=1.1, extra_actors=(oled_act,))
-    render("iso", [(base, CASE, 1.0), (cover_silk, CASE, 1.0), (legend, SILK, 1.0), (side_legend, SILK, 1.0)] + inside + led_lenses,
+    render("iso", [(base, CASE, 1.0), (cover_silk, CASE, 1.0)] + legend_actors + [(side_legend, SILK, 1.0)] + inside + led_lenses,
            iso, extra_actors=(oled_act,))
-    render("side", [(base, CASE, 1.0), (cover_silk, CASE, 1.0), (legend, SILK, 1.0), (side_legend, SILK, 1.0)] + inside + led_lenses,
+    render("side", [(base, CASE, 1.0), (cover_silk, CASE, 1.0)] + legend_actors + [(side_legend, SILK, 1.0)] + inside + led_lenses,
            (240, 40.5, 25), focal=(0, 40.5, 25), zoom=1.15, extra_actors=(oled_act,))
     render("inside", [(base, CASE, 0.12), (cover, CASE, 0.12)] + inside, iso, extra_actors=(oled_act,))
     render("back", [(base, CASE, 1.0), (side_legend, SILK, 1.0)], (60, -60, -200), focal=(0, 40.5, 0))
@@ -347,7 +348,7 @@ def main():
     ui_layer = [b for b in boards if b[1] == UI] + [p for p in parts if p[0].val().BoundingBox().zmax >= 45] \
         + [s for s in supports if s[0].val().BoundingBox().zmax >= 45]
     exploded = (shifted([(base, CASE, 1.0), (side_legend, SILK, 1.0)], -35) + main_layer + shifted(ui_layer, 25)
-                + shifted([(cover_silk, CASE, 0.35), (legend, SILK, 0.85)], 55))
+                + shifted([(cover_silk, CASE, 0.35)] + [(b, SILK, 0.85) for b, _, _ in legend_actors], 55))
     render("exploded", exploded, (190, 140, 220), focal=(0, 40.5, 25), extra_actors=(oled_pixels_actor(25.0),))
 
 

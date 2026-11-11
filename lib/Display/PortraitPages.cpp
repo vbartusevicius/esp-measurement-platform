@@ -51,6 +51,22 @@ void PortraitPages::drawText(int x, int top, const char* text)
     u8g2.drawStr(x, top + 7, text);
 }
 
+int PortraitPages::drawMark(int x, int top, Mark mark)
+{
+    if (mark == Mark::DOT) {
+        static const uint8_t halfWidths[7] = {1, 2, 3, 3, 3, 2, 1};   // a 7 px round dot
+        for (int row = 0; row < 7; row++) u8g2.drawHLine(x + 3 - halfWidths[row], top + row, 2 * halfWidths[row] + 1);
+    } else {
+        for (int d = 0; d < 2; d++) {   // two pixels wide, like the font's strokes
+            u8g2.drawLine(x + d, top, x + 6, top + 6 - d);
+            u8g2.drawLine(x, top + d, x + 6 - d, top + 6);
+            u8g2.drawLine(x + 6 - d, top, x, top + 6 - d);
+            u8g2.drawLine(x + 6, top + d, x + d, top + 6);
+        }
+    }
+    return 7;
+}
+
 void PortraitPages::drawRow(int top, const char* label, const String& value)
 {
     u8g2.setFont(u8g2_font_6x12_tr);
@@ -326,7 +342,8 @@ void PortraitPages::drawWifiPage(const DisplayFrame& frame, int page)
 
     u8g2.drawBox(2, 70, 60, 28);
     u8g2.setDrawColor(0);
-    this->drawText(5, 74, "HOLD RST");
+    this->drawText(5, 74, "HOLD");
+    this->drawMark(35, 74, Mark::CROSS);
     this->drawText(5, 86, "FOR 5 SEC");
     u8g2.setDrawColor(1);
 
@@ -383,7 +400,8 @@ void PortraitPages::drawAlertModal(const ScreenModel& screen, const LimitMonitor
     u8g2.setDrawColor(1);
 
     u8g2.drawHLine(2, 101, 60);
-    this->drawText(3, 106, "TAP PAGE:");
+    this->drawText(3, 106, "TAP");
+    this->drawMark(27, 106, Mark::DOT);
     this->drawText(3, 116, "DISMISS");
 }
 
@@ -412,6 +430,7 @@ void PortraitPages::drawPortalModal(const char* apName, const char* portalIp)
 
     u8g2.drawHLine(2, 94, 60);
     this->drawText(3, 99, "AP ACTIVE");
-    this->drawText(3, 109, "HOLD RST");
+    this->drawText(3, 109, "HOLD");
+    this->drawMark(33, 109, Mark::CROSS);
     this->drawText(3, 118, "5S: EXIT");
 }

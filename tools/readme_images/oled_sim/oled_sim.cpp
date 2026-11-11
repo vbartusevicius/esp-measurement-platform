@@ -78,7 +78,7 @@ int main(int argc, char** argv)
     monitor.event("SYSTEM BOOT", "FW v1.0", 0);
     monitor.updateNetwork(true, false, String("HOME -58"), String(""), 2000);
     monitor.updateNetwork(true, true, String(""), String("192.168.0.10"), 4000);
-    // One device running four sensors: PAGE steps TANK 1/7, PRES, RAD, WATR, DEV, LOG, WIFI
+    // One device running four sensors: the dot button steps TANK 1/7, PRES, RAD, WATR, DEV, LOG, WIFI
     ScopedSettings pres(&storage, String("av."));
     ScopedSettings rad(&storage, String("rc."));
     monitor.addSensor("analog_voltage", &pres);

@@ -82,9 +82,9 @@ void refreshDisplay()
     display.run(frame);
 }
 
-// PAGE: dismisses a pending alert first, otherwise moves to the next sensor
+// DOT button: dismisses a pending alert first, otherwise moves to the next sensor
 // (then the device, log and WiFi pages).
-void pagePressed()
+void dotPressed()
 {
     if (monitor.alertPending()) monitor.dismissAlert();
     else display.nextPage(hub.size());
@@ -94,25 +94,25 @@ void pagePressed()
 void handleButton(ButtonLadder::Event event)
 {
     switch (event) {
-        case ButtonLadder::Event::PAGE_PRESSED:
-            if (webApi) pagePressed();   // the setup portal keeps its own screen
+        case ButtonLadder::Event::DOT_PRESSED:
+            if (webApi) dotPressed();   // the setup portal keeps its own screen
             break;
-        case ButtonLadder::Event::RESET_TAPPED:
-            logger.info("RST/WIFI tapped, rebooting");
+        case ButtonLadder::Event::CROSS_TAPPED:
+            logger.info("X button tapped, rebooting");
             restartIn(200);
             break;
-        case ButtonLadder::Event::RESET_HELD:
+        case ButtonLadder::Event::CROSS_HELD:
             // Rebooting keeps the setup portal (port 80) and the Web API apart.
             if (wifi && wifi->isPortalActive()) {
-                logger.info("RST/WIFI held 5 s: leaving WiFi setup portal");
+                logger.info("X button held 5 s: leaving WiFi setup portal");
             } else {
-                logger.info("RST/WIFI held 5 s: rebooting into WiFi setup portal");
+                logger.info("X button held 5 s: rebooting into WiFi setup portal");
                 storage.saveParameter(Parameter::PORTAL_ON_BOOT, String("1"));
             }
             restartIn(200);
             break;
-        case ButtonLadder::Event::RESET_FACTORY:
-            logger.warning("RST/WIFI held 15 s: factory reset");
+        case ButtonLadder::Event::CROSS_FACTORY:
+            logger.warning("X button held 15 s: factory reset");
             resetDevice();
             break;
         case ButtonLadder::Event::NONE:

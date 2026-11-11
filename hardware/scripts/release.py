@@ -276,7 +276,7 @@ def main(version, boards=BOARDS):
     enclosure = REPO / "mechanical/build" / VARIANT
     if enclosure.exists():
         shutil.copytree(enclosure, root / "enclosure", dirs_exist_ok=True,
-                        ignore=shutil.ignore_patterns("fit_*.png", "front_legend.png"))
+                        ignore=shutil.ignore_patterns("fit_*.png"))
     wall_box = REPO / "mechanical/build" / f"{VARIANT}-box"
     if wall_box.exists():
         shutil.copytree(wall_box, root / "box_enclosure", dirs_exist_ok=True)

@@ -91,44 +91,6 @@
         "1": "1"
       }
     },
-    "C149620": {
-      "record": {
-        "componentModelEn": "AC0603KRX7R9BB104",
-        "componentBrandEn": "YAGEO",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_1811082127_YAGEO-AC0603KRX7R9BB104_C149620.pdf",
-        "componentLibraryType": "expand",
-        "attributes": [
-          {
-            "attribute_name_en": "Voltage Rating",
-            "component_code": "C149620",
-            "attribute_value_name": "50V"
-          },
-          {
-            "attribute_name_en": "Capacitance",
-            "component_code": "C149620",
-            "attribute_value_name": "100nF"
-          }
-        ]
-      },
-      "footprint": "C0603",
-      "pads": [
-        [
-          "2",
-          0.700023999999964,
-          -0.0
-        ],
-        [
-          "1",
-          -0.700023999999964,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "1": "1",
-        "2": "2"
-      }
-    },
     "C15850": {
       "record": {
         "componentModelEn": "CL21A106KAYNNNE",
@@ -656,72 +618,6 @@
         "2": "2"
       }
     },
-    "C23138": {
-      "record": {
-        "componentModelEn": "0603WAF3300T5E",
-        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF3300T5E_C23138.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C23138",
-            "attribute_value_name": "330Ω"
-          }
-        ]
-      },
-      "footprint": "R0603",
-      "pads": [
-        [
-          "2",
-          0.7533639999999732,
-          -0.0
-        ],
-        [
-          "1",
-          -0.7533639999999732,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "2": "2",
-        "1": "1"
-      }
-    },
-    "C23150": {
-      "record": {
-        "componentModelEn": "0603WAF3903T5E",
-        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF3903T5E_C23150.pdf",
-        "componentLibraryType": "expand",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C23150",
-            "attribute_value_name": "390kΩ"
-          }
-        ]
-      },
-      "footprint": "R0603",
-      "pads": [
-        [
-          "2",
-          0.7533639999999732,
-          -0.0
-        ],
-        [
-          "1",
-          -0.7533639999999732,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "2": "2",
-        "1": "1"
-      }
-    },
     "C236111": {
       "record": {
         "componentModelEn": "MMSZ5V6T1G",
@@ -1130,39 +1026,6 @@
         "8": "8"
       }
     },
-    "C4184": {
-      "record": {
-        "componentModelEn": "0603WAF2002T5E",
-        "componentBrandEn": "UNI-ROYAL(Uniroyal Elec)",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF2002T5E_C4184.pdf",
-        "componentLibraryType": "base",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C4184",
-            "attribute_value_name": "20kΩ"
-          }
-        ]
-      },
-      "footprint": "R0603",
-      "pads": [
-        [
-          "2",
-          0.7533639999999732,
-          -0.0
-        ],
-        [
-          "1",
-          -0.7533639999999732,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "2": "2",
-        "1": "1"
-      }
-    },
     "C4328": {
       "record": {
         "componentModelEn": "0805W8F2002T5E",
@@ -1343,42 +1206,31 @@
         "1": "1"
       }
     },
-    "C559769": {
+    "C64885": {
       "record": {
-        "componentModelEn": "CC0603KRX7R9BB105",
-        "componentBrandEn": "YAGEO",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2005260932_YAGEO-CC0603KRX7R9BB105_C559769.pdf",
+        "componentModelEn": "B5819W",
+        "componentBrandEn": "MDD(Microdiode Semiconductor)",
+        "componentSpecificationEn": "SOD-123",
+        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2407291648_MDD-Microdiode-Semiconductor-B5819W_C64885.pdf",
         "componentLibraryType": "expand",
-        "attributes": [
-          {
-            "attribute_name_en": "Voltage Rating",
-            "component_code": "C559769",
-            "attribute_value_name": "50V"
-          },
-          {
-            "attribute_name_en": "Capacitance",
-            "component_code": "C559769",
-            "attribute_value_name": "1uF"
-          }
-        ]
+        "attributes": []
       },
-      "footprint": "C0603",
+      "footprint": "SOD-123_L2.8-W1.8-LS3.7-RD",
       "pads": [
         [
           "2",
-          0.700023999999964,
+          1.6924020000000028,
           -0.0
         ],
         [
           "1",
-          -0.700023999999964,
+          -1.6924020000000028,
           -0.0
         ]
       ],
       "pin_names": {
-        "1": "1",
-        "2": "2"
+        "2": "A",
+        "1": "K"
       }
     },
     "C699499": {
@@ -1530,33 +1382,6 @@
         "1": "-"
       }
     },
-    "C8598": {
-      "record": {
-        "componentModelEn": "B5819W SL",
-        "componentBrandEn": "Jiangsu Changjing Electronics Technology Co., Ltd.",
-        "componentSpecificationEn": "SOD-123",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Jiangsu-Changjing-Electronics-Technology-Co---Ltd--B5819W-SL_C8598.pdf",
-        "componentLibraryType": "base",
-        "attributes": []
-      },
-      "footprint": "SOD-123_L2.7-W1.6-LS3.7-RD-1",
-      "pads": [
-        [
-          "2",
-          1.700021999999996,
-          -0.0
-        ],
-        [
-          "1",
-          -1.700021999999996,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "1": "-",
-        "2": "+"
-      }
-    },
     "C8678": {
       "record": {
         "componentModelEn": "SS34",
@@ -1647,39 +1472,6 @@
         [
           "2",
           0.9662160000000222,
-          -0.0
-        ]
-      ],
-      "pin_names": {
-        "2": "2",
-        "1": "1"
-      }
-    },
-    "C98220": {
-      "record": {
-        "componentModelEn": "RC0603FR-0710KL",
-        "componentBrandEn": "YAGEO",
-        "componentSpecificationEn": "0603",
-        "dataManualUrl": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_YAGEO-RC0603FR-0710KL_C98220.pdf",
-        "componentLibraryType": "expand",
-        "attributes": [
-          {
-            "attribute_name_en": "Resistance",
-            "component_code": "C98220",
-            "attribute_value_name": "10kΩ"
-          }
-        ]
-      },
-      "footprint": "R0603",
-      "pads": [
-        [
-          "2",
-          0.7533639999999732,
-          -0.0
-        ],
-        [
-          "1",
-          -0.7533639999999732,
           -0.0
         ]
       ],

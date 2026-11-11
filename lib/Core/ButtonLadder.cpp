@@ -3,8 +3,8 @@
 ButtonLadder::Button ButtonLadder::classify(int millivolts)
 {
     if (millivolts > 2750) return Button::NONE;
-    if (millivolts > 1930) return Button::RESET;
-    if (millivolts > 1490) return Button::PAGE;
+    if (millivolts > 1930) return Button::CROSS;
+    if (millivolts > 1490) return Button::DOT;
     if (millivolts > 1000) return Button::BOTH;
     return Button::NONE;
 }
@@ -17,13 +17,13 @@ ButtonLadder::Event ButtonLadder::update(int millivolts, unsigned long nowMs)
         return Event::NONE;
     }
     if (reading == this->stable) {
-        if (reading == Button::RESET && !this->resetHeldReported && nowMs - this->resetPressedAt >= RESET_HOLD_MS) {
-            this->resetHeldReported = true;
-            return Event::RESET_HELD;
+        if (reading == Button::CROSS && !this->crossHeldReported && nowMs - this->crossPressedAt >= CROSS_HOLD_MS) {
+            this->crossHeldReported = true;
+            return Event::CROSS_HELD;
         }
-        if (reading == Button::RESET && !this->factoryReported && nowMs - this->resetPressedAt >= FACTORY_HOLD_MS) {
+        if (reading == Button::CROSS && !this->factoryReported && nowMs - this->crossPressedAt >= FACTORY_HOLD_MS) {
             this->factoryReported = true;
-            return Event::RESET_FACTORY;
+            return Event::CROSS_FACTORY;
         }
         return Event::NONE;
     }
@@ -31,16 +31,16 @@ ButtonLadder::Event ButtonLadder::update(int millivolts, unsigned long nowMs)
     Button previous = this->stable;
     this->stable = reading;
 
-    if (reading == Button::RESET) {
-        this->resetPressedAt = nowMs;
-        this->resetHeldReported = false;
+    if (reading == Button::CROSS) {
+        this->crossPressedAt = nowMs;
+        this->crossHeldReported = false;
         this->factoryReported = false;
     }
-    if (previous == Button::RESET && reading == Button::NONE && !this->resetHeldReported) {
-        return Event::RESET_TAPPED;
+    if (previous == Button::CROSS && reading == Button::NONE && !this->crossHeldReported) {
+        return Event::CROSS_TAPPED;
     }
-    if (reading == Button::PAGE && previous == Button::NONE) {
-        return Event::PAGE_PRESSED;
+    if (reading == Button::DOT && previous == Button::NONE) {
+        return Event::DOT_PRESSED;
     }
     return Event::NONE;
 }

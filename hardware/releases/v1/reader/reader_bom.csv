@@ -1,7 +1,7 @@
 Item,Qty,Designator,Value,Manufacturer,MPN,LCSC,Package,Type,Place,Description
 1,1,RV1,10k,Bourns,TC33X-2-103E,C719176,Potentiometer_Bourns_TC33X_Vertical,SMD,YES,"Threshold trimmer (0-4.7 V), adjusted through the lid"
 2,1,D2,red,Foshan NationStar,NCD0805R1,C84256,LED_0805_2012Metric,SMD,YES,"Red indicator, on while the output is low: set the trimmer so it blinks once per wheel turn"
-3,1,D1,B5819W,Jiangsu Changjing,B5819W SL,C8598,D_SOD-123,SMD,YES,Reverse-polarity protection: a swapped +5V/GND cable can't reach the comparator
+3,1,D1,B5819W,MDD,B5819W,C64885,D_SOD-123,SMD,YES,Reverse-polarity protection: a swapped +5V/GND cable can't reach the comparator
 4,1,C1,10u 25V,Samsung,CL21A106KAYNNNE,C15850,C_0805_2012Metric,SMD,YES,+5V_S decoupling
 5,1,U2,LMV331,Texas Instruments,LMV331IDBVR,C34731,SOT-23-5,SMD,YES,"Open-collector comparator, 2.7-5.5 V, 60 uA"
 6,1,R5,1k,UNI-ROYAL,0805W8F1001T5E,C17513,R_0805_2012Metric,SMD,YES,Indicator LED feed (~3 mA) and local output pull-up

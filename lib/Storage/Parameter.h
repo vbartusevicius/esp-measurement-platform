@@ -25,7 +25,7 @@ class Parameter
         static constexpr const char* RELAY_MODE = "relay_mode";       // manual | on_alarm | off_alarm
         static constexpr const char* RELAY_SOURCE = "relay_source";   // plugin id whose alerts drive the relay
 
-        // Set by a 5 s RST/WIFI hold: next boot opens the WiFi setup portal
+        // Set by a 5 s hold of the X button: next boot opens the WiFi setup portal
         static constexpr const char* PORTAL_ON_BOOT = "portal_on_boot";
 };
 

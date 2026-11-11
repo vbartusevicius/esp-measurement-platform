@@ -1,24 +1,16 @@
-"""Front legend artwork for the 1-DIN Universal Sensor Node cover.
-
-Writes mechanical/build/<variant>/front_legend.svg/.pdf (1:1).
-"""
+"""Legend layout for the 1-DIN case: labels as outlined text paths with their
+faces, openings and keep-outs. The front carries no text (button pad marks
+instead); side_labels() are the connector names engraved into the base's side
+(build_enclosure.side_legend_cuts) and the wall box's lid."""
 
 from dataclasses import dataclass
-from pathlib import Path
 
-import matplotlib
-
-matplotlib.use("Agg")
 import build_enclosure as be
 import enclosure_features as ef
-import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, PathPatch, Rectangle
 from matplotlib.path import Path as MplPath
 from matplotlib.textpath import TextPath
 from matplotlib.transforms import Affine2D
 
-REPO = Path(__file__).resolve().parents[2]
-OUT = REPO / "mechanical/build" / ef.VARIANT
 # Smallest legend a powder print (MJF / SLS) keeps legible when recessed
 # legend_engraving.INLAY_DEPTH deep: 3 mm text, whose DejaVu Sans Bold strokes are ~0.5 mm.
 MIN_TEXT_H = 3.0
@@ -26,8 +18,6 @@ MIN_STROKE = 0.4
 LABEL_H = 3.0
 EDGE = 1.0
 LABEL_SPACING = 0.3
-INK = "#000000"
-GUIDE = "#00acc1"
 LED_RING = 0.6   # keep-out around each LED window (no ring is engraved)
 FONT = {"family": "DejaVu Sans", "weight": "bold"}
 LINE_SPACING = 1.3
@@ -106,15 +96,11 @@ def marks():
 
 
 def labels():
-    """Front: short button names only (3 mm text does not fit "RST/WIFI" or
-    "PAGE" on the 18 mm face); the LEDs carry rings, not words, and the
-    connector names are engraved beside the connectors (side_labels). The
-    release README explains RST, PG and the LED order."""
-    holes = ef.button_holes()
-    # Temporarily on the bottom shoulder, under their buttons: the front strip has no
-    # room above the lying buttons now (button markings to be decided)
-    y = ef.FRONT_Y_START - EDGE - LABEL_H / 2 - 0.5
-    return [Label("RST", holes["RESET"]["x"], y, LABEL_H), Label("PG", holes["PROG"]["x"], y, LABEL_H)]
+    """No text on the front: the buttons are told apart by their pad marks (a plain
+    dot for page / acknowledge, an X for reset / WiFi, build_enclosure.BUTTON_MARK),
+    the LEDs carry neither words nor rings, and the connector names are engraved
+    beside the connectors (side_labels)."""
+    return []
 
 
 SIDE_GAP = 0.6   # between side labels and windows / keepers / each other
@@ -174,50 +160,3 @@ def side_labels():
             title.y += 0.25
         out.append(title)
     return out
-
-
-def draw(ax, placed):
-    for name, (x0, y0, x1, y1) in faces().items():
-        ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, fill=False, ec=GUIDE, lw=0.3, gid=f"guides-face-{name}"))
-    for kind, x0, y0, x1, y1 in openings():
-        if kind == "rect":
-            ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, fill=False, ec=GUIDE, lw=0.3, gid="guides-opening"))
-        else:
-            r = be.LED_WINDOW / 2 if kind == "led" else (x1 - x0) / 2
-            ax.add_patch(Circle(((x0 + x1) / 2, (y0 + y1) / 2), r, fill=False, ec=GUIDE, lw=0.3,
-                                gid="guides-opening"))
-    for label in placed:
-        ax.add_patch(PathPatch(label.path(), fc=INK, ec="none", gid="print-text"))
-    for mark in marks():
-        ax.add_patch(PathPatch(mark, fc=INK, ec="none", gid="print-bracket"))
-
-
-def render(placed):
-    margin = 6.0
-    width, height = ef.WIDTH + 2 * margin, ef.HIDDEN_H + 2 * margin + 8
-    fig = plt.figure(figsize=(width / 25.4, height / 25.4))
-    ax = fig.add_axes((0, 0, 1, 1))
-    ax.set_xlim(-ef.WIDTH / 2 - margin, ef.WIDTH / 2 + margin)
-    ax.set_ylim(-margin, ef.HIDDEN_H + margin + 8)
-    ax.set_aspect("equal")
-    ax.axis("off")
-    draw(ax, placed)
-    ax.plot([-ef.WIDTH / 2, -ef.WIDTH / 2 + 10], [-margin / 2] * 2, color=GUIDE, lw=0.5, gid="guides-scale")
-    ax.text(-ef.WIDTH / 2 + 11, -margin / 2, "10 mm (1:1); cyan = guides, not printed", fontsize=4,
-            va="center", color=GUIDE, gid="guides-note")
-    ax.text(0, ef.HIDDEN_H + margin / 2 + 4, f"ESP Measurement Platform {ef.VARIANT} front legend, front view",
-            fontsize=5, ha="center", color=GUIDE, gid="guides-title")
-    OUT.mkdir(parents=True, exist_ok=True)
-    plt.rcParams["svg.fonttype"] = "path"
-    for suffix in ("svg", "pdf"):
-        fig.savefig(OUT / f"front_legend.{suffix}")
-    plt.close(fig)
-
-
-def main():
-    render(labels())
-    print(f"front_legend written to {OUT.relative_to(REPO)}")
-
-
-if __name__ == "__main__":
-    main()

@@ -11,7 +11,7 @@ namespace Board
 
     constexpr int V0_10_PIN = D0;           // GPIO0 / ADC1_CH0, 22k / 10k divider (J2 pole 4)
     constexpr int MA_PIN = D1;              // GPIO1 / ADC1_CH1, 120R shunt after a 50 mA PTC (J2 pole 3)
-    constexpr int BUTTON_LADDER_PIN = D2;   // GPIO2 / ADC1_CH2, RST/WIFI + PAGE on the UI board
+    constexpr int BUTTON_LADDER_PIN = D2;   // GPIO2 / ADC1_CH2, X (reset / WiFi) + dot (page) buttons on the UI board
     constexpr int LED_DATA_PIN = D3;        // GPIO21, 3x SK6805-EC15 via 74AHCT1G125
     constexpr int I2C_SDA_PIN = D4;         // GPIO22, OLED
     constexpr int I2C_SCL_PIN = D5;         // GPIO23, OLED

@@ -15,7 +15,7 @@ class WifiConnector
     public:
         WifiConnector(Logger* logger, const String& chipId);
         void run();
-        // forcePortal: skip the saved network and open the setup portal (RST/WIFI 5 s hold).
+        // forcePortal: skip the saved network and open the setup portal (X button held 5 s).
         bool begin(bool forcePortal = false);
         bool isPortalActive() { return wm.getConfigPortalActive(); }
         void resetSettings();

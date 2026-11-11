@@ -1,25 +1,15 @@
-"""Front-legend artwork as solid bodies, and the cover with the legend engraved.
-
-    python3 mechanical/scripts/legend_engraving.py
-
-Writes mechanical/build/<variant>/cover_embossed.step/.stl: the cover with the
-legend artwork from front_legend.py (text outlines, LED rings) cut INLAY_DEPTH
-deep into its faces, readable on a single-colour print. legend_bodies() / inlay()
-are reused by the wall-mount box and the 3D renders.
+"""Legend artwork as solid bodies: inlay() turns a front_legend path into a prism
+INLAY_DEPTH deep, which the base (side_legend_cuts), the wall-mount box and the
+3D renders cut or show. The front carries no text any more (button pad marks
+instead), so there is no separate engraved cover.
 """
 
-from pathlib import Path
-
-import build_enclosure as be
 import cadquery as cq
 import enclosure_features as ef
 import front_legend as fl
 from matplotlib.path import Path as MplPath
 
-REPO = Path(__file__).resolve().parents[2]
-OUT = REPO / "mechanical/build" / ef.VARIANT
 INLAY_DEPTH = 0.6   # powder prints smear shallower legends
-TOLERANCE = 0.02
 FACE_Z = {"front": ef.TOTAL_D, "top": ef.SHOULDER_Z["top"], "bottom": ef.SHOULDER_Z["bottom"]}
 
 
@@ -50,26 +40,14 @@ def inlay(path, face_z):
 
 
 def legend_bodies():
-    bodies = []
-    for label in fl.labels():
-        bodies.append(inlay(label.path(), FACE_Z[fl.face_of(label.y)]))
+    """Front legend solids (front_legend.labels / marks), or None: the front carries none now."""
+    bodies = [inlay(label.path(), FACE_Z[fl.face_of(label.y)]) for label in fl.labels()]
     for mark in fl.marks():
         ext = mark.get_extents()
         bodies.append(inlay(mark, FACE_Z[fl.face_of((ext.y0 + ext.y1) / 2)]))
+    if not bodies:
+        return None
     legend = bodies[0]
     for body in bodies[1:]:
         legend = legend.union(body)
     return legend
-
-
-def main():
-    cover = be.build_cover().cut(legend_bodies())
-    OUT.mkdir(parents=True, exist_ok=True)
-    cq.exporters.export(cover, str(OUT / "cover_embossed.step"), cq.exporters.ExportTypes.STEP)
-    cq.exporters.export(cover, str(OUT / "cover_embossed.stl"), cq.exporters.ExportTypes.STL,
-                        tolerance=TOLERANCE, angularTolerance=0.1)
-    print(f"cover_embossed.stl/.step written to {OUT.relative_to(REPO)}")
-
-
-if __name__ == "__main__":
-    main()

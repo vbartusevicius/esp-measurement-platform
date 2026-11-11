@@ -178,7 +178,7 @@ TEST_F(DeviceMonitorTest, EachSensorHasItsOwnLimitsAndOnlyTheSourceDrivesTheRela
     monitor.evaluate(0, tank(10.0f), 2000);              // tank alert: the relay follows it
     EXPECT_TRUE(relay.isOn());
 
-    monitor.dismissAlert();                              // PAGE: the first pending one (the tank)
+    monitor.dismissAlert();                              // dot button: the first pending one (the tank)
     EXPECT_EQ(monitor.pendingAlert(), 1);
     monitor.dismissAll();
     EXPECT_FALSE(monitor.alertPending());

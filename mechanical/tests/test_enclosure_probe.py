@@ -43,7 +43,8 @@ def test_button_tabs_spring_on_a_c_slot_with_bump_and_plunger(solids):
             assert clear_line(solids, px, py, be.FRONT_INNER_Z - 0.2, be.TOTAL_D + 0.2), (name, px, py)
         # pad thinned behind, bump in front, plunger ending just above the actuator
         assert not solid_at(solids, h["x"] + s * 1.0, h["y"], be.TOTAL_D - t["thickness"] - 0.1)
-        assert solid_at(solids, h["x"], h["y"], be.TOTAL_D + t["boss_height"] / 2)
+        # the bump, probed under the floor of the reset pad's X groove
+        assert solid_at(solids, h["x"], h["y"], be.TOTAL_D + t["boss_height"] - be.BUTTON_MARK["depth"] - 0.1)
         top = be.button_top_z(ref)
         assert solid_at(solids, h["x"], h["y"], top + t["nub_gap"] + 0.1)
         assert not solid_at(solids, h["x"], h["y"], top + t["nub_gap"] - 0.05)

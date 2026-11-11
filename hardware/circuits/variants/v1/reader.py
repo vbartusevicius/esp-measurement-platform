@@ -54,7 +54,7 @@ def build():
 
     block("power")
     d1 = part("Device", "D_Schottky", "B5819W", "Diode_SMD:D_SOD-123",
-              src(mpn="B5819W SL", mfr="Jiangsu Changjing", lcsc="C8598",
+              src(mpn="B5819W", mfr="MDD", lcsc="C64885",
                   source="Reverse-polarity protection: a swapped +5V/GND cable can't reach the comparator"),
               ref="D1")
     d1["A"] += v5_in

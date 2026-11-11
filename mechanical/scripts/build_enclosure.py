@@ -516,6 +516,21 @@ def button_tab_outline(hole, grow=0.0):
             (*sorted((hole["x"], root)), hole["y"] - t["arm"] / 2 - grow, hole["y"] + t["arm"] / 2 + grow))
 
 
+# The two button pads are told apart by touch and sight instead of text: the page /
+# acknowledge pad (SW1) keeps its plain round bump (the dot), the reset / WiFi pad (SW2)
+# gets an X recessed across its bump, the bars running out through its rim (no border).
+# Bars stay wider than front_legend.MIN_STROKE.
+BUTTON_MARK = {"dot": "SW1", "cross": "SW2", "length": BUTTON_TAB["boss"] + 0.6, "width": 0.5, "depth": 0.35}
+
+
+def button_cross(hole):
+    m = BUTTON_MARK
+    top = TOTAL_D + BUTTON_TAB["boss_height"]
+    bar = cq.Workplane("XY").box(m["length"], m["width"], m["depth"] + 1, centered=(True, True, False))
+    return (bar.rotate((0, 0, 0), (0, 0, 1), 45).union(bar.rotate((0, 0, 0), (0, 0, 1), -45))
+            .translate((hole["x"], hole["y"], top - m["depth"])))
+
+
 def button_tab(ref, hole):
     """C-slot + thinning (cuts) and plunger + front bump (bodies) for one button."""
     t = BUTTON_TAB
@@ -530,6 +545,8 @@ def button_tab(ref, hole):
     thin = solid(0.0, FRONT_INNER_Z - 1, tab_back)
     bump = cylinder(hole["x"], hole["y"], TOTAL_D - 0.01, TOTAL_D + t["boss_height"], t["boss"]) \
         .faces(">Z").edges().fillet(t["boss_round"])
+    if ref == BUTTON_MARK["cross"]:
+        bump = bump.cut(button_cross(hole))
     plunger = cylinder(hole["x"], hole["y"], button_top_z(ref) + t["nub_gap"], tab_back + 0.01, t["nub"])
     return [slot, thin], [plunger, bump]
 

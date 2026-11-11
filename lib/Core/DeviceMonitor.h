@@ -35,7 +35,7 @@ class DeviceMonitor
         // First sensor with an unacknowledged alert, or -1.
         int pendingAlert() const;
         bool alertPending() const { return this->pendingAlert() >= 0; }
-        void dismissAlert();                  // the first pending one (PAGE button)
+        void dismissAlert();                  // the first pending one (DOT button)
         void dismissAlert(size_t index);
         void dismissAll();
 
