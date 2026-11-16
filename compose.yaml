@@ -1,4 +1,4 @@
-# Containerized EDA (SKiDL + KiCad 10 + Freerouting) and CAD (CadQuery + VTK)
+# Containerized EDA (SKiDL + KiCad 10 + fastroute) and CAD (CadQuery + VTK)
 # toolchain for the 1-DIN Universal Sensor Node and plugin enclosures.
 services:
   eda:

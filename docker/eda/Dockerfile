@@ -1,9 +1,7 @@
 # EDA toolchain: KiCad 10.0.6 (kicad-cli + pcbnew Python bindings) via the
 # official kicad/kicad:10.0 image (Debian trixie, amd64 emulation on arm64),
 # SKiDL for circuit authoring, kinet2pcb for netlist-to-board conversion and
-# Freerouting 2.5.0 on Java 25 for `layout.py route`.
-FROM --platform=linux/amd64 eclipse-temurin:25.0.4.1_1-jre AS jre
-
+# fastroute (Rust port of Freerouting, DSN in / SES out) for `layout.py route`.
 FROM --platform=linux/amd64 kicad/kicad:10.0
 
 USER root
@@ -44,14 +42,16 @@ RUN mkdir -p /root/.config/kicad/10.0 \
 COPY docker/eda/fix_fp_lib_table.py /tmp/fix_fp_lib_table.py
 RUN python3 /tmp/fix_fp_lib_table.py && rm /tmp/fix_fp_lib_table.py
 
-COPY --from=jre /opt/java/openjdk /opt/java/openjdk
-ENV JAVA_HOME=/opt/java/openjdk \
-    PATH=/opt/java/openjdk/bin:$PATH \
-    FREEROUTING_JAR=/opt/freerouting.jar
-RUN curl -fsSL -o /opt/freerouting.jar \
-       https://github.com/freerouting/freerouting/releases/download/v2.5.0/freerouting-2.5.0.jar \
-    && echo "f6f51bb02245e8e717f9359bd260cc9c5c0b1bc0acc8b7cb2cd5b8ffeb5de3c7  /opt/freerouting.jar" \
-       | sha256sum -c -
+# fastroute: published release binary, checksum from the release's SHA256SUMS.txt.
+ARG FASTROUTE_VERSION=0.1.14
+ARG FASTROUTE_SHA256=079a109f76d84836e7d7a54519e75759dcab9baacc9c58b4224b027b852e49c6
+RUN curl -fsSL -o /tmp/fastroute.tar.gz \
+       "https://github.com/parisxmas/fastroute/releases/download/v${FASTROUTE_VERSION}/fastroute-${FASTROUTE_VERSION}-linux-x64.tar.gz" \
+    && echo "${FASTROUTE_SHA256}  /tmp/fastroute.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/fastroute.tar.gz -C /tmp \
+    && install -m 0755 "/tmp/fastroute-${FASTROUTE_VERSION}-linux-x64/fastroute" /usr/local/bin/fastroute \
+    && rm -rf /tmp/fastroute* \
+    && fastroute --help | head -1
 
 WORKDIR /work
 ENTRYPOINT ["/bin/bash", "-c"]

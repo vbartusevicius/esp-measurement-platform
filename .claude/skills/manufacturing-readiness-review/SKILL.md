@@ -145,7 +145,8 @@ Fixed in the follow-up (re-check they stay fixed; regressions are easy):
 - Terminal windows closed on all sides -> slots open to the left side with 0.2 mm clearance; cover filler bars close them.
 - Cover lip vs J1, cover side wall 0 mm clearance, OLED rails inside the 14 mm panel, missing button plungers
   (now C-shaped spring tabs with front bump + plunger, same geometry as knx-dali-gateway v3 BUTTON_TAB), UI board free in x/y (now ribs), THT tails vs cover wall (now recesses).
-- Freerouting necks RELAY-Power tracks to 0.64 mm on In2; layout.py restore_relay_widths() puts them back to 0.85.
+- Freerouting necked RELAY-Power tracks to 0.64 mm on In2. Since 2026-11 fastroute routes them with
+  `--no-neckdown-classes=RELAY-Power` (full 0.85 mm); the DRC rule relay_230vac_track_width_and_spacing (min 0.75 mm) checks it.
 - Track joints (2026-10-29): 18 GND track ends on main/ui only grazed their target (4 stopped 0.035-0.07 mm short of
   pads D3.1/D4.1/D8.2 on main and R3.2 on ui; others overlapped a track off its centreline or were ground-pruning stubs).
   KiCad DRC counts those as connected. `test_track_joints.py` checks every end lands in a pad / via / pour or on a

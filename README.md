@@ -114,8 +114,6 @@ Any combination of the five sensors can run at once, since each uses its own pol
 
 | Terminal | Pole | Use |
 |---|---|---|
-| Terminal | Pole | Use |
-|---|---|---|
 | **J1** (bottom) | 1 GND · 2 VIN | Power in, 9–30 V DC. Use **24 V** for 4–20 mA probes. |
 | **Sensor bank** (top, 3.5 mm push-in) | 1 +5V | Sensor supply, 5 V, shared 600 mA budget with the controller |
 | | 2 +24V | Sensor supply: the J1 input voltage after the fuse and reverse-polarity diode (about VIN − 0.5 V) |
@@ -296,10 +294,11 @@ pio test -e native                                            # unit tests on th
 - **Release files:** every release (and every CI run, as build artifacts) has two images:
   - `firmware.bin`: for **Device → Firmware update** in the web UI; it includes the web UI (`tools/embed_web.py` gzips `data/` into it) and keeps settings. The device refuses the other file here.
   - `firmware-full-usb.bin`: bootloader, partition table and app in one file for an empty or bricked board over USB: `esptool --chip esp32c6 write-flash 0x0 <file>` or the [browser flasher](https://espressif.github.io/esptool-js/). It erases saved settings.
-- **Web UI without hardware:** `python3 tools/webui_mock.py`, then open <http://127.0.0.1:8790/?sensor=tank> (scenarios: tank, tank-basic, tank-alarm, pressure, radiation, radiation-high, fault).
+- **Web UI without hardware:** `python3 tools/webui_mock.py`, then open <http://127.0.0.1:8790/?sensor=tank> (scenarios: house, house-alarm, tank, tank-basic, tank-alarm, pressure, radiation, radiation-high, gas, water, water-leak, fault).
 - **IDE:** `./setup-ide.sh` generates `compile_commands.json` and `.clangd` for clangd.
 - **CI:** builds both targets and runs the tests on every push (`.github/workflows/ci.yml`); releases attach both images.
-- Contributor notes (layout, conventions, checks): [AGENTS.md](AGENTS.md).
+- **Hardware:** circuits, layouts, enclosure and release files are built in Docker (`docker compose --profile hardware build eda cad`, then `python3 hardware/scripts/build.py`). Boards are autorouted with [fastroute](https://github.com/parisxmas/fastroute) (`layout.py <board> route`), and a layout passes only when KiCad's DRC on the routed board is clean.
+- **Contributor and coding-agent instructions** (code layout, rules, checks): [AGENTS.md](AGENTS.md).
 
 ### Regenerating the images
 
