@@ -66,11 +66,26 @@ commands as `docker compose --profile hardware run --rm eda "<command>"` (or `ca
 
 ### Pipeline
 
-- Everything at once: `python3 hardware/scripts/build.py [--eda] [--cad] [--release] [--test]` from the host.
+- Everything at once: `python3 hardware/scripts/build.py [--eda] [--cad] [--release] [--test] [--fresh]` from the host.
 - Boards are `main`, `ui` and `reader`. The stored layout is `hardware/layout/v1/<board>/<board>.kicad_pcb`;
   `hardware/scripts/layout.py <board> <command>` changes it. Its docstring lists the commands.
-- Autorouting: `layout.py <board> route [seconds]` (default time limit 600 s) uses fastroute, installed from a
-  pinned release in `docker/eda/Dockerfile`. It runs DRC on the unrouted board first, routes the exported DSN, imports
+- Placement: `layout_<board>.yaml` holds only `locked: true` mechanical/enclosure-mated anchors and keepouts; never
+  hand-maintain passive or IC coordinate tables. `hardware/scripts/placer.py` (`layout.py <board> autoplace`, or
+  `build.py --eda --fresh`) runs a deterministic two-stage Google OR-Tools CP-SAT placer (`ortools.sat.python.cp_model`,
+  0.05 mm integer grid, fixed seed, single worker): Stage 1 solves all active ICs (with a Stage-1 moat reserved for HF
+  passives), magnetics, discrete semiconductors and fuses simultaneously (`AddNoOverlap2D` on `F.Cu`, `B.Cu`, 3D height
+  limits under raised socketed modules, and cross-face `F<->B` drill/escape shadows) minimizing weighted L1 pad-to-pad
+  Manhattan wirelength with 3-4x priority on unprotected power/field-terminal entry nets (`VIN_RAW`, `VIN_FUSED`,
+  `*_TERM`) and switching nodes (`BUCK5_SW`); Stage 2 freezes Stage 1 with routing-escape halos and solves 2-pin
+  passives in functional batches (`is_vert` 0/90 width/height swap via `OnlyEnforceIf`, HF input/bootstrap caps solved
+  before bulk caps) anchored to parent IC pins with global `GND`/power nets down-weighted. Before `.dsn` export,
+  `add_gnd_vias` drops locked through-vias beside SMD `GND` pads into the `In1.Cu` ground plane.
+- Autorouting: `layout.py <board> route [seconds]` (default time limit 600 s) uses fastroute (`--router.fanout.enabled=false`), installed from a
+  pinned release in `docker/eda/Dockerfile`. The exported `.dsn` adds a +3 um rounding margin above KiCad DRC clearance
+  minimums, overriding `(type wire_smd)` back to `base_clearance + 3 um` and `(type smd_smd)` to `50 um` on SELV
+  netclasses so traces escape fine-pitch IC/FFC pads cleanly while `RELAY-Power` keeps its full 2503 um mains spacing.
+  If `.tune` length-matching is ever used, keep it strictly on 2-pin point-to-point branches (never 3+-pin nets).
+  `route` runs DRC on the unrouted board first, routes the exported DSN, imports
   the SES and fails unless every connection is routed and `kicad-cli pcb drc` shows no violation that wasn't already
   on the unrouted board. Treat that DRC as the only pass/fail: fastroute exits 0 even with connections left unrouted,
   and non-zero only when the run itself fails.
@@ -89,8 +104,12 @@ commands as `docker compose --profile hardware run --rm eda "<command>"` (or `ca
 ### Check your change
 
 - Board tests: `docker compose --profile hardware run --rm eda "cd hardware/tests && python3 -m pytest -q"`.
-  `test_boards_routed.py` (routed, DRC clean), `test_track_joints.py`, `test_consistency.py` and
-  `test_release_current.py` (the release matches the stored layouts) must pass.
+  `test_boards_routed.py` (routed, DRC clean), `test_track_joints.py`, `test_consistency.py`,
+  `test_jlc_assembly.py`, `test_release_current.py` (the release matches the stored layouts) and the two generator-independent
+  verification gates (`test_pinout_chirality_polarity.py` for mounting-face shoelace chirality, standalone datasheet MPN
+  pin roles, bus parity and diode bias + silkscreen cathode proximity; `test_spice_copper.py` for physical copper
+  Union-Find extraction, trace R/C parasitics, 3D FFC/terminal stitching and `libngspice` `.op`/`.ac`/`.noise`/`.tran`
+  checks using `.options rshunt=1e11` and bounded `tanh()` models) must pass.
 - Enclosure and print rules: the `mechanical/tests` suites in the `cad` container (see `.github/workflows/ci.yml`).
 - Before anything is ordered, run the review in `.claude/skills/manufacturing-readiness-review/SKILL.md`.
 

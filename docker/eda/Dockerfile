@@ -20,7 +20,8 @@ RUN python3 -m venv --system-site-packages /opt/eda \
        pyyaml==6.0.3 \
        pytest==8.4.2 \
        pillow==11.3.0 \
-       shapely==2.1.1
+       shapely==2.1.1 \
+       ortools==9.15.6755
 
 # SKiDL discovers KiCad's stock libraries through these variables.
 ENV KICAD10_SYMBOL_DIR=/usr/share/kicad/symbols \

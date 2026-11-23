@@ -82,6 +82,12 @@ jobs:
             docker compose --profile hardware run --rm -T eda "python3 hardware/scripts/layout.py $board components"
           done
 
+      - name: Board DRC, JLC fit, datasheet pinout/chirality/polarity and copper SPICE tests
+        run: >
+          docker compose --profile hardware run --rm -T eda
+          "python3 -m pytest -q -p no:cacheprovider --tb=short
+          hardware/tests mechanical/tests/test_fit.py"
+
       - name: Enclosure, legend and print-rule tests
         run: >
           docker compose --profile hardware run --rm -T cad

@@ -1,6 +1,7 @@
 """Persistent board layout (KiCad 10 pcbnew, `eda` container).
 
     python3 hardware/scripts/layout.py <board> sync
+    python3 hardware/scripts/layout.py <board> autoplace
     python3 hardware/scripts/layout.py <board> place <ref-or-block> ...
     python3 hardware/scripts/layout.py <board> route [time-limit-seconds]
     python3 hardware/scripts/layout.py <board> tidy-silk
@@ -9,11 +10,15 @@
 The stored layout is hardware/layout/<variant>/<board>/<board>.kicad_pcb.
 `sync` rebuilds the footprints from the current netlist and carries over
 every stored footprint position, track and via by reference/net name, so
-circuit changes never discard layout work. The board frame (outline,
+circuit changes never discard layout work (a fresh layout runs the two-stage
+OR-Tools CP-SAT placer). The board frame (outline,
 isolation slot, keep-outs, pours, rules) is always rebuilt from
-layout_<board>.yaml. `place` applies the YAML coordinates for the named
-parts or blocks only. `route` runs DRC on the unrouted board as a baseline,
-exports a DSN, routes it with fastroute (deterministic; on a time limit it
+layout_<board>.yaml. `autoplace` re-runs the deterministic two-stage CP-SAT
+placer on all unlocked parts around the YAML's locked mechanical anchors.
+`place` re-applies YAML coordinates for locked anchors or re-solves named
+unlocked parts/blocks. `route` runs DRC on the unrouted board as a baseline,
+exports a DSN (+3 um clearance margin), routes it with fastroute
+(`--router.fanout.enabled=false`, deterministic; on a time limit it
 keeps the best result so far) and imports the session; KiCad's DRC on the
 imported board, against the baseline, is the pass/fail. hardware/tests/test_consistency.py proves a stored board still
 matches the netlist.
@@ -32,10 +37,13 @@ from pathlib import Path
 import kinet2pcb
 import pcbnew
 import yaml
-from shapely.geometry import Polygon
+from shapely.geometry import Point, Polygon
+from shapely.ops import unary_union
 
 REPO = Path("/work")
+sys.path.insert(0, str(REPO / "hardware/scripts"))
 sys.path.insert(0, str(REPO / "hardware/circuits"))
+import placer
 from product_spec import load_spec
 
 SPEC = load_spec()
@@ -254,7 +262,8 @@ def add_pour(board, net, layer, region, priority=0):
     zone.SetLayer(LAYERS[layer])
     outline = zone.Outline()
     outline.NewOutline()
-    for x, y in rect_points(region):
+    pts = [tuple(p) for p in region] if isinstance(region, list) else rect_points(region)
+    for x, y in pts:
         p = pos(x, y)
         outline.Append(p.x, p.y)
     zone.SetNet(board.FindNet(net))
@@ -592,21 +601,29 @@ def place_references_inside(board, frame):
 def current_board(board_name, plan):
     board = fresh_board(board_name)
     stored = stored_board_path(board_name)
+    parts_json = build_dir(board_name) / "parts.json"
     if stored.exists():
         old = pcbnew.LoadBoard(str(stored))
         moved, copied = carry_over(board, old)
         new_refs = [fp.GetReference() for fp in board.Footprints()
                     if old.FindFootprintByReference(fp.GetReference()) is None]
         if new_refs:
-            place_parts(board, plan, new_refs)
+            planned_anchors = [r for r in new_refs if r in plan.get("parts", {}) and "x" in plan["parts"][r]]
+            if planned_anchors:
+                place_parts(board, plan, planned_anchors)
+            unlocked_new = set(new_refs) - set(planned_anchors)
+            if unlocked_new:
+                apply_frame(board, plan)
+                placer.solve_board(board, plan, board_name, parts_json, only_refs=unlocked_new)
         print(f"{board_name}: kept {moved} footprint positions, {copied} tracks/vias, "
               f"placed new {new_refs or 'none'}")
     else:
-        placed = place_parts(board, plan, list(plan["parts"]))
-        print(f"{board_name}: new layout, placed {len(placed)} planned parts")
+        apply_frame(board, plan)
+        placer.solve_board(board, plan, board_name, parts_json)
     apply_frame(board, plan)
     add_pad_ties(board, plan)
     add_pad_escapes(board, plan)
+    add_gnd_vias(board, plan)
     return board
 
 
@@ -716,6 +733,175 @@ def add_pad_escapes(board, plan):
             stub.SetLocked(True)
 
 
+def add_gnd_vias(board, plan):
+    """Drop locked through-vias + short stubs beside SMD GND pads into the solid
+    In1.Cu GND plane before DSN export, so high-dI/dt switching/decoupling/TVS
+    grounds tie directly into In1.Cu instead of snaking across F.Cu."""
+    frame = plan["frame"]
+    if "In1.Cu" not in frame.get("plane_layers", []):
+        return
+    gnd_net = board.FindNet("GND")
+    if gnd_net is None or gnd_net.GetNetCode() == 0:
+        return
+    gnd_code = gnd_net.GetNetCode()
+
+    pour_polys = []
+    for z in frame.get("pours", []):
+        if z["net"] == "GND" and "In1.Cu" in z["layers"]:
+            reg = z["region"]
+            pts = [tuple(p) for p in reg] if isinstance(reg, list) else rect_points(reg)
+            pour_polys.append(Polygon([(x, -y) for x, y in pts]))
+    if not pour_polys:
+        return
+    safe = unary_union(pour_polys).buffer(-0.55).intersection(outline_polygon(frame).buffer(-0.6))
+    for k in frame.get("slots", []) + frame.get("copper_keepout", []):
+        safe = safe.difference(Polygon([(x, -y) for x, y in rect_points(k)]).buffer(0.65))
+    # Keep vias outside fine-pitch FFC / OLED FPC connector courtyards so signal escapes stay open
+    for ref in frame.get("fine_pitch_power_pads", []):
+        if ref.startswith("J"):
+            fp_j = board.FindFootprintByReference(ref)
+            if fp_j is not None:
+                x0, y0, x1, y1 = mm_box(body_box(fp_j), 0.7)
+                safe = safe.difference(Polygon([(x0, y0), (x1, y0), (x1, y1), (x0, y1)]))
+    if safe.is_empty:
+        return
+
+    all_pads = list(board.GetPads())
+    ties = [
+        (pcbnew.ToMM(p.GetPosition().x), pcbnew.ToMM(p.GetPosition().y))
+        for p in all_pads if p.GetNetCode() == gnd_code and p.GetDrillSizeX() > 0
+    ] + [
+        (pcbnew.ToMM(v.GetPosition().x), pcbnew.ToMM(v.GetPosition().y))
+        for v in board.GetTracks() if v.Type() == pcbnew.PCB_VIA_T and v.GetNetCode() == gnd_code
+    ]
+
+    via_dia = pcbnew.FromMM(0.60)
+    via_drill = pcbnew.FromMM(0.30)
+    via_r = via_dia // 2
+    stub_w = pcbnew.FromMM(0.25)
+    clr = pcbnew.FromMM(0.24)
+
+    def ref_prio(fp):
+        r = fp.GetReference()
+        if r in ("U1", "U2", "D9", "D1", "D8", "J1"):
+            return (0, r)
+        if r.startswith("C"):
+            return (1, r)
+        return (2, r)
+
+    candidates = []
+    for fp in sorted(board.Footprints(), key=ref_prio):
+        ref = fp.GetReference()
+        for pad in fp.Pads():
+            if pad.GetNetCode() == gnd_code and pad.GetDrillSizeX() == 0 and pad.GetNumber():
+                candidates.append((fp, ref, pad))
+
+    for fp, ref, pad in candidates:
+        ppos = pad.GetPosition()
+        px, py = pcbnew.ToMM(ppos.x), pcbnew.ToMM(ppos.y)
+        is_hot = ref in ("U1", "U2", "D9", "D1", "D8", "J1") or ref.startswith("C")
+        share_r = 1.9 if is_hot else 3.6
+        if any(math.hypot(px - tx, py - ty) <= share_r for tx, ty in ties):
+            continue
+
+        fpos = fp.GetPosition()
+        dx_f, dy_f = px - pcbnew.ToMM(fpos.x), py - pcbnew.ToMM(fpos.y)
+        if abs(dx_f) >= abs(dy_f):
+            ux, uy = (1.0 if dx_f >= 0 else -1.0), 0.0
+        else:
+            ux, uy = 0.0, (1.0 if dy_f >= 0 else -1.0)
+
+        dirs = [(ux, uy), (-uy, ux), (uy, -ux), (-ux, -uy)]
+        layer = pcbnew.B_Cu if fp.IsFlipped() else pcbnew.F_Cu
+        existing_trks = list(board.GetTracks())
+
+        placed = False
+        for d_mm in (0.95, 1.20, 1.45):
+            if placed:
+                break
+            for ox, oy in dirs:
+                vx, vy = round(px + d_mm * ox, 3), round(py + d_mm * oy, 3)
+                if not safe.contains(Point(vx, vy)):
+                    continue
+                v_pt = pcbnew.VECTOR2I(pcbnew.FromMM(vx), pcbnew.FromMM(vy))
+
+                # Check via against all pads on every layer (through-via spans F.Cu..B.Cu)
+                pad_clash = False
+                for op in all_pads:
+                    if not op.GetNumber() and op.GetDrillSizeX() == 0:
+                        continue
+                    if op.GetDrillSizeX() > 0:
+                        min_cc = op.GetDrillSizeX() // 2 + via_drill // 2 + pcbnew.FromMM(0.28)
+                        if math.hypot(v_pt.x - op.GetPosition().x, v_pt.y - op.GetPosition().y) < min_cc:
+                            pad_clash = True
+                            break
+                    if op.GetNetCode() != gnd_code:
+                        if op.HitTest(v_pt, via_r + clr):
+                            pad_clash = True
+                            break
+                    else:
+                        # Avoid via-in-pad on SMD GND pads (solder wicking)
+                        if op.GetDrillSizeX() == 0 and op.HitTest(v_pt, via_drill // 2 + pcbnew.FromMM(0.08)):
+                            pad_clash = True
+                            break
+                if pad_clash:
+                    continue
+
+                # Check via & stub against existing tracks and vias
+                trk_clash = False
+                sx0, sx1 = sorted((ppos.x, v_pt.x))
+                sy0, sy1 = sorted((ppos.y, v_pt.y))
+                for item in existing_trks:
+                    if item.Type() == pcbnew.PCB_VIA_T:
+                        vp = item.GetPosition()
+                        min_d = via_r + item.GetWidth(pcbnew.F_Cu) // 2 + (clr if item.GetNetCode() != gnd_code else pcbnew.FromMM(0.1))
+                        if math.hypot(v_pt.x - vp.x, v_pt.y - vp.y) < min_d:
+                            trk_clash = True
+                            break
+                    else:
+                        tbb = item.GetBoundingBox()
+                        rad = via_r + item.GetWidth() // 2 + clr
+                        if item.GetNetCode() != gnd_code:
+                            if (tbb.GetLeft() - rad <= v_pt.x <= tbb.GetRight() + rad and
+                                    tbb.GetTop() - rad <= v_pt.y <= tbb.GetBottom() + rad):
+                                trk_clash = True
+                                break
+                            if item.GetLayer() == layer:
+                                srad = stub_w // 2 + item.GetWidth() // 2 + clr
+                                if (tbb.GetLeft() - srad <= sx1 and tbb.GetRight() + srad >= sx0 and
+                                        tbb.GetTop() - srad <= sy1 and tbb.GetBottom() + srad >= sy0):
+                                    trk_clash = True
+                                    break
+                if trk_clash:
+                    continue
+
+                if not stub_clears(board, pad, ppos, v_pt, stub_w, clr, layer):
+                    continue
+
+                via = pcbnew.PCB_VIA(board)
+                via.SetPosition(v_pt)
+                via.SetViaType(pcbnew.VIATYPE_THROUGH)
+                via.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
+                via.SetWidth(via_dia)
+                via.SetDrill(via_drill)
+                via.SetLocked(True)
+                board.Add(via)
+                via.SetNet(gnd_net)
+
+                stub = pcbnew.PCB_TRACK(board)
+                stub.SetStart(ppos)
+                stub.SetEnd(v_pt)
+                stub.SetWidth(stub_w)
+                stub.SetLayer(layer)
+                stub.SetLocked(True)
+                board.Add(stub)
+                stub.SetNet(gnd_net)
+
+                ties.append((vx, vy))
+                placed = True
+                break
+
+
 def sync(board_name):
     plan = load_plan(board_name)
     save(current_board(board_name, plan), plan, board_name)
@@ -790,22 +976,45 @@ def without_plane_layers(dsn_text, frame):
     return re.sub(r"\(index \d+\)", lambda _: f"(index {next(index)})", dsn_text)
 
 
+DSN_CLEARANCE_MARGIN_UM = 3
+
+
 def with_net_classes(dsn_text, nets, net_settings):
     """KiCad 10's DSN exporter puts every net into the default class; rebuild
-    the class section from the project's net classes and assignments."""
+    the class section from the project's net classes and assignments with a
+    +3 um rounding margin above KiCad DRC minimums, keeping wire_smd at
+    base_clearance + 3 um and smd_smd at 50 um on SELV classes so traces escape
+    fine-pitch IC/FFC pads cleanly."""
+    dsn_text = re.sub(
+        r"(\(rule\s+\(width \d+\)\s+\(clearance )(\d+)(\))",
+        lambda m: f"{m.group(1)}{int(m.group(2)) + DSN_CLEARANCE_MARGIN_UM}{m.group(3)}",
+        dsn_text,
+        count=1,
+    )
     start = dsn_text.index("    (class ")
     end = dsn_text.index("  (wiring")
     via = dsn_text[start:end].split("(use_via ")[1].split(")")[0]
     assigned = {p["pattern"]: p["netclass"] for p in net_settings["netclass_patterns"]}
     classes = {c["name"]: c for c in net_settings["classes"]}
+    base_um = round(classes["Default"]["clearance"] * 1000) + DSN_CLEARANCE_MARGIN_UM
     groups = {}
     for net in nets:
         groups.setdefault(assigned.get(net, "Default"), []).append(net)
     blocks = []
     for cls, members in sorted(groups.items()):
+        width_um = round(classes[cls]["track_width"] * 1000)
+        clr_um = round(classes[cls]["clearance"] * 1000) + DSN_CLEARANCE_MARGIN_UM
+        if cls == "RELAY-Power":
+            rule_body = f"        (width {width_um})\n        (clearance {clr_um})\n"
+        else:
+            rule_body = (
+                f"        (width {width_um})\n"
+                f"        (clearance {clr_um})\n"
+                f"        (clearance {base_um} (type wire_smd))\n"
+                f"        (clearance 50 (type smd_smd))\n"
+            )
         blocks.append(f'    (class {cls} {" ".join(members)}\n      (circuit\n        (use_via {via})\n      )\n'
-                      f'      (rule\n        (width {classes[cls]["track_width"] * 1000:.0f})\n'
-                      f'        (clearance {classes[cls]["clearance"] * 1000:.0f})\n      )\n    )\n')
+                      f'      (rule\n{rule_body}      )\n    )\n')
     return dsn_text[:start] + "".join(blocks) + "  )\n" + dsn_text[end:]
 
 
@@ -995,7 +1204,8 @@ def route(board_name, time_limit=600):
     # fastroute exits 0 with unrouted connections too (it writes the best board
     # so far); only a failed run exits non-zero. KiCad's DRC below decides.
     run = subprocess.run([FASTROUTE, "-de", str(dsn), "-do", str(ses), f"--max-time={time_limit}",
-                          "--no-neckdown-classes=RELAY-Power", f"--report={report}"], capture_output=True, text=True)
+                          "--router.fanout.enabled=false", "--no-neckdown-classes=RELAY-Power",
+                          f"--report={report}"], capture_output=True, text=True)
     if run.returncode or not ses.exists():
         sys.exit(f"{board_name}: fastroute failed (exit {run.returncode}):\n{(run.stdout + run.stderr)[-3000:]}")
     finished = [line for line in (run.stdout + run.stderr).splitlines() if "best board so far" in line
@@ -1034,18 +1244,51 @@ def unroute(board_name):
     print(f"{board_name}: removed {len(tracks)} tracks/vias")
 
 
+def autoplace(board_name):
+    plan = load_plan(board_name)
+    board = fresh_board(board_name)
+    apply_frame(board, plan)
+    placer.solve_board(board, plan, board_name, build_dir(board_name) / "parts.json")
+    add_pad_ties(board, plan)
+    add_pad_escapes(board, plan)
+    add_gnd_vias(board, plan)
+    save(board, plan, board_name)
+    print(f"{board_name}: saved CP-SAT placement to {stored_board_path(board_name).relative_to(REPO)}")
+
+
 def place(board_name, names):
     plan = load_plan(board_name)
     board = current_board(board_name, plan)
-    refs = place_parts(board, plan, names)
+    parts_json = build_dir(board_name) / "parts.json"
+    meta = json.loads(parts_json.read_text())
+    planned = plan.get("parts", {})
+    anchor_hits = [r for r, p in planned.items() if "x" in p and (r in names or p.get("block") in names)]
+    solver_hits = {p["ref"] for p in meta if p["ref"] not in anchor_hits
+                   and (p["ref"] in names or p.get("place") in names)}
+    known_blocks = {p.get("block") for p in planned.values()} | {p.get("place") for p in meta}
+    unknown = set(names) - set(anchor_hits) - solver_hits - known_blocks
+    if unknown:
+        sys.exit(f"unknown refs/blocks: {sorted(unknown)}")
+    if anchor_hits:
+        place_parts(board, plan, anchor_hits)
+    if solver_hits:
+        for track in list(board.GetTracks()):
+            _DETACHED.append(track)
+            board.Remove(track)
+        placer.solve_board(board, plan, board_name, parts_json, only_refs=solver_hits)
+        add_pad_ties(board, plan)
+        add_pad_escapes(board, plan)
+        add_gnd_vias(board, plan)
     save(board, plan, board_name)
-    print(f"{board_name}: placed {', '.join(refs)}")
+    print(f"{board_name}: placed {', '.join(sorted(set(anchor_hits) | solver_hits))}")
 
 
 if __name__ == "__main__":
     name, command, *args = sys.argv[1:]
     if command == "sync":
         sync(name)
+    elif command == "autoplace":
+        autoplace(name)
     elif command == "place":
         place(name, args)
     elif command == "tidy-silk":
