@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import csv
 import ctypes
+import ctypes.util
 import math
 import re
 import sys
@@ -65,7 +66,7 @@ class NgSpiceRunner:
     _instance: NgSpiceRunner | None = None
 
     def __init__(self) -> None:
-        self.lib = ctypes.CDLL("/lib/x86_64-linux-gnu/libngspice.so.0")
+        self.lib = ctypes.CDLL(ctypes.util.find_library("ngspice") or "libngspice.so.0")
         self.logs: list[str] = []
         self.exited = False
 

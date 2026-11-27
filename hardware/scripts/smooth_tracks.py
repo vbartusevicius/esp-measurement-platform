@@ -738,15 +738,13 @@ def smooth_chain(
     return cur_pts, cur_widths, changed
 
 
-def smooth_board(
+def _smooth_board_once(
     board: pcbnew.BOARD,
     plan: dict | None = None,
     *,
     tuned_nets: set[str] | None = None,
     max_tuned_reduction_mm: float = TUNED_MAX_REDUCTION_MM,
 ) -> dict[str, float]:
-    """Run DRC-safe octilinear track smoothing in-place across all non-pour nets
-    and copper layers of `board`. Returns summary stats."""
     ctx = _BoardContext(board, plan)
     tuned = tuned_nets or set()
 
@@ -853,4 +851,35 @@ def smooth_board(
         "len_before_mm": round(len_before, 2),
         "len_after_mm": round(len_after, 2),
         "len_saved_mm": round(len_before - len_after, 2),
+    }
+
+
+def smooth_board(
+    board: pcbnew.BOARD,
+    plan: dict | None = None,
+    *,
+    tuned_nets: set[str] | None = None,
+    max_tuned_reduction_mm: float = TUNED_MAX_REDUCTION_MM,
+    max_board_passes: int = 4,
+) -> dict[str, float]:
+    """Run DRC-safe octilinear track smoothing to a board-wide fixed point across
+    all non-pour nets and copper layers of `board`. Returns aggregate stats."""
+    first = _smooth_board_once(board, plan, tuned_nets=tuned_nets, max_tuned_reduction_mm=max_tuned_reduction_mm)
+    total_chains = first["chains_smoothed"]
+    segs_before = first["segs_before"]
+    len_before = first["len_before_mm"]
+    last = first
+    for _ in range(max_board_passes - 1):
+        if last["chains_smoothed"] == 0:
+            break
+        last = _smooth_board_once(board, plan, tuned_nets=tuned_nets, max_tuned_reduction_mm=max_tuned_reduction_mm)
+        total_chains += last["chains_smoothed"]
+    return {
+        "chains_smoothed": total_chains,
+        "segs_before": segs_before,
+        "segs_after": last["segs_after"],
+        "segs_removed": segs_before - last["segs_after"],
+        "len_before_mm": round(len_before, 2),
+        "len_after_mm": round(last["len_after_mm"], 2),
+        "len_saved_mm": round(len_before - last["len_after_mm"], 2),
     }
