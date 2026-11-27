@@ -44,6 +44,7 @@ REPO = Path("/work")
 sys.path.insert(0, str(REPO / "hardware/scripts"))
 sys.path.insert(0, str(REPO / "hardware/circuits"))
 import placer
+import smooth_tracks
 from product_spec import load_spec
 
 SPEC = load_spec()
@@ -1052,8 +1053,28 @@ def import_ses(board_name):
     if not pcbnew.ImportSpecctraSES(board, str(ses)):
         sys.exit("SES import failed")
     print(f"{board_name}: made {through_vias(board)} buried F.Cu-B.Cu vias through vias")
+    stats = smooth_tracks.smooth_board(board, plan)
+    print(f"{board_name}: smoothed {stats['chains_smoothed']} chains "
+          f"({stats['segs_before']} -> {stats['segs_after']} segs, -{stats['len_saved_mm']:.2f} mm)")
     save(board, plan, board_name)
     print(f"{board_name}: imported {ses.relative_to(REPO)}")
+
+
+def smooth(board_name):
+    """Run the DRC-safe octilinear track smoother on the stored board and verify
+    0 DRC errors and 0 unrouted connections."""
+    plan = load_plan(board_name)
+    path = stored_board_path(board_name)
+    board = pcbnew.LoadBoard(str(path))
+    stats = smooth_tracks.smooth_board(board, plan)
+    print(f"{board_name}: smoothed {stats['chains_smoothed']} chains "
+          f"({stats['segs_before']} -> {stats['segs_after']} segs, -{stats['len_saved_mm']:.2f} mm)")
+    save(board, plan, board_name)
+    left = unconnected(pcbnew.LoadBoard(str(path)))
+    after = drc(path, build_dir(board_name) / "drc_smoothed.json")
+    errors = [v for v in after if v["severity"] == "error"]
+    if left or errors:
+        sys.exit(f"{board_name}: smooth DRC failed ({left} unrouted, {len(errors)} errors: {by_type(errors)})")
 
 
 def seat_track_ends(board, passes=5):
@@ -1301,6 +1322,8 @@ if __name__ == "__main__":
         route(name, *(int(a) for a in args))
     elif command == "seat-joints":
         seat_joints(name)
+    elif command == "smooth":
+        smooth(name)
     elif command == "export-dsn":
         export_dsn(name)
     elif command == "import-ses":

@@ -91,12 +91,15 @@ commands as `docker compose --profile hardware run --rm eda "<command>"` (or `ca
   and non-zero only when the run itself fails.
 - fastroute gives the same session for the same DSN. A change anywhere in the exported DSN (placement, rules, locked
   tracks) can move the whole result, so compare vias and track length after rerouting.
-- After import the only fix is `through_vias`: the DSN hides the In1 plane (fastroute 0.1.14 can't route the relay's
-  THT nets with a power layer, and places no vias under a `wire_keepout`), so KiCad imports every via as buried.
-  Don't add other post-routing repairs; fix the router input instead and let DRC judge:
+- After import, `through_vias` converts buried F.Cu-B.Cu vias back to through vias (the DSN hides the In1 plane because
+  fastroute 0.1.14 can't route the relay's THT nets with a power layer and places no vias under a `wire_keepout`), and
+  `smooth_tracks.smooth_board` runs a DRC-safe octilinear (0/45/90 deg) track smoother across non-pour nets to remove
+  autorouter V-detours and micro-staircase jogs before saving and DRC verification (`layout.py <board> smooth` also runs
+  it standalone):
   - fastroute narrows tracks at pins (0.2 -> 0.15 mm signal, 0.3 -> 0.225 mm power); the DRC rules allow that, and
     the boards don't route without it. Relay tracks keep their width (`--no-neckdown-classes=RELAY-Power`).
-  - Ground is routed as an ordinary net; its extra tracks and vias to the In1 plane stay.
+  - Ground is routed as an ordinary net (with locked `add_gnd_vias` plane ties) and skipped by the smoother; its extra
+    tracks and vias to the In1 plane stay.
   - `seat_track_ends` runs on every save for tracks carried onto moved footprints; it finds nothing on a fresh route.
 - To bump fastroute, use a release at least 7 days old and update `FASTROUTE_VERSION` and `FASTROUTE_SHA256` (from the
   release's `SHA256SUMS.txt`, `linux-x64` asset), then reroute every board and release.
