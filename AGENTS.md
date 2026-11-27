@@ -77,9 +77,11 @@ commands as `docker compose --profile hardware run --rm eda "<command>"` (or `ca
   limits under raised socketed modules, and cross-face `F<->B` drill/escape shadows) minimizing weighted L1 pad-to-pad
   Manhattan wirelength with 3-4x priority on unprotected power/field-terminal entry nets (`VIN_RAW`, `VIN_FUSED`,
   `*_TERM`) and switching nodes (`BUCK5_SW`); Stage 2 freezes Stage 1 with routing-escape halos and solves 2-pin
-  passives in functional batches (`is_vert` 0/90 width/height swap via `OnlyEnforceIf`, HF input/bootstrap caps solved
-  before bulk caps) anchored to parent IC pins with global `GND`/power nets down-weighted. Before `.dsn` export,
-  `add_gnd_vias` drops locked through-vias beside SMD `GND` pads into the `In1.Cu` ground plane.
+  passives in functional batches (`is_vert` 0/90 width/height swap with full 4-orientation per-pad modeling, HF
+  input/bootstrap caps solved before bulk caps) with shared-parent pin attraction so decoupling/filter passives pull
+  directly to their parent IC's local power and ground pins, followed by `uncross_and_align_passives` (zero-courtyard
+  180-deg uncrossing and clash-free adjacent pin-pair midpoint alignment). Before `.dsn` export, `add_gnd_vias` drops
+  locked through-vias beside SMD `GND` pads into the `In1.Cu` ground plane.
 - Autorouting: `layout.py <board> route [seconds]` (default time limit 600 s) uses fastroute (`--router.fanout.enabled=false`), installed from a
   pinned release in `docker/eda/Dockerfile`. The exported `.dsn` adds a +3 um rounding margin above KiCad DRC clearance
   minimums, overriding `(type wire_smd)` back to `base_clearance + 3 um` and `(type smd_smd)` to `50 um` on SELV
